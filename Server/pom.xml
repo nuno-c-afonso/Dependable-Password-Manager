@@ -99,7 +99,7 @@
               </execution>
             </executions>
             <configuration>
-    	         <mainClass> TODO: FILL IN WITH THE CLASS TO RUN </mainClass>
+    	         <mainClass>pt.tecnico.sec.dpm.server.ServerApplication</mainClass>
                <killAfter>-1</killAfter>
             </configuration>
           </plugin>
