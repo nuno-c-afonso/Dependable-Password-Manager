@@ -1,4 +1,5 @@
-/target/
+Client/target/
+Server/target/
 .classpath
 .settings
 .project
