@@ -1,0 +1,2 @@
+# SEC
+Dependable Password Manager
