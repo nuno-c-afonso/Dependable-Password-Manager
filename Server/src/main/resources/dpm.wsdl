@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    WSDL contract for a Dependable Password Manager service
+
+    This WSDL defines the operations provided by the Web Service
+    and should not be modified.
+
+    For more information, consult sections
+    wsdl:service, wsdl:portType, wsdl:types and wsdl:binding below
+-->
+
+<!-- TODO: Change all the upa stuff!!! -->
+
+<definitions
+    xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+    xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata"
+    xmlns:tns="http://server.dpm.sec.tecnico.pt/"
+    targetNamespace="http://server.dpm.sec.tecnico.pt/" 
+    name="ServerWebService">
+
+    <!-- Data type definitions -->
+    <types>
+        <xs:schema version="1.0"
+            targetNamespace="http://server.dpm.sec.tecnico.pt/">        
+        
+            <xs:complexType name="register">
+                <xs:sequence>
+                    <xs:element name="publicKey" type="xs:string" />
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="register" type="tns:register" />
+        	
+        	<xs:complexType name="registerResponse">
+                <xs:sequence />
+            </xs:complexType>
+            <xs:element name="registerResponse" type="tns:registerResponse" />
+        	
+        	
+            <xs:complexType name="put">
+                <xs:sequence>
+                    <xs:element name="publicKey" type="xs:string" />
+                    <xs:element name="domain" type="xs:string" />
+                    <xs:element name="username" type="xs:string" />
+                    <xs:element name="password" type="xs:string" />
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="put" type="tns:put" />
+        	
+            <xs:complexType name="putResponse">
+                <xs:sequence />
+            </xs:complexType>
+            <xs:element name="putResponse" type="tns:putResponse" />
+        	
+        	
+            <xs:complexType name="get">
+                <xs:sequence>
+                    <xs:element name="publicKey" type="xs:string" />
+                    <xs:element name="domain" type="xs:string" />
+                    <xs:element name="username" type="xs:string" />
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="get" type="tns:get" />
+        
+            <xs:complexType name="getResponse">
+                <xs:sequence>
+                    <xs:element name="return" type="xs:string" />
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="getResponse" type="tns:getResponse" />
+                    
+        </xs:schema>
+    </types>
+
+
+    <!--  Messages (use elements defined in the schema) -->
+    <message name="register">
+        <part name="parameters" element="tns:register" />
+    </message>
+    <message name="registerResponse">
+        <part name="parameters" element="tns:registerResponse" />
+    </message>
+
+    <message name="put">
+        <part name="parameters" element="tns:put" />
+    </message>
+    <message name="putResponse">
+        <part name="parameters" element="tns:putResponse" />
+    </message>
+
+    <message name="get">
+        <part name="parameters" element="tns:get" />
+    </message>
+    <message name="getResponse">
+        <part name="parameters" element="tns:getResponse" />
+    </message>
+
+
+    <!-- Port Type (Interface) -->
+    <portType name="ServerPortType">
+
+        <operation name="register">
+            <input wsam:Action="http://server.dpm.sec.tecnico.pt/ServerPort/registerRequest"
+                message="tns:register" />
+            <output wsam:Action="http://server.dpm.sec.tecnico.pt/ServerPort/registerResponse"
+                message="tns:registerResponse" />
+        </operation>
+
+        <operation name="put">
+            <input
+                wsam:Action="http://server.dpm.sec.tecnico.pt/ServerPort/putRequest"
+                message="tns:put" />
+            <output
+                wsam:Action="http://server.dpm.sec.tecnico.pt/ServerPort/putResponse"
+                message="tns:putResponse" />
+        </operation>
+
+        <operation name="get">
+            <input
+                wsam:Action="http://server.dpm.sec.tecnico.pt/ServerPort/getRequest"
+                message="tns:get" />
+            <output
+                wsam:Action="http://server.dpm.sec.tecnico.pt/ServerPort/getResponse"
+                message="tns:getResponse" />
+        </operation>
+
+    </portType>
+
+    <!-- SOAP/HTTP Binding -->
+    <binding name="ServerPortSoapHttpBinding" type="tns:ServerPortType">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http"
+            style="document" />
+
+        <operation name="register">
+            <soap:operation soapAction="" />
+            <input>
+                <soap:body use="literal" />
+            </input>
+            <output>
+                <soap:body use="literal" />
+            </output>
+        </operation>
+
+        <operation name="put">
+            <soap:operation soapAction="" />
+            <input>
+                <soap:body use="literal" />
+            </input>
+            <output>
+                <soap:body use="literal" />
+            </output>
+        </operation>
+
+        <operation name="get">
+            <soap:operation soapAction="" />
+            <input>
+                <soap:body use="literal" />
+            </input>
+            <output>
+                <soap:body use="literal" />
+            </output>
+        </operation>
+        
+    </binding>
+
+    <service name="ServerService">
+        <port name="ServerPort" binding="tns:ServerPortSoapHttpBinding">
+            <soap:address location="http://host:port/server/endpoint" />
+        </port>
+    </service>
+
+</definitions>
