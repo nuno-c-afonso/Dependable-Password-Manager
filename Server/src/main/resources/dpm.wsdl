@@ -66,7 +66,7 @@
         
             <xs:complexType name="getResponse">
                 <xs:sequence>
-                    <xs:element name="return" type="tns:string" />
+                    <xs:element name="return" type="xs:string" />
                 </xs:sequence>
             </xs:complexType>
             <xs:element name="getResponse" type="tns:getResponse" />
@@ -133,7 +133,7 @@
         <soap:binding transport="http://schemas.xmlsoap.org/soap/http"
             style="document" />
 
-        <operation name="ping">
+        <operation name="register">
             <soap:operation soapAction="" />
             <input>
                 <soap:body use="literal" />
@@ -143,44 +143,7 @@
             </output>
         </operation>
 
-        <operation name="requestTransport">
-            <soap:operation soapAction="" />
-            <input>
-                <soap:body use="literal" />
-            </input>
-            <output>
-                <soap:body use="literal" />
-            </output>
-            <fault name="UnknownLocationFault">
-                <soap:fault name="UnknownLocationFault" use="literal" />
-            </fault>
-            <fault name="InvalidPriceFault">
-                <soap:fault name="InvalidPriceFault" use="literal" />
-            </fault>
-            <fault name="UnavailableTransportFault">
-                <soap:fault name="UnavailableTransportFault"
-                    use="literal" />
-            </fault>
-            <fault name="UnavailableTransportPriceFault">
-                <soap:fault name="UnavailableTransportPriceFault"
-                    use="literal" />
-            </fault>
-        </operation>
-
-        <operation name="viewTransport">
-            <soap:operation soapAction="" />
-            <input>
-                <soap:body use="literal" />
-            </input>
-            <output>
-                <soap:body use="literal" />
-            </output>
-            <fault name="UnknownTransportFault">
-                <soap:fault name="UnknownTransportFault" use="literal" />
-            </fault>
-        </operation>
-
-        <operation name="listTransports">
+        <operation name="put">
             <soap:operation soapAction="" />
             <input>
                 <soap:body use="literal" />
@@ -190,7 +153,7 @@
             </output>
         </operation>
 
-        <operation name="clearTransports">
+        <operation name="get">
             <soap:operation soapAction="" />
             <input>
                 <soap:body use="literal" />
@@ -199,11 +162,12 @@
                 <soap:body use="literal" />
             </output>
         </operation>
+        
     </binding>
 
-    <service name="BrokerService">
-        <port name="BrokerPort" binding="tns:BrokerPortSoapHttpBinding">
-            <soap:address location="http://host:port/broker-ws/endpoint" />
+    <service name="ServerService">
+        <port name="ServerPort" binding="tns:ServerPortSoapHttpBinding">
+            <soap:address location="http://host:port/server/endpoint" />
         </port>
     </service>
 

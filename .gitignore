@@ -6,4 +6,4 @@ target/
 .save
 *.key
 *.cert
-
+bin/
