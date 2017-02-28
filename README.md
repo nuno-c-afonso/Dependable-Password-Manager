@@ -11,8 +11,8 @@ Dependable Password Manager
 4. Confirm the installation by running in a new shell: mvn -v .
 
 #MySQL
-* This installation was done on a Ubuntu-based machine.
-* The root's password is: secroot2017.
+* This installation was done on an Ubuntu-based machine.
+* The root's password is: **secroot2017**.
 
 1. Run: sudo apt-get update.
 2. Run: sudo apt-get install mysql-server.
