@@ -10,3 +10,9 @@ cd ..
 sudo apt-get update
 sudo apt-get install mysql-server
 sudo mysql_secure_installation
+
+# jUDDI
+cd Tools
+unzip juddi-3.3.2_tomcat-7.0.64_9090.zip 'juddi-3.3.2_tomcat-7.0.64_9090/*' -d $HOME
+chmod +x $HOME/juddi-3.3.2_tomcat-7.0.64_9090/bin/*.sh
+cd ..
