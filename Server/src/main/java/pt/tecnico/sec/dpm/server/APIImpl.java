@@ -49,12 +49,11 @@ public class APIImpl implements API {
 	// TODO: Throw the exception instead, but create a package for all the exceptions on the server side!!!
 	
 	
-	// To make a DB query
-	private ResultSet query(String q) {
-		Statement stmt = null;
+	// To make a DB select query
+	private ResultSet select(String q) {
 		ResultSet res = null;
 		try {
-			stmt = conn.createStatement();
+			Statement stmt = conn.createStatement();
 			res = stmt.executeQuery(q);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -62,5 +61,21 @@ public class APIImpl implements API {
 		}
 		
 		return res;
+	}
+	
+	// To insert data into the tables
+	private void insert(String q) {		
+		try {
+			Statement stmt = conn.createStatement();
+			stmt.executeUpdate(q);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	// To update table records
+	private void update(String q) {		
+		insert(q);
 	}
 }
