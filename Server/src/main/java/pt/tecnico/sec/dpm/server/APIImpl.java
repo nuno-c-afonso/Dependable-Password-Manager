@@ -51,6 +51,7 @@ public class APIImpl implements API {
 	
 	// To make a DB select query
 	private ResultSet select(String q) {
+		//TODO: Check the variable q form SQLi
 		ResultSet res = null;
 		try {
 			Statement stmt = conn.createStatement();
@@ -64,7 +65,8 @@ public class APIImpl implements API {
 	}
 	
 	// To insert data into the tables
-	private void insert(String q) {		
+	private void insert(String q) {
+		//TODO: Check the variable q form SQLi		
 		try {
 			Statement stmt = conn.createStatement();
 			stmt.executeUpdate(q);
