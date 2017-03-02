@@ -12,10 +12,14 @@ import static org.junit.Assert.*;
  *  Invoked by Maven in the "test" life-cycle phase
  *  If necessary, should invoke "mock" remote servers
  */
-public class RegisterTest {
+public class PutTest {
 
     // static members
 	final private byte[] PUBLICKEY = "PUBLICKEY".getBytes();
+	final private byte[] USERNAME = "SECUSER".getBytes();
+	final private byte[] PASSWORD = "SECPASSWORD".getBytes();
+	final private byte[] DOMAIN = "SECDOMAIN.com".getBytes();
+	
 	private static APIImpl APIImplTest;
 	//DBManager
 
@@ -24,8 +28,8 @@ public class RegisterTest {
 
     @BeforeClass
     public static void oneTimeSetUp() {
-    	APIImplTest = new APIImpl(); 
-    	//instaciate DBMAnager
+    	APIImplTest = new APIImpl();
+    	//initialize DBMAnager
 
     }
 
@@ -49,13 +53,12 @@ public class RegisterTest {
     public void tearDown() {
     }
 
-
     // tests
-    //Verifies if the the Register function is working correctly
+    //Verifies if the the Put function is working correctly
     @Test
-    public void correctRegister() {
+    public void correctPut() {
     	//call function to register
-    	APIImplTest.register(PUBLICKEY);
+    	APIImplTest.put(PUBLICKEY,DOMAIN, USERNAME, PASSWORD);
     	//after the return get the result from the DATABASE
     	
     	//do the assert with the expected result and the result gathered from the database
@@ -69,12 +72,5 @@ public class RegisterTest {
     	
         // assertEquals(expected, actual);
         // if the assert fails, the test fails
-    }
-    
-    
-    @Test(expected = PublicKeyInUseExeception.class)
-    public void registerTwicePublicKey() {
-    	APIImplTest.register(PUBLICKEY);
-    	APIImplTest.register(PUBLICKEY);    	
     }
 }

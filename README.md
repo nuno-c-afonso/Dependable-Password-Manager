@@ -18,7 +18,8 @@ Dependable Password Manager
 2. Run: sudo apt-get install mysql-server;
 3. Run: sudo mysql_secure_installation;
 4. To confirm the installation, run: service mysql status;
-5. To login as root, run: mysql -u root -p.
+5. To login as root, run: mysql -u root -p;
+6. On MySQL server, run: CREATE USER 'sec_dpm'@'localhost' IDENTIFIED BY 'sec_dpm';
 
 ##jUDDI
 1. Go to Proj-SEC16-17/Tools;
@@ -27,4 +28,5 @@ Dependable Password Manager
 4. To startup, run: $HOME/juddi-3.3.2_tomcat-7.0.64_9090/bin/startup.sh.
 
 #Server
+* To start jUDDI, run: $HOME/juddi-3.3.2_tomcat-7.0.64_9090/bin/startup.sh;
 * To start the server, run: mvn compile exec:java -Dexec.args="http://localhost:9090 API http://localhost:8080/ws.API/endpoint".
