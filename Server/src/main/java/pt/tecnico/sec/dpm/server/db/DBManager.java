@@ -30,7 +30,7 @@ public class DBManager {
 	
 	
 	// To make a DB select query
-	private ResultSet select(String q) {
+	public ResultSet select(String q) {
 		ResultSet res = null;
 		try {
 			Statement stmt = conn.createStatement();
@@ -43,7 +43,7 @@ public class DBManager {
 	}
 		
 	// To insert data into the tables
-	private void insert(String q) {		
+	public void insert(String q) {		
 		try {
 			Statement stmt = conn.createStatement();
 			stmt.executeUpdate(q);
@@ -54,7 +54,7 @@ public class DBManager {
 	}
 	
 	// To update table records
-	private void update(String q) {		
+	public void update(String q) {		
 		insert(q);
 	}
 }
