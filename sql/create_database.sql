@@ -20,3 +20,8 @@ CREATE TABLE passwords(
 		REFERENCES users(id)
 		ON DELETE CASCADE
 );
+
+CREATE USER 'dpm_account'@'localhost' IDENTIFIED BY 'FDvlalaland129&&';
+
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm.users TO 'dpm_account'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm.passwords TO 'dpm_account'@'localhost';
