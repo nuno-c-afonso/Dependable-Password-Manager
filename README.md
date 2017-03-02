@@ -18,7 +18,8 @@ Dependable Password Manager
 2. Run: sudo apt-get install mysql-server;
 3. Run: sudo mysql_secure_installation;
 4. To confirm the installation, run: service mysql status;
-5. To login as root, run: mysql -u root -p.
+5. To login as root, run: mysql -u root -p;
+6. On MySQL server, run: CREATE USER 'sec_dpm'@'localhost' IDENTIFIED BY 'sec_dpm';
 
 ##jUDDI
 1. Go to Proj-SEC16-17/Tools;
