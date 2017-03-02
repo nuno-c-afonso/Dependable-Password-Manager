@@ -27,4 +27,5 @@ Dependable Password Manager
 4. To startup, run: $HOME/juddi-3.3.2_tomcat-7.0.64_9090/bin/startup.sh.
 
 #Server
+* To start jUDDI, run: $HOME/juddi-3.3.2_tomcat-7.0.64_9090/bin/startup.sh;
 * To start the server, run: mvn compile exec:java -Dexec.args="http://localhost:9090 API http://localhost:8080/ws.API/endpoint".
