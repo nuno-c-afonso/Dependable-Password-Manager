@@ -10,6 +10,9 @@ cd ..
 sudo apt-get update
 sudo apt-get install mysql-server
 sudo mysql_secure_installation
+cd SQL
+mysql -u root -p < create_database.sql
+cd ..
 
 # jUDDI
 cd Tools

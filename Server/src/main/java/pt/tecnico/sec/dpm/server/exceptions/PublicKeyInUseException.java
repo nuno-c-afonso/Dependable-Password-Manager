@@ -1,5 +1,5 @@
 package pt.tecnico.sec.dpm.server.exceptions;
 
-public class PublicKeyInUseExeception extends Exception{
+public class PublicKeyInUseException extends Exception{
 	//TODO
 }
