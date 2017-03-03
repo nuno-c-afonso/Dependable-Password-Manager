@@ -13,7 +13,9 @@ public class ServerApplication {
 			System.err.printf("Usage: java %s uddiURL wsName wsURL%n", ServerApplication.class.getName());
 			return;
 		}
-
+		
+		APIImpl service = new APIImpl();
+		
 		String uddiURL = args[0];
 		String name = args[1];
 		String url = args[2];
@@ -21,7 +23,7 @@ public class ServerApplication {
 		Endpoint endpoint = null;
 		UDDINaming uddiNaming = null;
 		try {
-			endpoint = Endpoint.create(new APIImpl());
+			endpoint = Endpoint.create(service);
 
 			// publish endpoint
 			System.out.printf("Starting %s%n", url);
@@ -46,6 +48,7 @@ public class ServerApplication {
 				if (endpoint != null) {
 					// stop endpoint
 					endpoint.stop();
+					service.close();
 					System.out.printf("Stopped %s%n", url);
 				}
 			} catch (Exception e) {

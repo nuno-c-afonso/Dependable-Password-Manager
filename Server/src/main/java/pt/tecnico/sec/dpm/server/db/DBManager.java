@@ -2,10 +2,13 @@ package pt.tecnico.sec.dpm.server.db;
 
 import java.sql.*;
 
+import pt.tecnico.sec.dpm.server.exceptions.*;
+
 public class DBManager {
 	private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
 	
 	private Connection conn = null;
+	private ResultSet res = null;
 	
 	public DBManager(String url, String username, String password) {
 		// Register driver
@@ -27,12 +30,20 @@ public class DBManager {
 	
 	
 	// TODO: Throw the exception instead, but create a package for all the exceptions on the server side!!!
+	// TODO: Be careful with SQLi!!!
 	
 	
 	// To make a DB select query
-	public ResultSet select(String q) {
-		ResultSet res = null;
+	public ResultSet select(String q) throws ConnectionClosedException {
+		if(conn == null)
+			throw new ConnectionClosedException();
+		
 		try {
+			if(res != null) {
+				res.close();
+				res = null;
+			}
+			
 			Statement stmt = conn.createStatement();
 			res = stmt.executeQuery(q);
 		} catch (SQLException e) {
@@ -42,8 +53,11 @@ public class DBManager {
 		return res;
 	}
 		
-	// To insert data into the tables
-	public void insert(String q) {		
+	// To insert or update data into the tables
+	public void update(String q) throws ConnectionClosedException {		
+		if(conn == null)
+			throw new ConnectionClosedException();
+		
 		try {
 			Statement stmt = conn.createStatement();
 			stmt.executeUpdate(q);
@@ -53,8 +67,18 @@ public class DBManager {
 		}
 	}
 	
-	// To update table records
-	public void update(String q) {		
-		insert(q);
+	// To free all resources
+	public void close() {
+		try {
+			if(conn != null)
+				conn.close();
+			if(res != null)
+				res.close();
+			
+			conn = null;
+			res = null;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 }

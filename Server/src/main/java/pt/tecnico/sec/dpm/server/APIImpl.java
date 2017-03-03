@@ -29,4 +29,8 @@ public class APIImpl implements API {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	public void close() {
+		dbMan.close();
+	}
 }

@@ -2,7 +2,7 @@ package pt.tecnico.sec.dpm.server;
 
 import org.junit.*;
 
-import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseExeception;
+import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
 
 import static org.junit.Assert.*;
 
@@ -72,7 +72,7 @@ public class RegisterTest {
     }
     
     
-    @Test(expected = PublicKeyInUseExeception.class)
+    @Test(expected = PublicKeyInUseException.class)
     public void registerTwicePublicKey() {
     	APIImplTest.register(PUBLICKEY);
     	APIImplTest.register(PUBLICKEY);    	
