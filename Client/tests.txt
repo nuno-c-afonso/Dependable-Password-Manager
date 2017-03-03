@@ -1,0 +1,23 @@
+init(Keystore ks)/init(Keystore ks,String key):
+-correctOperation
+-KeystoreNotOK
+-KeystoreNeedKeyButDontReceived
+-wroungKey
+
+register_user():
+-correctOperation
+-NotInitialized
+-noConnection
+-alreadyRegisted
+
+save_password(byte[] domain, byte[] username, byte[] password):
+-correctOperation
+-NotInitialized
+-noConnection
+
+retrieve_password(byte[] domain, byte[] username, byte[] password):
+-correctOperation
+-NotInitialized
+-noConnection
+-notExisting
+
