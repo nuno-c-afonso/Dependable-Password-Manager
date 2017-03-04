@@ -1,6 +1,7 @@
 package pt.tecnico.sec.dpm.server.db;
 
 import java.sql.*;
+import java.util.List;
 
 import pt.tecnico.sec.dpm.server.exceptions.*;
 
@@ -10,7 +11,7 @@ public class DBManager {
 	private Connection conn = null;
 	private ResultSet res = null;
 	
-	public DBManager(String url, String username, String password) {
+	protected DBManager(String url, String username, String password) {
 		// Register driver
 		try {
 			Class.forName(JDBC_DRIVER);
@@ -28,13 +29,14 @@ public class DBManager {
 		}
 	}
 	
+	protected Connection getConnection() { return conn; }
 	
 	// TODO: Throw the exception instead, but create a package for all the exceptions on the server side!!!
 	// TODO: Be careful with SQLi!!!
 	
 	
 	// To make a DB select query
-	public ResultSet select(String q) throws ConnectionClosedException {
+	protected ResultSet select(PreparedStatement p) throws ConnectionClosedException, NoResultException {
 		if(conn == null)
 			throw new ConnectionClosedException();
 		
@@ -44,8 +46,11 @@ public class DBManager {
 				res = null;
 			}
 			
-			Statement stmt = conn.createStatement();
-			res = stmt.executeQuery(q);
+			if (p.execute())
+				res = p.getResultSet();
+			else
+				throw new NoResultException();
+			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -54,13 +59,12 @@ public class DBManager {
 	}
 		
 	// To insert or update data into the tables
-	public void update(String q) throws ConnectionClosedException {		
+	protected void update(PreparedStatement p) throws ConnectionClosedException {		
 		if(conn == null)
 			throw new ConnectionClosedException();
 		
 		try {
-			Statement stmt = conn.createStatement();
-			stmt.executeUpdate(q);
+			p.executeUpdate();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
