@@ -14,6 +14,13 @@ public class ServerApplication {
 			return;
 		}*/
 		
+		// Check arguments
+		if (args.length == 0) {
+			System.err.println("Argument missing!");
+			System.err.printf("Usage: java %s wsURL%n", ServerApplication.class.getName());
+			return;
+		}
+		
 		APIImpl service = new APIImpl();
 		
 		//String uddiURL = args[0];
