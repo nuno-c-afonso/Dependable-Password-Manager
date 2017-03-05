@@ -45,15 +45,47 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Inserts/updates a password in the DB
-	public void put(byte[] pubKey, byte[] domain, byte[] username, byte[] password) {
-		//TODO
+	public void put(byte[] pubKey, byte[] domain, byte[] username, byte[] password) throws ConnectionClosedException, NoPublicKeyException {
+		String getUserID = "SELECT id FROM users WHERE publickey=?";
+		
+		String in = "INSERT INTO passwords(userID, domain, username, password) "
+				  + "VALUES ((" + getUserID + "),?, ?, ?)";
+		
+		String up = "UPDATE passwords "
+				  + "SET password=? "
+				  + "WHERE userID=(" + getUserID + ") AND domain=? AND username=?";
+		
+		ArrayList<byte[]> lst = toArrayList(pubKey);
+		try {
+			checkUser(lst);
+			throw new NoPublicKeyException();
+		} catch(PublicKeyInUseException pkiue) {
+			// Continues execution
+		} catch(SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+		
+		try {
+			lst = toArrayList(password, pubKey, domain, username);
+			PreparedStatement p = createStatement(up, lst);
+			if(update(p) == 0) {
+				lst = toArrayList(pubKey, domain, username, password);
+				p = createStatement(in, lst);
+				update(p);
+			}
+		} catch(SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	// Retrieves the password from the DB
 	// TODO: Must have some security checks, to prevent unauthorized access!!!
 	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException, NoResultException {
-		String q = "SELECT p.password"
-				 + "FROM users AS u, passwords AS p"
+		String q = "SELECT p.password "
+				 + "FROM users AS u, passwords AS p "
 				 + "WHERE u.publickey=? AND u.id = p.userID AND domain=? AND username=?";
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username);

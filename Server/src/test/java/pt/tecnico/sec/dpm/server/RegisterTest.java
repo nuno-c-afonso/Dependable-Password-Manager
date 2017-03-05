@@ -3,8 +3,12 @@ package pt.tecnico.sec.dpm.server;
 import org.junit.*;
 
 import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
+import pt.tecnico.sec.dpm.server.db.*;
 
 import static org.junit.Assert.*;
+
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 
 /**
  *  Unit Test example
@@ -15,26 +19,23 @@ import static org.junit.Assert.*;
 public class RegisterTest {
 
     // static members
-	final private byte[] PUBLICKEY = "PUBLICKEY".getBytes();
+	private static byte[] publicKey;
 	private static APIImpl APIImplTest;
-	//DBManager
+	private static DBManager DB;
 
 
     // one-time initialization and clean-up
 
     @BeforeClass
     public static void oneTimeSetUp() {
-    	APIImplTest = new APIImpl(); 
-    	//instaciate DBMAnager
-
+    	APIImplTest = new APIImpl();
+    	DB = new DPMDB();       
     }
 
     @AfterClass
     public static void oneTimeTearDown() {
-    	//close DBManager
-
+    	DB.close();
     }
-
 
     // members
 
@@ -42,7 +43,10 @@ public class RegisterTest {
     // initialization and clean-up for each test
 
     @Before
-    public void setUp() {
+    public void setUp() throws NoSuchAlgorithmException {
+    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        publicKey = keyGen.genKeyPair().getPublic().getEncoded(); 
     }
 
     @After
@@ -52,29 +56,17 @@ public class RegisterTest {
 
     // tests
     //Verifies if the the Register function is working correctly
-    @Test
+    @Test(expected = PublicKeyInUseException.class)
     public void correctRegister() {
     	//call function to register
-    	APIImplTest.register(PUBLICKEY);
-    	//after the return get the result from the DATABASE
-    	
-    	//do the assert with the expected result and the result gathered from the database
-    	int queryResult = 0;
-    	byte[] actualPublicKey;
-    	
-    	
-		assertEquals(1,queryResult);
-		assertEquals(PUBLICKEY, actualPublicKey);
-    	
-    	
-        // assertEquals(expected, actual);
-        // if the assert fails, the test fails
+    	APIImplTest.register(publicKey);
     }
     
     
     @Test(expected = PublicKeyInUseException.class)
     public void registerTwicePublicKey() {
-    	APIImplTest.register(PUBLICKEY);
-    	APIImplTest.register(PUBLICKEY);    	
+    	//Try to register Same user twice
+    	APIImplTest.register(publicKey);
+    	APIImplTest.register(publicKey);    	
     }
 }

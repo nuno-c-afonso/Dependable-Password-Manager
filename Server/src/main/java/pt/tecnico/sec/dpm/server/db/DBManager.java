@@ -1,8 +1,6 @@
 package pt.tecnico.sec.dpm.server.db;
 
 import java.sql.*;
-import java.util.List;
-
 import pt.tecnico.sec.dpm.server.exceptions.*;
 
 public class DBManager {
@@ -59,16 +57,20 @@ public class DBManager {
 	}
 		
 	// To insert or update data into the tables
-	protected void update(PreparedStatement p) throws ConnectionClosedException {		
+	// Returned values: -1 (error), 0 (returned nothing), others (operation successful)
+	protected int update(PreparedStatement p) throws ConnectionClosedException {		
+		int status = -1;
 		if(conn == null)
 			throw new ConnectionClosedException();
 		
 		try {
-			p.executeUpdate();
+			status = p.executeUpdate();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		return status;
 	}
 	
 	// To free all resources
