@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
  *  Invoked by Maven in the "test" life-cycle phase
  *  If necessary, should invoke "mock" remote servers
  */
-public class ExampleTest {
+public class InitTest {
 
     // static members
 

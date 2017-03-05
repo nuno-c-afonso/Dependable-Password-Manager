@@ -1,7 +1,15 @@
 package pt.tecnico.sec.dpm.client;
 import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+
+import javax.crypto.SecretKey;
 
 public class DpmClient {
+	
+	public static PublicKey publicKey = null;
+	public static PrivateKey privateKey = null;
+	public static SecretKey symmetricKey = null;
 
 	public void init(KeyStore keystore ){
 		//TODO
