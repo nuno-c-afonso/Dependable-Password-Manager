@@ -1,6 +1,11 @@
 package pt.tecnico.sec.dpm.server;
 
 import pt.tecnico.sec.dpm.server.db.*;
+import pt.tecnico.sec.dpm.server.exceptions.ConnectionClosedException;
+import pt.tecnico.sec.dpm.server.exceptions.NoPasswordException;
+import pt.tecnico.sec.dpm.server.exceptions.NoPublicKeyException;
+import pt.tecnico.sec.dpm.server.exceptions.NoResultException;
+import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
 
 import javax.jws.WebService;
 
@@ -13,21 +18,40 @@ public class APIImpl implements API {
 	}
 	
 	@Override
-	public void register(byte[] publicKey) {
-		// TODO Auto-generated method stub
-		
+	public void register(byte[] publicKey) throws PublicKeyInUseException {
+		try {
+			dbMan.register(publicKey);
+		} catch (ConnectionClosedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
 	}
 
 	@Override
-	public void put(byte[] publicKey, byte[] domain, byte[] username, byte[] password) {
-		// TODO Auto-generated method stub
-		
+	public void put(byte[] publicKey, byte[] domain, byte[] username, byte[] password) throws NoPublicKeyException {
+		try {
+			dbMan.put(publicKey, domain, username, password);
+		} catch (ConnectionClosedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override
-	public byte[] get(byte[] publicKey, byte[] domain, byte[] username) {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] get(byte[] publicKey, byte[] domain, byte[] username) throws NoPasswordException {
+		byte[] res = null;
+		
+		try {
+			res = dbMan.get(publicKey, domain, username);
+		} catch (NoResultException nre) {
+			throw new NoPasswordException();
+		} catch (ConnectionClosedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// TODO: Sometimes this will return null!!!
+		return res;
 	}
 	
 	public void close() {
