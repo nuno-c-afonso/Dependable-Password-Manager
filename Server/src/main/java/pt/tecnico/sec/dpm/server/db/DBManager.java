@@ -79,22 +79,8 @@ public class DBManager {
 			
 			conn = null;
 			res = null;
-			/*
-			Driver d = DriverManager.getDrivers().nextElement();
-			DriverManager.deregisterDriver(d);
-			*/
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		/*
-		boolean exc = false;
-		Enumeration<Driver> drivers = DriverManager.getDrivers();
-		while(!exc) {
-			try {
-				System.out.println(drivers.nextElement());
-			} catch(NoSuchElementException e) {
-				exc = true;
-			}
-		}*/
 	}
 }
