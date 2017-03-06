@@ -42,11 +42,8 @@ public class DBManager {
 			}
 			
 			res = p.executeQuery();
-			if(!res.next())
+			if(!res.isBeforeFirst())
 				throw new NoResultException();
-			
-			// Resets the results
-			res.previous();
 			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
