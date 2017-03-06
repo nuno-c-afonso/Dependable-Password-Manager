@@ -11,12 +11,10 @@ public class DpmClient {
 	public static PrivateKey privateKey = null;
 	public static SecretKey symmetricKey = null;
 
-	public void init(KeyStore keystore ){
-		//TODO
-	}
+
 	
 	
-	public void init(KeyStore keystore, char[] password ){
+	public void init(KeyStore keystore, char[] passwordKeystore, char[] passworKeys ){
 		//TODO
 	}
 	
