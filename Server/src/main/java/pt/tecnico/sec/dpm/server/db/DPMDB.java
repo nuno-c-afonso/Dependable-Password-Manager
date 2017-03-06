@@ -127,7 +127,7 @@ public class DPMDB extends DBManager {
 		PreparedStatement p = getConnection().prepareStatement(q);
 		
 		for(int i = 1; i <= size; i++)
-			p.setBytes(i, recv.get(i));
+			p.setBytes(i, recv.get(i - 1));
 		
 		return p;
 	}
