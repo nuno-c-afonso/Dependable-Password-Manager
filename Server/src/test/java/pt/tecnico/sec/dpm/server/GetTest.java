@@ -2,23 +2,17 @@ package pt.tecnico.sec.dpm.server;
 
 import org.junit.*;
 
-import com.mysql.cj.api.jdbc.Statement;
-
-import pt.tecnico.sec.dpm.server.db.DPMDB;
 import pt.tecnico.sec.dpm.server.exceptions.*;
 
 import static org.junit.Assert.*;
 
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  *  Unit Test Get
@@ -137,35 +131,12 @@ public class GetTest {
     }
 
     // tests
-    //Verifies if the the Put function is working correctly
+    //Verifies if the the Get function is working correctly
     @Test
     public void correctGet() throws NoPasswordException {
     	//call function to get
     	byte[] password = APIImplTest.get(publicKey, DOMAIN, USERNAME);
-    	/*
-    	String queryGetPassword = "SELECT password "
-	              + "FROM passwords "
-	              + "WHERE userID = ? "
-	              + "AND username = ? "
-	              + "AND domain = ?";
-    	
-    	PreparedStatement p = null;
-    	byte [] retrivedPassword = null;
-    	try {
-			p = conn.prepareStatement(queryGetPassword);
-			p.setInt(1, userId);
-	    	p.setBytes(2, DOMAIN);
-	    	p.setBytes(3, USERNAME);
-	    	p.execute();
-	    	ResultSet rs = p.getResultSet();
-	    	rs.next();
-	    	retrivedPassword= rs.getBytes("password");
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	assert (password.equals(retrivedPassword));
-    	*/
     	assert(password != null);
+    	assertArrayEquals(password, PASSWORD);
     }
 }
