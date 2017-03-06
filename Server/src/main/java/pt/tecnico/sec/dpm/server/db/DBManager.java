@@ -30,7 +30,6 @@ public class DBManager {
 	protected Connection getConnection() { return conn; }
 	
 	// TODO: Throw the exception instead, but create a package for all the exceptions on the server side!!!
-	// TODO: Be careful with SQLi!!!
 	
 	
 	// To make a DB select query
@@ -71,6 +70,39 @@ public class DBManager {
 		}
 		
 		return status;
+	}
+	
+	// To acquire locks on the desired tables
+	// NOTE: To be used only with controlled args, must NOT have user input!!!
+	protected void lock(String... strs) {
+		String q = "LOCK TABLES " + strs[0] + " " + strs[1];
+		int size = strs.length;
+		
+		for(int i = 2; i < size; i += 2)
+			q += "; " + strs[i] + " " + strs[i + 1];
+		
+		try {
+			Statement stmt;
+			stmt = conn.createStatement();
+			stmt.execute(q);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	// To release all locked tables
+	protected void unlock() {
+		String q = "UNLOCK TABLES";
+		
+		try {
+			Statement stmt;
+			stmt = conn.createStatement();
+			stmt.execute(q);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	// To free all resources

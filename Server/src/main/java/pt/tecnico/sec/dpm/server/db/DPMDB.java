@@ -17,19 +17,25 @@ public class DPMDB extends DBManager {
 		super(DB_URL, USER, PASS);
 	}
 	
-	// Registers the users only when pubKey is new FIXME: BEWARE OF CONCURRENT UPDATES!!!
+	// Registers the users only when pubKey is new
 	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException {
 		String q = "INSERT INTO users (publickey) VALUES (?)";
 		ArrayList<byte[]> lst = toArrayList(pubKey);
 		
-		try {			
+		try {
+			lock("users", "WRITE");
 			checkUser(lst);
 			PreparedStatement p = createStatement(q, lst);
 			update(p);
+		} catch (PublicKeyInUseException pkiue) {
+			unlock();
+			throw new PublicKeyInUseException();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		unlock();
 	}
 	
 	// Checks if a user is already registered
@@ -56,14 +62,18 @@ public class DPMDB extends DBManager {
 				  + "WHERE userID=(" + getUserID + ") AND domain=? AND username=?";
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
+		
+		lock("users", "READ", "passwords", "WRITE");
 		try {
 			checkUser(lst);
+			unlock();
 			throw new NoPublicKeyException();
 		} catch(PublicKeyInUseException pkiue) {
 			// Continues execution
 		} catch(SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			unlock();
 			return;
 		}
 		
@@ -79,6 +89,8 @@ public class DPMDB extends DBManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		unlock();
 	}
 	
 	// Retrieves the password from the DB
