@@ -7,9 +7,9 @@ import javax.crypto.SecretKey;
 
 public class DpmClient {
 	
-	public static PublicKey publicKey = null;
-	public static PrivateKey privateKey = null;
-	public static SecretKey symmetricKey = null;
+	public PublicKey publicKey = null;
+	public PrivateKey privateKey = null;
+	public SecretKey symmetricKey = null;
 
 
 	

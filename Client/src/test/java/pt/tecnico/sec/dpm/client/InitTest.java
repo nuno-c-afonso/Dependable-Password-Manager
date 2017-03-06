@@ -158,6 +158,7 @@ public class InitTest {
 
     @After
     public void tearDown() {
+    	client = null;
     }
 
 
@@ -167,13 +168,15 @@ public class InitTest {
     public void CorrectExecution() {
     	client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
     	
+    		
+    	assertNotNull(client.privateKey);
+    	assertNotNull(client.publicKey);
+    	assertNotNull(client.symmetricKey);
     	
-    	assertEquals(privateKey, client.privateKey);
-    	assertEquals(publicKey, client.publicKey);
-    	assertEquals(symmetricKey, client.symmetricKey);
-    	//assertEquals(symmetricKey.getEncoded(), client.symmetricKey.getEncoded());
-        //assertEquals(expected, actual);
-        // if the assert fails, the test fails
+    	assertArrayEquals(privateKey.getEncoded(), client.privateKey.getEncoded());
+    	assertArrayEquals(publicKey.getEncoded(), client.publicKey.getEncoded());
+    	assertArrayEquals(symmetricKey.getEncoded(), client.symmetricKey.getEncoded());
+
     }
     
     @Test(expected = AlreadyInitializedException.class)
