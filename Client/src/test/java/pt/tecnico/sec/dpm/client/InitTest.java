@@ -19,7 +19,8 @@ import java.security.cert.CertificateException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import pt.tecnico.sec.dpm.client.DpmClient;
-import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
+import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.WroungPasswordException;
 
 import java.util.Base64;
 import java.util.Base64.Encoder;
@@ -35,12 +36,9 @@ import java.util.Enumeration;
 public class InitTest {
 
     // static members
-	public static PublicKey publicKey = null;
-	
+	public static PublicKey publicKey = null;	
 	public static PrivateKey privateKey = null;
-	public static SecretKey symmetricKey = null;
-	public static KeyPairGenerator keyGenRSA = null;//TODO see the statics
-	public static KeyGenerator keyGenAES = null;
+	public static SecretKey symmetricKey = null;	
 	public static DpmClient client = null;
 	public static KeyStore keystore = null; 
     // one-time initialization and clean-up
@@ -83,6 +81,7 @@ public class InitTest {
 		
 		
 		if (symmetricKey == null){
+			KeyGenerator keyGenAES = null;
 			try{
 	    		keyGenAES = KeyGenerator.getInstance("AES");
 	    	}catch(NoSuchAlgorithmException e){System.out.print(e.getMessage());}
@@ -177,11 +176,21 @@ public class InitTest {
         // if the assert fails, the test fails
     }
     
-   /* @Test(expected = Exception.class)
-    public void correctRegister() {
-    	client.init(keystore, "wroung".toCharArray(),"wroung2".toCharArray());
-    }*/
+    @Test(expected = AlreadyInitializedException.class)
+    public void doubleRegister() {
+    	client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
+    	client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
+    }
     
     
+    @Test(expected = WroungPasswordException.class)
+    public void wroungPassword1() {
+    	client.init(keystore, "wroung".toCharArray(),"1nsecure".toCharArray());    	
+    }
+    
+    @Test(expected = WroungPasswordException.class)
+    public void wroungPassword2() {
+    	client.init(keystore, "ins3cur3".toCharArray(),"wroung".toCharArray());    	
+    }
 
 }
