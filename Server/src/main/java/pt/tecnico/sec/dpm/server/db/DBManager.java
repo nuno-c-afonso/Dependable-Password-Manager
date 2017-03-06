@@ -41,10 +41,12 @@ public class DBManager {
 				res = null;
 			}
 			
-			if (p.execute())
-				res = p.getResultSet();
-			else
+			res = p.executeQuery();
+			if(!res.next())
 				throw new NoResultException();
+			
+			// Resets the results
+			res.previous();
 			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
