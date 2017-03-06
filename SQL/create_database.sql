@@ -1,6 +1,10 @@
 /*IF EXISTS (SELECT * FROM sys.databases WHERE name='sec_dpm')*/
 DROP DATABASE IF EXISTS sec_dpm;
 
+-- Deletes the existing dpm_account user
+GRANT USAGE ON *.* TO 'dpm_account'@'localhost';
+DROP USER 'dpm_account'@'localhost';
+
 CREATE DATABASE sec_dpm;
 USE sec_dpm;
 
@@ -25,3 +29,6 @@ CREATE USER 'dpm_account'@'localhost' IDENTIFIED BY 'FDvlalaland129&&';
 
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.users TO 'dpm_account'@'localhost';
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.passwords TO 'dpm_account'@'localhost';
+
+-- Will only work on tables with SELECT privilege
+GRANT LOCK TABLES ON * TO 'dpm_account'@'localhost';
