@@ -12,7 +12,7 @@ public class DBManager {
 	protected DBManager(String url, String username, String password) {
 		// Register driver
 		try {
-			Class.forName(JDBC_DRIVER);
+			Class.forName(JDBC_DRIVER, false, this.getClass().getClassLoader());
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -28,9 +28,7 @@ public class DBManager {
 	}
 	
 	protected Connection getConnection() { return conn; }
-	
-	// TODO: Throw the exception instead, but create a package for all the exceptions on the server side!!!
-	
+
 	
 	// To make a DB select query
 	protected ResultSet select(PreparedStatement p) throws ConnectionClosedException, NoResultException {
