@@ -42,7 +42,7 @@ public class DBManager {
 			}
 			
 			res = p.executeQuery();
-			if(!res.isBeforeFirst())
+			if(!res.next())
 				throw new NoResultException();
 			
 		} catch (SQLException e) {
