@@ -11,10 +11,14 @@ import static org.junit.Assert.*;
 
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *  Unit Test Get
@@ -27,7 +31,9 @@ public class GetTest {
     // static members
 	//User information
 	private static byte[] publicKey;
+	private int userId;
 	final private byte[] USERNAME = "SECUSER".getBytes();
+	final private byte[] PASSWORD = "SECPASSWORD".getBytes();
 	final private byte[] DOMAIN = "SECDOMAIN.com".getBytes();
 	
 	//Server API
@@ -84,6 +90,46 @@ public class GetTest {
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         publicKey = keyGen.genKeyPair().getPublic().getEncoded();
+
+    	
+    	
+    	String queryInsertUser = "INSERT INTO users (publickey) "
+    			               + "VALUES (?)";
+    	String queryInsertPassword = "INSERT INTO passwords (userID, domain, username, password) "
+				                   + "VALUES (?,?,?,?)";
+    	String queryGetUserId = "SELECT id "
+				              + "FROM users "
+				              + "WHERE publickey = ? ";
+    	
+    	PreparedStatement p = null;
+    	
+    	try {
+    		//Insert User
+			p = conn.prepareStatement(queryInsertUser);
+			p.setBytes(1, publicKey);
+	    	p.execute();
+	    	
+	    	//Get User ID
+	    	p = conn.prepareStatement(queryGetUserId);
+	    	p.setBytes(1, publicKey);
+	    	p.execute();
+	    	ResultSet rs = p.getResultSet();
+	    	rs.next();
+	    	userId = rs.getInt("id");
+	    	
+	    	//Insert Password
+	    	p = conn.prepareStatement(queryInsertPassword);
+	    	p.setInt(1, userId);
+	    	p.setBytes(2, DOMAIN);
+	    	p.setBytes(3, USERNAME);
+	    	p.setBytes(4, PASSWORD);
+	    	p.execute();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	
     }
 
     @After
@@ -96,27 +142,30 @@ public class GetTest {
     public void correctGet() throws NoPasswordException {
     	//call function to get
     	byte[] password = APIImplTest.get(publicKey, DOMAIN, USERNAME);
+    	/*
+    	String queryGetPassword = "SELECT password "
+	              + "FROM passwords "
+	              + "WHERE userID = ? "
+	              + "AND username = ? "
+	              + "AND domain = ?";
     	
-    	byte[] res = null;
-    	Statement stmt = null;
-    	
-    	String q = "SELECT password"
-    			 + "FROM passwords"
-    			 + "WHERE publicKey = " +  publicKey 
-    			 + "AND domain = " + DOMAIN 
-    			 + "AND username = " + USERNAME;
-    	
+    	PreparedStatement p = null;
+    	byte [] retrivedPassword = null;
     	try {
-			stmt = (Statement) conn.createStatement();
-			ResultSet rs = stmt.executeQuery(q);
-			res = rs.getBytes("p.password");
-			
+			p = conn.prepareStatement(queryGetPassword);
+			p.setInt(1, userId);
+	    	p.setBytes(2, DOMAIN);
+	    	p.setBytes(3, USERNAME);
+	    	p.execute();
+	    	ResultSet rs = p.getResultSet();
+	    	rs.next();
+	    	retrivedPassword= rs.getBytes("password");
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    	
+    	assert (password.equals(retrivedPassword));
+    	*/
     	assert(password != null);
-    	assert (password == res);
     }
 }
