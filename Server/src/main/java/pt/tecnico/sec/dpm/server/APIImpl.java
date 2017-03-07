@@ -7,9 +7,11 @@ import pt.tecnico.sec.dpm.server.exceptions.NoPublicKeyException;
 import pt.tecnico.sec.dpm.server.exceptions.NoResultException;
 import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
 
+import javax.jws.HandlerChain;
 import javax.jws.WebService;
 
 @WebService(endpointInterface = "pt.tecnico.sec.dpm.server.API")
+@HandlerChain(file = "/handler-chain.xml")
 public class APIImpl implements API {  	
 	private DPMDB dbMan = null;
 	

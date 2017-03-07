@@ -69,19 +69,19 @@
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		
+
 	<maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        
+
 	<ws.url>http://localhost:8080/ws.API/endpoint</ws.url>
 	<wsdl.url>${ws.url}?WSDL</wsdl.url>
-        
+
 	<version.junit>4.12</version.junit>
     </properties>
 
     <build>
         <plugins>
-            
+
 
             <plugin>
 	        <groupId>org.apache.maven.plugins</groupId>
@@ -106,7 +106,7 @@
 	        		</execution>
 	        	</executions>
 	        	<configuration>
-	        		<!-- https://jax-ws-commons.java.net/jaxws-maven-plugin/wsimport-mojo.html 
+	        		<!-- https://jax-ws-commons.java.net/jaxws-maven-plugin/wsimport-mojo.html
 -->
 					<wsdlUrls>
 						<wsdlUrl>${wsdl.url}</wsdlUrl>
@@ -153,5 +153,12 @@
 			      <artifactId>jmockit</artifactId>
 			      <version>1.21</version>
 		    </dependency>
+
+        <!-- jax-ws handlers -->
+        <!--dependency>
+            <groupId>ws</groupId>
+            <artifactId>handler</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency-->
     </dependencies>
 </project>
