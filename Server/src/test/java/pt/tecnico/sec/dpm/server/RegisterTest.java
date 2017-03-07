@@ -20,6 +20,8 @@ public class RegisterTest {
 
     // static members
 	private static byte[] publicKey;
+	private static byte[] exactSizeKey;
+	private static byte[] biggerSizeKey;
 	private static APIImpl APIImplTest;
 	
 
@@ -44,27 +46,53 @@ public class RegisterTest {
     public void setUp() throws NoSuchAlgorithmException {
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
-        publicKey = keyGen.genKeyPair().getPublic().getEncoded(); 
+        publicKey = keyGen.genKeyPair().getPublic().getEncoded();
+        keyGen.initialize(4096);
+        exactSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
+        keyGen.initialize(8192);
+        biggerSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
     }
 
     @After
     public void tearDown() {
     }
 
-
+    /*
     // tests
     //Verifies if the the Register function is working correctly
     @Test(expected = PublicKeyInUseException.class)
-    public void correctRegister() throws PublicKeyInUseException {
+    public void correctRegister() {
     	//call function to register
-    	APIImplTest.register(publicKey);
+    	try {
+			APIImplTest.register(publicKey);
+		} catch (PublicKeyInUseException e) {
+		}
     }
     
+    //Different sizes Key
+    @Test//(expected = )
+    public void exactSizeKey() {
+    	try {
+			APIImplTest.register(exactSizeKey);
+		} catch (PublicKeyInUseException e) {
+		}
+    }
+    
+    @Test //(expected = )
+    public void biggerSizeKey() {
+    	try {
+			APIImplTest.register(biggerSizeKey);
+		} catch (PublicKeyInUseException e) {
+		}
+    }
     
     @Test(expected = PublicKeyInUseException.class)
-    public void registerTwicePublicKey() throws PublicKeyInUseException {
+    public void registerTwicePublicKey() {
     	//Try to register Same user twice
-    	APIImplTest.register(publicKey);
-    	APIImplTest.register(publicKey);    	
-    }
+    	try {
+			APIImplTest.register(publicKey);
+	    	APIImplTest.register(publicKey);
+		} catch (PublicKeyInUseException e) {
+		}    	
+    }*/
 }
