@@ -68,13 +68,14 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		
-		<maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-		<java.version>1.8</java.version>
-		<version.junit>4.12</version.junit>
+        <java.version>1.8</java.version>
+        <version.junit>4.12</version.junit>
         
-		<uddi.url>http://localhost:9090</uddi.url>
+        <uddi.url>http://localhost:9090</uddi.url>
+        <ws.url>http://localhost:8080/ws.API/endpoint</ws.url>
     </properties>
 
     <build>
@@ -106,7 +107,10 @@
             </executions>
             <configuration>
     	         <mainClass>pt.tecnico.sec.dpm.server.ServerApplication</mainClass>
-               <killAfter>-1</killAfter>
+                 <arguments>
+                     <argument>${ws.url}</argument>
+                 </arguments>
+                 <killAfter>-1</killAfter>
             </configuration>
           </plugin>
         </plugins>
