@@ -1,10 +1,6 @@
 /*IF EXISTS (SELECT * FROM sys.databases WHERE name='sec_dpm')*/
 DROP DATABASE IF EXISTS sec_dpm;
 
--- Deletes the existing dpm_account user
-GRANT USAGE ON *.* TO 'dpm_account'@'localhost';
-DROP USER 'dpm_account'@'localhost';
-
 CREATE DATABASE sec_dpm;
 USE sec_dpm;
 

@@ -18,18 +18,28 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Registers the users only when pubKey is new
-	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException {
+	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException, NullArgException {
 		String q = "INSERT INTO users (publickey) VALUES (?)";
+		
+		if(pubKey == null)
+			throw new NullArgException();
+		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
 		
 		try {
 			lock("users", "WRITE");
-			checkUser(lst);
-			PreparedStatement p = createStatement(q, lst);
-			update(p);
-		} catch (PublicKeyInUseException pkiue) {
+			existsUser(lst);
 			unlock();
 			throw new PublicKeyInUseException();
+		} catch (NoPublicKeyException pkiue) {
+			PreparedStatement p;
+			try {
+				p = createStatement(q, lst);
+				update(p);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -39,14 +49,14 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Checks if a user is already registered
-	private void checkUser(List<byte[]> lst) throws PublicKeyInUseException, ConnectionClosedException, SQLException {
+	private void existsUser(List<byte[]> lst) throws NoPublicKeyException, ConnectionClosedException, SQLException {
 		String q = "SELECT id FROM users WHERE publickey = ?";
 		PreparedStatement p = createStatement(q, lst);
 		
 		try {
 			select(p);
 		} catch (NoResultException e) {
-			throw new PublicKeyInUseException();
+			throw new NoPublicKeyException();
 		}
 	}
 	
@@ -65,11 +75,10 @@ public class DPMDB extends DBManager {
 		
 		lock("users", "READ", "passwords", "WRITE");
 		try {
-			checkUser(lst);
+			existsUser(lst);
+		} catch(NoPublicKeyException pkiue) {
 			unlock();
 			throw new NoPublicKeyException();
-		} catch(PublicKeyInUseException pkiue) {
-			// Continues execution
 		} catch(SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -95,10 +104,15 @@ public class DPMDB extends DBManager {
 	
 	// Retrieves the password from the DB
 	// TODO: Must have some security checks, to prevent unauthorized access!!!
-	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException, NoResultException {
+	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException,
+			NoResultException, NullArgException {
+		
 		String q = "SELECT p.password "
 				 + "FROM users AS u, passwords AS p "
 				 + "WHERE u.publickey=? AND u.id = p.userID AND domain=? AND username=?";
+		
+		if(pubKey == null || domain == null || username == null)
+			throw new NullArgException();
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username);
 		byte[] res = null;
