@@ -37,7 +37,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.Normalizer;
 
-import pt.ca.cli.*;
+//import pt.ca.cli.*;
 
 public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
@@ -291,7 +291,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 		X509Certificate certificate=null;
 		try {certificate = (X509Certificate) ks.getCertificate(otherName.toLowerCase());
 		} catch (KeyStoreException e1) {e1.printStackTrace();}
-		if(certificate==null){
+		/*if(certificate==null){
 			System.out.println("Does not have certificate of: "+ otherName);
 			String uddiURL = "http://localhost:9090";
 			try {
@@ -302,7 +302,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 				System.out.println("Entity not recognized by CA");
 				return false;
 			}
-		}
+		}*/
 
 		//PublicKey pk = certificate.getPublicKey();
 

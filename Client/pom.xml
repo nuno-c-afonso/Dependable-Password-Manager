@@ -155,10 +155,10 @@
 		    </dependency>
 
         <!-- jax-ws handlers -->
-        <!--dependency>
+        <dependency>
             <groupId>ws</groupId>
             <artifactId>handler</artifactId>
             <version>1.0-SNAPSHOT</version>
-        </dependency-->
+        </dependency>
     </dependencies>
 </project>
