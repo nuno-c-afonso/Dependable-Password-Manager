@@ -25,7 +25,7 @@ public class GetTest {
     // static members
 	//User information
 	private static byte[] publicKey;
-	private int userId;
+	private static int userId;
 	final private byte[] USERNAME = "SECUSER".getBytes();
 	final private byte[] PASSWORD = "SECPASSWORD".getBytes();
 	final private byte[] DOMAIN = "SECDOMAIN.com".getBytes();
@@ -41,8 +41,8 @@ public class GetTest {
 	
 	//Database information
 	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm";
-	private static final String USER = "dpm_account";
-	private static final String PASS = "FDvlalaland129&&";
+	private static final String USER = "root";
+	private static final String PASS = "secroot2017";
 
 
     // one-time initialization and clean-up
@@ -70,11 +70,12 @@ public class GetTest {
     @AfterClass
     public static void oneTimeTearDown() {
     	try {
-			conn.close();
+			conn.close();			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	
     }
 
     // initialization and clean-up for each test
@@ -128,6 +129,15 @@ public class GetTest {
 
     @After
     public void tearDown() {
+    	String queryRemoveUser = "DELETE FROM users WHERE id = ?";
+    	try {
+    		PreparedStatement p = conn.prepareStatement(queryRemoveUser);
+			p.setInt(1, userId);
+	    	p.execute();			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     // tests
@@ -139,4 +149,25 @@ public class GetTest {
     	assert(password != null);
     	assertArrayEquals(password, PASSWORD);
     }
+    // create test for each field being null
+    @Test(expected = NullArgException.class)
+    public void nullPubKey() throws NoPasswordException, NullArgException  {
+    	APIImplTest.get(null, DOMAIN, USERNAME);
+    }
+    
+    @Test(expected = NullArgException.class)
+    public void nullDomain() throws NoPasswordException, NullArgException  {
+    	APIImplTest.get(publicKey, null, USERNAME);    	
+    }
+    
+    @Test(expected = NullArgException.class)
+    public void nullUsername () throws NoPasswordException, NullArgException  {
+    	APIImplTest.get(publicKey, DOMAIN, null);    	
+    }
+    
+    @Test(expected = NoPasswordException.class)
+    public void noExistingPassword () throws NoPasswordException {
+    	APIImplTest.get("INVALIDPUBKEY".getBytes(), "INVALIDDOMAIN".getBytes(), "INVALIDUSERNAME".getBytes());
+    }
+    
 }

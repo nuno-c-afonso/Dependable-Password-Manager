@@ -24,12 +24,18 @@ public class DPMDB extends DBManager {
 		
 		try {
 			lock("users", "WRITE");
-			checkUser(lst);
-			PreparedStatement p = createStatement(q, lst);
-			update(p);
-		} catch (PublicKeyInUseException pkiue) {
+			existsUser(lst);
 			unlock();
 			throw new PublicKeyInUseException();
+		} catch (NoPublicKeyException pkiue) {
+			PreparedStatement p;
+			try {
+				p = createStatement(q, lst);
+				update(p);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -39,14 +45,14 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Checks if a user is already registered
-	private void checkUser(List<byte[]> lst) throws PublicKeyInUseException, ConnectionClosedException, SQLException {
+	private void existsUser(List<byte[]> lst) throws NoPublicKeyException, ConnectionClosedException, SQLException {
 		String q = "SELECT id FROM users WHERE publickey = ?";
 		PreparedStatement p = createStatement(q, lst);
 		
 		try {
 			select(p);
 		} catch (NoResultException e) {
-			throw new PublicKeyInUseException();
+			throw new NoPublicKeyException();
 		}
 	}
 	
@@ -65,11 +71,10 @@ public class DPMDB extends DBManager {
 		
 		lock("users", "READ", "passwords", "WRITE");
 		try {
-			checkUser(lst);
+			existsUser(lst);
+		} catch(NoPublicKeyException pkiue) {
 			unlock();
 			throw new NoPublicKeyException();
-		} catch(PublicKeyInUseException pkiue) {
-			// Continues execution
 		} catch(SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
