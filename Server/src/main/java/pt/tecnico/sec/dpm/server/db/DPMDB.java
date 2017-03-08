@@ -18,8 +18,12 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Registers the users only when pubKey is new
-	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException {
+	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException, NullArgException {
 		String q = "INSERT INTO users (publickey) VALUES (?)";
+		
+		if(pubKey == null)
+			throw new NullArgException();
+		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
 		
 		try {
@@ -100,10 +104,15 @@ public class DPMDB extends DBManager {
 	
 	// Retrieves the password from the DB
 	// TODO: Must have some security checks, to prevent unauthorized access!!!
-	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException, NoResultException {
+	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException,
+			NoResultException, NullArgException {
+		
 		String q = "SELECT p.password "
 				 + "FROM users AS u, passwords AS p "
 				 + "WHERE u.publickey=? AND u.id = p.userID AND domain=? AND username=?";
+		
+		if(pubKey == null || domain == null || username == null)
+			throw new NullArgException();
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username);
 		byte[] res = null;

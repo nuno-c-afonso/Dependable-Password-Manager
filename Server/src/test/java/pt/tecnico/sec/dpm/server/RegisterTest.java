@@ -64,19 +64,19 @@ public class RegisterTest {
     //Verifies if the the Register function is working correctly
     //TODO: Check get by hand (no expect)!!!
     @Test(expected = PublicKeyInUseException.class)
-    public void correctRegister() throws PublicKeyInUseException {
+    public void correctRegister() throws PublicKeyInUseException, NullArgException {
     	//call function to register
 		APIImplTest.register(publicKey);
     }
     
     //Different sizes Key
     @Test(expected = PublicKeyInvalidSizeException.class )
-    public void exactSizeKey() throws PublicKeyInUseException {
+    public void exactSizeKey() throws PublicKeyInUseException, NullArgException {
 		APIImplTest.register(exactSizeKey);
     }
     
     @Test (expected = PublicKeyInvalidSizeException.class)
-    public void biggerSizeKey() throws PublicKeyInUseException {
+    public void biggerSizeKey() throws PublicKeyInUseException, NullArgException {
 		APIImplTest.register(biggerSizeKey);
     }
     
@@ -86,7 +86,7 @@ public class RegisterTest {
     }
     
     @Test(expected = PublicKeyInUseException.class)
-    public void registerTwicePublicKey() throws PublicKeyInUseException {
+    public void registerTwicePublicKey() throws PublicKeyInUseException, NullArgException {
     	//Try to register Same user twice
 		APIImplTest.register(publicKey);
     	APIImplTest.register(publicKey);    	

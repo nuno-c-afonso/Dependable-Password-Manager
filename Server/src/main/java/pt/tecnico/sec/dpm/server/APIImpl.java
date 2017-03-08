@@ -1,11 +1,7 @@
 package pt.tecnico.sec.dpm.server;
 
 import pt.tecnico.sec.dpm.server.db.*;
-import pt.tecnico.sec.dpm.server.exceptions.ConnectionClosedException;
-import pt.tecnico.sec.dpm.server.exceptions.NoPasswordException;
-import pt.tecnico.sec.dpm.server.exceptions.NoPublicKeyException;
-import pt.tecnico.sec.dpm.server.exceptions.NoResultException;
-import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
+import pt.tecnico.sec.dpm.server.exceptions.*;
 
 import javax.jws.HandlerChain;
 import javax.jws.WebService;
@@ -20,7 +16,7 @@ public class APIImpl implements API {
 	}
 	
 	@Override
-	public void register(byte[] publicKey) throws PublicKeyInUseException {
+	public void register(byte[] publicKey) throws PublicKeyInUseException, NullArgException {
 		try {
 			dbMan.register(publicKey);
 		} catch (ConnectionClosedException e) {
@@ -40,7 +36,7 @@ public class APIImpl implements API {
 	}
 
 	@Override
-	public byte[] get(byte[] publicKey, byte[] domain, byte[] username) throws NoPasswordException {
+	public byte[] get(byte[] publicKey, byte[] domain, byte[] username) throws NoPasswordException, NullArgException {
 		byte[] res = null;
 		
 		try {

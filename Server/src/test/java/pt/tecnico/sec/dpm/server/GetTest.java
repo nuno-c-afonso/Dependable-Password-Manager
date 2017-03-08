@@ -143,7 +143,7 @@ public class GetTest {
     // tests
     //Verifies if the the Get function is working correctly
     @Test
-    public void correctGet() throws NoPasswordException {
+    public void correctGet() throws NoPasswordException, NullArgException {
     	//call function to get
     	byte[] password = APIImplTest.get(publicKey, DOMAIN, USERNAME);
     	assert(password != null);
@@ -166,7 +166,7 @@ public class GetTest {
     }
     
     @Test(expected = NoPasswordException.class)
-    public void noExistingPassword () throws NoPasswordException {
+    public void noExistingPassword () throws NoPasswordException, NullArgException {
     	APIImplTest.get("INVALIDPUBKEY".getBytes(), "INVALIDDOMAIN".getBytes(), "INVALIDUSERNAME".getBytes());
     }
     
