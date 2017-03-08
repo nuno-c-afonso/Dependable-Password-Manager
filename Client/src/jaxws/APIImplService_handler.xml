@@ -6,6 +6,9 @@
         <!--<handler>
             <handler-class>example.ws.handler.SignatureHandler</handler-class>
         </handler>-->
+        <handler>
+            <handler-class>ws.handler.MessageContentHandler</handler-class>
+        </handler>
         <!--<handler>
             <handler-class>example.ws.handler.LoggingHandler</handler-class>
         </handler>-->
