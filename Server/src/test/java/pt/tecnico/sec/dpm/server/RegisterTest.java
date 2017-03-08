@@ -62,6 +62,7 @@ public class RegisterTest {
     
     // tests
     //Verifies if the the Register function is working correctly
+    //TODO: Check get by hand (no expect)!!!
     @Test(expected = PublicKeyInUseException.class)
     public void correctRegister() throws PublicKeyInUseException {
     	//call function to register
