@@ -82,8 +82,11 @@ public class ClientApplication{
 		
 		
 		
-		DpmClient client = new DpmClient();
+		DpmClient client = new DpmClient("http://localhost:8080/ws.API/endpoint");
 		
+		throw new UnsupportedOperationException();
+		
+		/*
 		client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
 		
 		client.register_user();
@@ -93,7 +96,7 @@ public class ClientApplication{
 		client.retrieve_password("domain".getBytes(), "username".getBytes());
 		
 		client.close();
-		
+		*/
 		
 		
 	}
