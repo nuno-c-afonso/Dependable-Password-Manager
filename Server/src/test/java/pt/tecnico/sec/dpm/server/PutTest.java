@@ -6,7 +6,6 @@ import pt.tecnico.sec.dpm.server.exceptions.*;
 
 import static org.junit.Assert.*;
 
-import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
@@ -14,8 +13,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import pt.tecnico.sec.dpm.server.db.*;
 
 /**
  *  Unit Test example
@@ -77,7 +74,7 @@ public class PutTest {
     // initialization and clean-up for each test
 
     @Before
-    public void setUp() throws NoSuchAlgorithmException {
+    public void setUp() throws NoSuchAlgorithmException, SQLException {
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         publicKey = keyGen.genKeyPair().getPublic().getEncoded(); 
@@ -91,24 +88,20 @@ public class PutTest {
     	
     	PreparedStatement p = null;
     	
-    	try {
-    		//Insert User
-			p = conn.prepareStatement(queryInsertUser);
-			p.setBytes(1, publicKey);
-	    	p.execute();
-	    	
-	    	//Get User ID
-	    	p = conn.prepareStatement(queryGetUserId);
-	    	p.setBytes(1, publicKey);
-	    	p.execute();
-	    	ResultSet rs = p.getResultSet();
-	    	rs.next();
-	    	userId = rs.getInt("id");
+		//Insert User
+		p = conn.prepareStatement(queryInsertUser);
+		p.setBytes(1, publicKey);
+    	p.execute();
+    	
+    	//Get User ID
+    	p = conn.prepareStatement(queryGetUserId);
+    	p.setBytes(1, publicKey);
+    	p.execute();
+    	ResultSet rs = p.getResultSet();
+    	rs.next();
+    	userId = rs.getInt("id");
+    	System.out.println(userId);
 	  
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
     }
 
     @After
@@ -117,34 +110,60 @@ public class PutTest {
 
     // tests
     //Verifies if the the Put function is working correctly
-    /*@Test
-    public void correctPut() throws NoPublicKeyException {
+    @Test
+    public void correctPut() throws NoPublicKeyException, SQLException {
     	//call Put
     	APIImplTest.put(publicKey,DOMAIN, USERNAME, PASSWORD);
     	
-    	String queryGetUserId = "SELECT password "
+    	String queryGetPassword = "SELECT password "
 	              + "FROM passwords "
 	              + "WHERE userID = ? "
 	              + " AND username = ?"
 	              + " AND domain = ?";
-    	System.out.println(queryGetUserId);
+    	
     	//Get Password
     	byte[] actualPassword = null;
     	PreparedStatement p;
-		try {
-			p = conn.prepareStatement(queryGetUserId);
-			p.setInt(1, userId);
-	    	p.setBytes(2, DOMAIN);
-	    	p.setBytes(3, USERNAME);
-	    	p.execute();
-	    	ResultSet rs = p.getResultSet();
-	    	rs.next();
-	    	actualPassword = rs.getBytes("password");
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
-    	
+		p = conn.prepareStatement(queryGetPassword);
+		p.setInt(1, userId);
+    	p.setBytes(2, DOMAIN);
+    	p.setBytes(3, USERNAME);
+    	p.execute();
+    	ResultSet rs = p.getResultSet();
+    	if(rs.next())actualPassword = rs.getBytes("password");	
 		assertArrayEquals(actualPassword, PASSWORD);
-    }*/
+    }
+    
+    //The public key is not in the database
+    @Test(expected = NoPublicKeyException.class)
+    public void wrongPubKey() throws NoPublicKeyException, NoSuchAlgorithmException {
+    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        byte[] wrongPubKey = keyGen.genKeyPair().getPublic().getEncoded(); 
+    	APIImplTest.put(wrongPubKey,DOMAIN, USERNAME, PASSWORD);  	
+    }
+    
+    @Test(expected = NullArgException.class)
+    public void nullPublicKey() throws NoPublicKeyException, NullArgException {
+    	APIImplTest.put(null,DOMAIN, USERNAME, PASSWORD);
+    }
+    
+    @Test(expected = NullArgException.class)
+    public void nullDomain() throws NoPublicKeyException, NullArgException {
+    	APIImplTest.put(publicKey, null, USERNAME, PASSWORD);
+    }
+    
+    @Test(expected = NullArgException.class)
+    public void nullUsername() throws NoPublicKeyException, NullArgException {
+    	APIImplTest.put(publicKey, DOMAIN, null, PASSWORD);
+    }
+    
+    @Test(expected = NullArgException.class)
+    public void nullPassword() throws NoPublicKeyException, NullArgException {
+    	APIImplTest.put(publicKey, DOMAIN, USERNAME, null);
+    }
+    
+    
+    
+    
 }

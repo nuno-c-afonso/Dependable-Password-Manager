@@ -2,7 +2,9 @@ package pt.tecnico.sec.dpm.server;
 
 import org.junit.*;
 
+import pt.tecnico.sec.dpm.server.exceptions.NullArgException;
 import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
+import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInvalidSizeException;
 import pt.tecnico.sec.dpm.server.db.*;
 
 import static org.junit.Assert.*;
@@ -29,8 +31,15 @@ public class RegisterTest {
     // one-time initialization and clean-up
 
     @BeforeClass
-    public static void oneTimeSetUp() {
+    public static void oneTimeSetUp() throws NoSuchAlgorithmException {
     	APIImplTest = new APIImpl();     
+    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+    	keyGen.initialize(2048);
+    	publicKey = keyGen.genKeyPair().getPublic().getEncoded();
+    	keyGen.initialize(4096);
+    	exactSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
+    	keyGen.initialize(8192);
+    	biggerSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
     }
 
     @AfterClass
@@ -43,56 +52,42 @@ public class RegisterTest {
     // initialization and clean-up for each test
 
     @Before
-    public void setUp() throws NoSuchAlgorithmException {
-    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
-        publicKey = keyGen.genKeyPair().getPublic().getEncoded();
-        keyGen.initialize(4096);
-        exactSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
-        keyGen.initialize(8192);
-        biggerSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
+    public void setUp() {
     }
 
     @After
     public void tearDown() {
     }
 
-    /*
+    
     // tests
     //Verifies if the the Register function is working correctly
     @Test(expected = PublicKeyInUseException.class)
-    public void correctRegister() {
+    public void correctRegister() throws PublicKeyInUseException {
     	//call function to register
-    	try {
-			APIImplTest.register(publicKey);
-		} catch (PublicKeyInUseException e) {
-		}
+		APIImplTest.register(publicKey);
     }
     
     //Different sizes Key
-    @Test//(expected = )
-    public void exactSizeKey() {
-    	try {
-			APIImplTest.register(exactSizeKey);
-		} catch (PublicKeyInUseException e) {
-		}
+    @Test(expected = PublicKeyInvalidSizeException.class )
+    public void exactSizeKey() throws PublicKeyInUseException {
+		APIImplTest.register(exactSizeKey);
     }
     
-    @Test //(expected = )
-    public void biggerSizeKey() {
-    	try {
-			APIImplTest.register(biggerSizeKey);
-		} catch (PublicKeyInUseException e) {
-		}
+    @Test (expected = PublicKeyInvalidSizeException.class)
+    public void biggerSizeKey() throws PublicKeyInUseException {
+		APIImplTest.register(biggerSizeKey);
+    }
+    
+    @Test (expected = NullArgException.class)
+    public void nullPublicKey() throws PublicKeyInUseException, NullArgException {
+    	APIImplTest.register(null);
     }
     
     @Test(expected = PublicKeyInUseException.class)
-    public void registerTwicePublicKey() {
+    public void registerTwicePublicKey() throws PublicKeyInUseException {
     	//Try to register Same user twice
-    	try {
-			APIImplTest.register(publicKey);
-	    	APIImplTest.register(publicKey);
-		} catch (PublicKeyInUseException e) {
-		}    	
-    }*/
+		APIImplTest.register(publicKey);
+    	APIImplTest.register(publicKey);    	
+    }
 }
