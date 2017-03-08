@@ -99,44 +99,27 @@ public class RegisterTest {
     
     // tests
     //Verifies if the the Register function is working correctly
-    //TODO: Check get by hand (no expect)!!!
-    @Test(expected = PublicKeyInUseException.class)
-    public void correctRegister() throws PublicKeyInUseException, NullArgException {
+    @Test
+    public void correctRegister() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
     	//call function to register
 		APIImplTest.register(publicKey);
 		
 		String queryGetPubKey = "SELECT publickey "
 	              + "FROM users "
-	              + "WHERE userID = ? ";
-		
-		String queryGetUserId = "SELECT id "
-	              + "FROM users "
 	              + "WHERE publickey = ? ";
 		
 		//Get User ID
 		PreparedStatement p;
-		int userId = 0;
 		ResultSet rs = null;
-    	try {
-			p = conn.prepareStatement(queryGetUserId);
-			p.setBytes(1, publicKey);
-			p.execute();
-			rs = p.getResultSet();
-			rs.next();
-			userId = rs.getInt("id");
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-  	
-	  	//Get Password
 	  	byte[] actualPubKey = null;
 	  	
+	  	// Get password
 		try {
 			p = conn.prepareStatement(queryGetPubKey);
-			p.setInt(1, userId);
-			rs = p.getResultSet();
-			if(rs.next())actualPubKey = rs.getBytes("publickey");	
+			p.setBytes(1, publicKey);
+			rs = p.executeQuery();
+			if(rs.next())
+				actualPubKey = rs.getBytes("publickey");	
 			assertArrayEquals(actualPubKey, publicKey);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -145,23 +128,24 @@ public class RegisterTest {
     }
     
     //Different sizes Key
-    @Test(expected = PublicKeyInvalidSizeException.class )
-    public void exactSizeKey() throws PublicKeyInUseException, NullArgException {
+    @Test
+    public void exactSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
 		APIImplTest.register(exactSizeKey);
     }
     
     @Test (expected = PublicKeyInvalidSizeException.class)
-    public void biggerSizeKey() throws PublicKeyInUseException, NullArgException {
+    public void biggerSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
 		APIImplTest.register(biggerSizeKey);
     }
     
     @Test (expected = NullArgException.class)
-    public void nullPublicKey() throws PublicKeyInUseException, NullArgException {
+    public void nullPublicKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
     	APIImplTest.register(null);
     }
     
     @Test(expected = PublicKeyInUseException.class)
-    public void registerTwicePublicKey() throws PublicKeyInUseException, NullArgException, NoSuchAlgorithmException {
+    public void registerTwicePublicKey() throws PublicKeyInUseException, NullArgException, NoSuchAlgorithmException, 
+    PublicKeyInvalidSizeException {
     	//Try to register Same user twice
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
     	keyGen.initialize(2048);

@@ -16,7 +16,7 @@ public class APIImpl implements API {
 	}
 	
 	@Override
-	public void register(byte[] publicKey) throws PublicKeyInUseException, NullArgException {
+	public void register(byte[] publicKey) throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
 		try {
 			dbMan.register(publicKey);
 		} catch (ConnectionClosedException e) {
