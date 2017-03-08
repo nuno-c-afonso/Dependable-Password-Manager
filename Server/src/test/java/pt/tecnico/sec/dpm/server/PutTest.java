@@ -40,8 +40,8 @@ public class PutTest {
 	
 	//Database information
 	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm";
-	private static final String USER = "dpm_account";
-	private static final String PASS = "FDvlalaland129&&";
+	private static final String USER = "root";
+	private static final String PASS = "secroot2017";
 
 
     // one-time initialization and clean-up
@@ -69,6 +69,12 @@ public class PutTest {
 
     @AfterClass
     public static void oneTimeTearDown() {
+    	try {
+			conn.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     // initialization and clean-up for each test
