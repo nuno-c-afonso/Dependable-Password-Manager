@@ -24,7 +24,7 @@ public class PutTest {
 
     // static members
 	private static byte[] publicKey;
-	private int userId;
+	private static int userId;
 	final private byte[] USERNAME = "SECUSER".getBytes();
 	final private byte[] PASSWORD = "SECPASSWORD".getBytes();
 	final private byte[] DOMAIN = "SECDOMAIN.com".getBytes();
@@ -40,8 +40,8 @@ public class PutTest {
 	
 	//Database information
 	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm";
-	private static final String USER = "dpm_account";
-	private static final String PASS = "FDvlalaland129&&";
+	private static final String USER = "root";
+	private static final String PASS = "secroot2017";
 
 
     // one-time initialization and clean-up
@@ -69,6 +69,12 @@ public class PutTest {
 
     @AfterClass
     public static void oneTimeTearDown() {
+    	try {
+			conn.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     // initialization and clean-up for each test
@@ -83,8 +89,8 @@ public class PutTest {
     	String queryInsertUser = "INSERT INTO users (publickey) "
     			               + "VALUES (?)";
     	String queryGetUserId = "SELECT id "
-				              + "FROM users "
-				              + "WHERE publickey = ? ";
+	              + "FROM users "
+	              + "WHERE publickey = ? ";
     	
     	PreparedStatement p = null;
     	
@@ -100,8 +106,6 @@ public class PutTest {
     	ResultSet rs = p.getResultSet();
     	rs.next();
     	userId = rs.getInt("id");
-    	System.out.println(userId);
-	  
     }
 
     @After
@@ -111,32 +115,68 @@ public class PutTest {
     // tests
     //Verifies if the the Put function is working correctly
     @Test
-    public void correctPut() throws NoPublicKeyException, SQLException {
+    public void correctPut() throws NoPublicKeyException, SQLException, NullArgException {
     	//call Put
     	APIImplTest.put(publicKey,DOMAIN, USERNAME, PASSWORD);
     	
     	String queryGetPassword = "SELECT password "
 	              + "FROM passwords "
-	              + "WHERE userID = ? "
+	              + "WHERE userID = (SELECT id FROM users WHERE publickey = ?)"
 	              + " AND username = ?"
 	              + " AND domain = ?";
+    	
     	
     	//Get Password
     	byte[] actualPassword = null;
     	PreparedStatement p;
 		p = conn.prepareStatement(queryGetPassword);
-		p.setInt(1, userId);
+		p.setBytes(1, publicKey);
+    	p.setBytes(2, USERNAME);
+    	p.setBytes(3, DOMAIN);
+    	ResultSet rs = p.executeQuery();
+    	if(rs.next())actualPassword = rs.getBytes("password");	
+		assertArrayEquals(PASSWORD, actualPassword);
+    }
+    
+    @Test
+    public void updatePassword() throws NoPublicKeyException, SQLException, NullArgException {
+    	PreparedStatement p;
+    	final byte[] NEWPASS = "NEWPASS".getBytes();
+    	byte[] actualPassword = null;
+    	
+    	//Insert Password
+    	String queryInsertPassword = "INSERT INTO passwords (userID, domain, username, password) "
+                + "VALUES (?,?,?,?)";
+    	
+    	p = conn.prepareStatement(queryInsertPassword);
+    	p.setInt(1, userId);
     	p.setBytes(2, DOMAIN);
     	p.setBytes(3, USERNAME);
+    	p.setBytes(4, PASSWORD);
     	p.execute();
-    	ResultSet rs = p.getResultSet();
+    	
+    	//Update Password
+    	APIImplTest.put(publicKey, DOMAIN, USERNAME, NEWPASS);
+    	
+    	//Get password form DB
+    	String queryGetPassword = "SELECT password "
+	              + "FROM passwords "
+	              + "WHERE userID = (SELECT id FROM users WHERE publickey = ?)"
+	              + " AND username = ?"
+	              + " AND domain = ?";
+    	
+		p = conn.prepareStatement(queryGetPassword);
+		p.setBytes(1, publicKey);
+    	p.setBytes(2, USERNAME);
+    	p.setBytes(3, DOMAIN);
+    	ResultSet rs = p.executeQuery();
     	if(rs.next())actualPassword = rs.getBytes("password");	
-		assertArrayEquals(actualPassword, PASSWORD);
+		assertArrayEquals(NEWPASS, actualPassword);
     }
     
     //The public key is not in the database
     @Test(expected = NoPublicKeyException.class)
-    public void wrongPubKey() throws NoPublicKeyException, NoSuchAlgorithmException {
+    public void wrongPubKey() throws NoPublicKeyException, NoSuchAlgorithmException, NullArgException {
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         byte[] wrongPubKey = keyGen.genKeyPair().getPublic().getEncoded(); 

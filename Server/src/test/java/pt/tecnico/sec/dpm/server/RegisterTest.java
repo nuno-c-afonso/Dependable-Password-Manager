@@ -11,6 +11,11 @@ import static org.junit.Assert.*;
 
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  *  Unit Test example
@@ -24,7 +29,18 @@ public class RegisterTest {
 	private static byte[] publicKey;
 	private static byte[] exactSizeKey;
 	private static byte[] biggerSizeKey;
+	
 	private static APIImpl APIImplTest;
+	
+	private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
+	
+	//Connection to the database variable
+	private static Connection conn = null;
+	
+	//Database information
+	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm";
+	private static final String USER = "root";
+	private static final String PASS = "secroot2017";
 	
 
 
@@ -40,10 +56,31 @@ public class RegisterTest {
     	exactSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
     	keyGen.initialize(8192);
     	biggerSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
+    	
+    	try {
+			Class.forName(JDBC_DRIVER);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// Open connection
+		try {
+			conn = DriverManager.getConnection(DB_URL, USER, PASS);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     @AfterClass
     public static void oneTimeTearDown() {
+    	try {
+			conn.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     // members
@@ -62,33 +99,81 @@ public class RegisterTest {
     
     // tests
     //Verifies if the the Register function is working correctly
-    //TODO: Check get by hand (no expect)!!!
-    @Test(expected = PublicKeyInUseException.class)
-    public void correctRegister() throws PublicKeyInUseException, NullArgException {
+    @Test
+    public void correctRegister() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
     	//call function to register
 		APIImplTest.register(publicKey);
+		
+		String queryGetPubKey = "SELECT publickey "
+	              + "FROM users "
+	              + "WHERE publickey = ? ";
+		
+		//Get User ID
+		PreparedStatement p;
+		ResultSet rs = null;
+	  	byte[] actualPubKey = null;
+	  	
+	  	// Get password
+		try {
+			p = conn.prepareStatement(queryGetPubKey);
+			p.setBytes(1, publicKey);
+			rs = p.executeQuery();
+			if(rs.next())
+				actualPubKey = rs.getBytes("publickey");	
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		assertArrayEquals(actualPubKey, publicKey);
     }
     
     //Different sizes Key
-    @Test(expected = PublicKeyInvalidSizeException.class )
-    public void exactSizeKey() throws PublicKeyInUseException, NullArgException {
+    @Test
+    public void exactSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
 		APIImplTest.register(exactSizeKey);
+		
+		String queryGetPubKey = "SELECT publickey "
+	              + "FROM users "
+	              + "WHERE publickey = ? ";
+		
+		//Get User ID
+		PreparedStatement p;
+		ResultSet rs = null;
+	  	byte[] actualPubKey = null;
+	  	
+	  	// Get password
+		try {
+			p = conn.prepareStatement(queryGetPubKey);
+			p.setBytes(1, exactSizeKey);
+			rs = p.executeQuery();
+			if(rs.next())
+				actualPubKey = rs.getBytes("publickey");	
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		assertArrayEquals(exactSizeKey, actualPubKey);
     }
     
     @Test (expected = PublicKeyInvalidSizeException.class)
-    public void biggerSizeKey() throws PublicKeyInUseException, NullArgException {
+    public void biggerSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
 		APIImplTest.register(biggerSizeKey);
     }
     
     @Test (expected = NullArgException.class)
-    public void nullPublicKey() throws PublicKeyInUseException, NullArgException {
+    public void nullPublicKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
     	APIImplTest.register(null);
     }
     
     @Test(expected = PublicKeyInUseException.class)
-    public void registerTwicePublicKey() throws PublicKeyInUseException, NullArgException {
+    public void registerTwicePublicKey() throws PublicKeyInUseException, NullArgException, NoSuchAlgorithmException, 
+    PublicKeyInvalidSizeException {
     	//Try to register Same user twice
-		APIImplTest.register(publicKey);
-    	APIImplTest.register(publicKey);    	
+    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+    	keyGen.initialize(2048);
+    	byte[]pubKey = keyGen.genKeyPair().getPublic().getEncoded();
+		APIImplTest.register(pubKey);
+    	APIImplTest.register(pubKey);    	
     }
 }

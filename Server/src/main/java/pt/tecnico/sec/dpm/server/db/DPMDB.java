@@ -13,16 +13,23 @@ public class DPMDB extends DBManager {
 	private static final String USER = "dpm_account";
 	private static final String PASS = "FDvlalaland129&&";
 	
+	// Size is given in bytes
+	private static final int MAX_KEY_SIZE = 550;
+	
 	public DPMDB() {
 		super(DB_URL, USER, PASS);
 	}
 	
 	// Registers the users only when pubKey is new
-	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException, NullArgException {
+	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException,
+	NullArgException, PublicKeyInvalidSizeException {
 		String q = "INSERT INTO users (publickey) VALUES (?)";
 		
 		if(pubKey == null)
 			throw new NullArgException();
+		
+		if(pubKey.length > MAX_KEY_SIZE)
+			throw new PublicKeyInvalidSizeException();
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
 		
@@ -61,7 +68,8 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Inserts/updates a password in the DB
-	public void put(byte[] pubKey, byte[] domain, byte[] username, byte[] password) throws ConnectionClosedException, NoPublicKeyException {
+	public void put(byte[] pubKey, byte[] domain, byte[] username, byte[] password)
+	throws ConnectionClosedException, NoPublicKeyException, NullArgException {
 		String getUserID = "SELECT id FROM users WHERE publickey=?";
 		
 		String in = "INSERT INTO passwords(userID, domain, username, password) "
@@ -70,6 +78,9 @@ public class DPMDB extends DBManager {
 		String up = "UPDATE passwords "
 				  + "SET password=? "
 				  + "WHERE userID=(" + getUserID + ") AND domain=? AND username=?";
+		
+		if(pubKey == null || domain == null || username == null || password == null)
+			throw new NullArgException();
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
 		
@@ -103,7 +114,6 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Retrieves the password from the DB
-	// TODO: Must have some security checks, to prevent unauthorized access!!!
 	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException,
 			NoResultException, NullArgException {
 		
@@ -135,7 +145,6 @@ public class DPMDB extends DBManager {
 	 ***************/
 	
 	// Auto-creates a prepared statement
-	// TODO: Create tests for when the received arguments are null!!!
 	private PreparedStatement createStatement(String q, List<byte[]> recv) throws SQLException {
 		int size = recv.size();
 		PreparedStatement p = getConnection().prepareStatement(q);

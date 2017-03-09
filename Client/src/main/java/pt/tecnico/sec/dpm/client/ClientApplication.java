@@ -5,9 +5,16 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Scanner;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+
+import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
+import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
 
 //import pt.tecnico.sec.dpm.client.DpmClient;
 
@@ -83,24 +90,70 @@ public class ClientApplication{
 		
 		
 		DpmClient client = new DpmClient("http://localhost:8080/ws.API/endpoint");
+		Scanner scanner = new Scanner(System.in);
 		
-		throw new UnsupportedOperationException();
+		//TODO: Change the null entry by the server's certificate name
+		try {
+			client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "DELETE THIS", "1nsecure".toCharArray());
+			
+			boolean cont = true;
+			while(cont) {
+				System.out.println("Please select the desired option:");
+				System.out.println("1 - Register user;");
+				System.out.println("2 - Save password;");
+				System.out.println("3 - Retrieve password;");
+				System.out.println("4 - Close.");
+				
+				int option = scanner.nextInt();
+				String domain, username, password;				
+				switch(option) {
+					case 1:
+						client.register_user();
+						break;
+					case 2:
+						System.out.println("Domain: ");
+						domain = scanner.next();
+						System.out.println("Username: ");
+						username = scanner.next();
+						System.out.println("Password: ");
+						password = scanner.next();
+						client.save_password(domain.getBytes(), username.getBytes(), password.getBytes());
+						break;
+					case 3:
+						System.out.println("Domain: ");
+						domain = scanner.next();
+						System.out.println("Username: ");
+						username = scanner.next();
+						password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
+						System.out.println("Recovered password: " + password);
+						break;
+					case 4:
+						cont = false;
+						break;
+					default:
+						System.out.println("Cannot recognize it. Please try again.");
+						break;
+				}
+			}
+			
+			
+			
+			
+		} catch (AlreadyInitializedException | NullKeystoreElementException | GivenAliasNotFoundException
+				| WrongPasswordException | NotInitializedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		/*
-		client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
 		
-		client.register_user();
-		
-		client.save_password("domain".getBytes(), "username".getBytes(), "password".getBytes());
-		
-		client.retrieve_password("domain".getBytes(), "username".getBytes());
-		
-		client.close();
-		*/
-		
-		
-	}
-	
+		try {
+			System.out.println("Goodbye.");
+			client.close();
+		} catch (NotInitializedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}	
 }
 	
 

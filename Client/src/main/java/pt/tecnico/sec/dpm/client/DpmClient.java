@@ -8,8 +8,11 @@ import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
 import java.util.Map;
 
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.security.auth.DestroyFailedException;
 import javax.xml.ws.BindingProvider;
+
 import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
 
 import pt.tecnico.sec.dpm.client.exceptions.*;
@@ -69,32 +72,90 @@ public class DpmClient {
 			e.printStackTrace();
 		}
 	}
-	
+	//TODO: CIPHER INFORMATIONS
+	// EVERYTHING EXCEPT PUBKEY
 	public void register_user() throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
+		try {
+			port.register(publicKey.getEncoded());
+		} catch (NullArgException_Exception | PublicKeyInUseException_Exception | PublicKeyInvalidSizeException_Exception e) {
+			// TODO: Print some error message
+		}			
 	}
 	
 	public void save_password(byte[] domain, byte[] username, byte[] password) throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
-		
-		//TODO
+		try {
+
+			port.put(publicKey.getEncoded(), 
+					 cipherWithSymmetric(symmetricKey, domain), 
+					 cipherWithSymmetric(symmetricKey,username), 
+					 cipherWithSymmetric(symmetricKey, password));
+		} catch (NoPublicKeyException_Exception | NullArgException_Exception e) {
+			System.out.println(e.getMessage());
+		}
 	}
 	
 	public byte[] retrieve_password(byte[] domain, byte[] username) throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
-		
-		//TODO
-		return "change me".getBytes();
+		byte[] retrivedPassword = null;
+		try {
+			retrivedPassword = port.get(publicKey.getEncoded(), 
+							   			cipherWithSymmetric(symmetricKey, domain),
+							   			cipherWithSymmetric(symmetricKey,username));
+			
+		} catch (NoPasswordException_Exception | NullArgException_Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return decipherWithSymmetric(symmetricKey,retrivedPassword);
 	}
 	
 	public void close() throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		
-		//TODO
+		//Destroy Symmetric Key
+		try {
+			symmetricKey.destroy();
+			if(symmetricKey.isDestroyed()) symmetricKey = null;
+		} catch (DestroyFailedException e) {
+			System.out.println(e.getMessage());
+		}
 	}
 	
+	public byte[] cipherWithSymmetric(SecretKey key, byte[] data){
+		byte[] returnData = null;
+		try {
+	        Cipher c = Cipher.getInstance("AES");
+	        c.init(Cipher.ENCRYPT_MODE, key);
+	         returnData = c.doFinal(data);
+	    } catch(Exception e) {
+	    	e.printStackTrace();
+	    }
+
+		return returnData;		
+	}
+	
+	public byte[] decipherWithSymmetric(SecretKey key, byte[] ecryptedData) {
+		byte[] returnData = null;
+		try {
+	        Cipher c = Cipher.getInstance("AES");
+	        c.init(Cipher.DECRYPT_MODE, key);
+	         returnData = c.doFinal(ecryptedData);
+	    } catch(Exception e) {
+	    	e.printStackTrace();
+	    }
+
+		return returnData;
+	}
+	/*
+	private void setMessageContext() {
+		MessageContext messageContext = webServiceContext.getMessageContext();
+		messageContext.put(SignatureHandler.PUBKEY, name);
+		messageContext.put(SignatureHandler.OTHERSNAME, "Broker");
+	}
+	*/
 }
