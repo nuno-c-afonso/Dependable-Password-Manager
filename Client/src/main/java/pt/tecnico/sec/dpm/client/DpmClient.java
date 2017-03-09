@@ -9,12 +9,14 @@ import java.security.UnrecoverableEntryException;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
+import javax.security.auth.DestroyFailedException;
 import javax.xml.ws.BindingProvider;
 import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
 
 import pt.tecnico.sec.dpm.client.exceptions.*;
 
 // Classes generated from WSDL
+import pt.tecnico.sec.dpm.server.*;
 import pt.tecnico.sec.dpm.server.*;
 import ws.handler.SignatureHandler;
 
@@ -73,28 +75,46 @@ public class DpmClient {
 	public void register_user() throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
+		try {
+			port.register(publicKey.getEncoded());
+		} catch (NullArgException_Exception | PublicKeyInUseException_Exception e) {
+			
+		}			
 	}
 	
 	public void save_password(byte[] domain, byte[] username, byte[] password) throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
-		
-		//TODO
+		try {
+			port.put(publicKey.getEncoded(), domain, username, password);
+		} catch (NoPublicKeyException_Exception e) {
+			System.out.println(e.getMessage());
+		}
 	}
 	
 	public byte[] retrieve_password(byte[] domain, byte[] username) throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
-		
-		//TODO
-		return "change me".getBytes();
+		byte[] retrivedPassword = null;
+		try {
+			retrivedPassword = port.get(publicKey.getEncoded(), domain, username);
+		} catch (NoPasswordException_Exception | NullArgException_Exception e) {
+			System.out.println(e.getMessage());
+		}
+		return retrivedPassword;
 	}
 	
 	public void close() throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		
-		//TODO
+		//Destroy Symmetric Key
+		try {
+			symmetricKey.destroy();
+			if(symmetricKey.isDestroyed()) symmetricKey = null;
+		} catch (DestroyFailedException e) {
+			System.out.println(e.getMessage());
+		}
 	}
 	
 }
