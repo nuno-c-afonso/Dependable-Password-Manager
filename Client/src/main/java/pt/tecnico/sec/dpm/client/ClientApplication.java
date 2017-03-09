@@ -94,7 +94,7 @@ public class ClientApplication{
 		
 		//TODO: Change the null entry by the server's certificate name
 		try {
-			client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "DELETE THIS", "1nsecure".toCharArray());
+			client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
 			
 			boolean cont = true;
 			while(cont) {

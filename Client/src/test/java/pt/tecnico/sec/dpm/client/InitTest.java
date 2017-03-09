@@ -20,7 +20,9 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import pt.tecnico.sec.dpm.client.DpmClient;
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
-import pt.tecnico.sec.dpm.client.exceptions.WroungPasswordException;
+import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
+import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
 
 import java.util.Base64;
 import java.util.Base64.Encoder;
@@ -153,7 +155,7 @@ public class InitTest {
 
     @Before
     public void setUp() {
-    	client = new DpmClient();
+    	client = new DpmClient("http://localhost:8080/ws.API/endpoint");
     }
 
     @After
@@ -165,8 +167,8 @@ public class InitTest {
     // tests
 
     @Test
-    public void CorrectExecution() {
-    	client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
+    public void CorrectExecution() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
     	
     		
     	assertNotNull(client.privateKey);
@@ -180,20 +182,20 @@ public class InitTest {
     }
     
     @Test(expected = AlreadyInitializedException.class)
-    public void doubleRegister() {
-    	client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
-    	client.init(keystore, "ins3cur3".toCharArray(),"1nsecure".toCharArray());
+    public void doubleRegister() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
     }
     
     
-    @Test(expected = WroungPasswordException.class)
-    public void wroungPassword1() {
-    	client.init(keystore, "wroung".toCharArray(),"1nsecure".toCharArray());    	
+    @Test(expected = WrongPasswordException.class)
+    public void wroungPassword1() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "wroung".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());    	
     }
     
-    @Test(expected = WroungPasswordException.class)
-    public void wroungPassword2() {
-    	client.init(keystore, "ins3cur3".toCharArray(),"wroung".toCharArray());    	
+    @Test(expected = WrongPasswordException.class)
+    public void wroungPassword2() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "wroung".toCharArray());  	
     }
 
 }

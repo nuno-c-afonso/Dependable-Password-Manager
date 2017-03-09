@@ -23,8 +23,10 @@ import ws.handler.SignatureHandler;
 
 public class DpmClient {
 	
-	private PublicKey publicKey = null;
-	private SecretKey symmetricKey = null;
+	PublicKey publicKey = null;
+	SecretKey symmetricKey = null;
+	PrivateKey privateKey = null;
+	String url;
 
 	private API port = null; 
 	
@@ -37,13 +39,14 @@ public class DpmClient {
 		BindingProvider bindingProvider = (BindingProvider) port;
 		Map<String, Object> requestContext = bindingProvider.getRequestContext();
 		requestContext.put(ENDPOINT_ADDRESS_PROPERTY, url);
+		this.url= url;
 		//requestContext.put(SignatureHandler.MYNAME, "")
 		
 	}
 	
 	// It is assumed that all keys are protected by the same password
 	public void init(KeyStore keystore, char[] passwordKeystore, String cliPairName,
-			String symmName, String pubServerName, char[] passwordKeys)
+			String symmName, char[] passwordKeys)
 		throws AlreadyInitializedException, NullKeystoreElementException,
 		GivenAliasNotFoundException, WrongPasswordException {
 		
@@ -54,7 +57,7 @@ public class DpmClient {
 			throw new NullKeystoreElementException();
 		
 		try {
-			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName) || !keystore.containsAlias(pubServerName))
+			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName) || !keystore.containsAlias(url.toLowerCase().replace('/', '0')))
 				throw new GivenAliasNotFoundException();
 			
 			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(passwordKeystore);

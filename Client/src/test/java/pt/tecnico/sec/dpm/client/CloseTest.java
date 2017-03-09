@@ -2,7 +2,11 @@ package pt.tecnico.sec.dpm.client;
 
 import org.junit.*;
 
-import pt.tecnico.sec.dpm.client.exceptions.WroungPasswordException;
+import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
+import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
 
 import static org.junit.Assert.*;
 
@@ -135,7 +139,7 @@ public class CloseTest {
 
     @Before
     public void setUp() {
-    	client = new DpmClient();
+    	client = new DpmClient("http://localhost:8080/ws.API/endpoint");
     	client.symmetricKey = symmetricKey;
     	client.publicKey = publicKey;
     	client.privateKey = privateKey;
@@ -149,15 +153,16 @@ public class CloseTest {
     // tests
 
     @Test
-    public void CorrectExecution() {
+    public void CorrectExecution() throws NotInitializedException, AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
     	client.close();
         assertEquals(client.symmetricKey, null);
         assertEquals(client.publicKey, null);
         assertEquals(client.privateKey, null);
     }
     
-    @Test(expected = WroungPasswordException.class)
-    public void NotInitialized() {
+    @Test(expected = NotInitializedException.class)
+    public void NotInitialized() throws NotInitializedException {
     	client.close();
     	client.close();
     }
