@@ -76,7 +76,7 @@ public class DBManager {
 		int size = strs.length;
 		
 		for(int i = 2; i < size; i += 2)
-			q += "; " + strs[i] + " " + strs[i + 1];
+			q += ", " + strs[i] + " " + strs[i + 1];
 		
 		try {
 			Statement stmt;
