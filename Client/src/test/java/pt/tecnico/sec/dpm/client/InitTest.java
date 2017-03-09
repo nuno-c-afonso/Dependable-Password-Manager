@@ -71,7 +71,7 @@ public class InitTest {
 	    }
         
         //See if keystore already have a symmetric key, if don't add one
-		try {symmetricKey =  (SecretKey) keystore.getKey("secretKey", "1nsecure".toCharArray());
+		try {symmetricKey =  (SecretKey) keystore.getKey("secretkey", "1nsecure".toCharArray());
 		} catch (KeyStoreException e1) {e1.printStackTrace();
 		} catch (UnrecoverableKeyException e) { e.printStackTrace();
 		} catch (NoSuchAlgorithmException e) { e.printStackTrace();}
@@ -92,7 +92,7 @@ public class InitTest {
 	        symmetricKey = keyGenAES.generateKey();
 	        
 	        KeyStore.SecretKeyEntry skEntry = new KeyStore.SecretKeyEntry(symmetricKey);
-	        try {keystore.setEntry("secretKey", skEntry, protParam);
+	        try {keystore.setEntry("secretkey", skEntry, protParam);
 			} catch (KeyStoreException e) {e.printStackTrace();}
 			
 	        java.io.FileOutputStream file2 = null;
@@ -168,7 +168,7 @@ public class InitTest {
 
     @Test
     public void CorrectExecution() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
-    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretkey", "1nsecure".toCharArray());
     	
     		
     	assertNotNull(client.privateKey);
@@ -183,19 +183,56 @@ public class InitTest {
     
     @Test(expected = AlreadyInitializedException.class)
     public void doubleRegister() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
-    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
-    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretkey", "1nsecure".toCharArray());
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretkey", "1nsecure".toCharArray());
     }
     
     
     @Test(expected = WrongPasswordException.class)
     public void wroungPassword1() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
-    	client.init(keystore, "wroung".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());    	
+    	client.init(keystore, "wrong".toCharArray(),"client", "secretkey", "1nsecure".toCharArray());    	
+    }
+    
+    @Test(expected = NullKeystoreElementException.class)
+    public void NullPassword1() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, null,"client", "secretkey", "1nsecure".toCharArray());    	
     }
     
     @Test(expected = WrongPasswordException.class)
     public void wroungPassword2() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
-    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "wroung".toCharArray());  	
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretkey", "wrong".toCharArray());  	
     }
-
+    
+    @Test(expected = NullKeystoreElementException.class)
+    public void NullPassword2() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretkey", null);  	
+    }
+ 
+    @Test(expected = GivenAliasNotFoundException.class)
+    public void WroungKeyNames1() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"wrongclient", "secretkey", "1nsecure".toCharArray());
+    }
+    
+    @Test(expected = NullKeystoreElementException.class)
+    public void NullKeyNames1() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),null, "secretkey", "1nsecure".toCharArray());
+    }
+    
+    @Test(expected = GivenAliasNotFoundException.class)
+    public void WroungKeyNames2() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", "wrongsecretKey", "1nsecure".toCharArray());
+    }
+    
+    @Test(expected = NullKeystoreElementException.class)
+    public void NullKeyNames2() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(),"client", null, "1nsecure".toCharArray());
+    }
+    
+    @Test(expected = NullKeystoreElementException.class)
+    public void NullKeystore() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(null, "ins3cur3".toCharArray(),"client", "wrongsecretKey", "1nsecure".toCharArray());
+    }
+    
+    
+    
 }

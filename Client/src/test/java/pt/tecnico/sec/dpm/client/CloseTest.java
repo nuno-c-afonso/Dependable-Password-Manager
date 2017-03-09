@@ -154,11 +154,10 @@ public class CloseTest {
 
     @Test
     public void CorrectExecution() throws NotInitializedException, AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
-    	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
     	client.close();
-        assertEquals(client.symmetricKey, null);
-        assertEquals(client.publicKey, null);
-        assertEquals(client.privateKey, null);
+        assertNull(client.symmetricKey);
+        assertNull(client.publicKey);
+        assertNull(client.privateKey);
     }
     
     @Test(expected = NotInitializedException.class)
