@@ -27,6 +27,7 @@ public class DpmClient {
 	SecretKey symmetricKey = null;
 	PrivateKey privateKey = null;
 	String url;
+	Map<String, Object> requestContext = null;
 
 	private API port = null; 
 	
@@ -37,8 +38,10 @@ public class DpmClient {
 		
 		// Handler stuff
 		BindingProvider bindingProvider = (BindingProvider) port;
-		Map<String, Object> requestContext = bindingProvider.getRequestContext();
+		requestContext = bindingProvider.getRequestContext();
 		requestContext.put(ENDPOINT_ADDRESS_PROPERTY, url);
+		requestContext.put(SignatureHandler.MYNAME, "Client");
+		requestContext.put(SignatureHandler.OTHERSNAME, url);
 		this.url= url;
 		//requestContext.put(SignatureHandler.MYNAME, "")
 		
@@ -64,8 +67,10 @@ public class DpmClient {
 			symmetricKey = (SecretKey) keystore.getKey(symmName, passwordKeys);
 			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(cliPairName, protParam);
 		    publicKey = pke.getCertificate().getPublicKey();
+		    privateKey = pke.getPrivateKey();
 		    
-		    
+		    requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
+			requestContext.put(SignatureHandler.SYMMETRICKEY, symmetricKey);
 		    // TODO: Add handler configuration keys
 		    
 		} catch(UnrecoverableEntryException e) {
@@ -77,6 +82,8 @@ public class DpmClient {
 			e.printStackTrace();
 		}
 	}
+	
+	
 	//TODO: CIPHER INFORMATIONS
 	// EVERYTHING EXCEPT PUBKEY
 	public void register_user() throws NotInitializedException {
@@ -88,6 +95,8 @@ public class DpmClient {
 			// TODO: Print some error message
 		}			
 	}
+	
+	
 	
 	public void save_password(byte[] domain, byte[] username, byte[] password) throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
@@ -102,6 +111,8 @@ public class DpmClient {
 			System.out.println(e.getMessage());
 		}
 	}
+	
+	
 	
 	public byte[] retrieve_password(byte[] domain, byte[] username) throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)

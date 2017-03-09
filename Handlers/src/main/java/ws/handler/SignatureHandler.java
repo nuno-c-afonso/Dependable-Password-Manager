@@ -89,7 +89,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		needToCheckNames=false;
     	}
 
-    	//System.out.println(this + ">\n\t handleRequest(MessageContext=" + context+ ")");
+    	System.out.println(this + ">\n\t handleRequest(MessageContext=" + context+ ")");
     	try {
     		//System.out.println("handling Request");
     		if(myName==null)
@@ -114,6 +114,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		Name name = se.createName("destinationName","d","http://demo");
     		SOAPHeaderElement element = sh.addHeaderElement(name);
     		element.addTextNode(othersName);
+    		
+    		System.out.println("->adding timestamp");
     		//add timestamp to the header
     		name = se.createName("timeStamp","d","http://demo");
     		element = sh.addHeaderElement(name);
@@ -131,6 +133,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			System.out.println("Error while signing");
     			return false;
     		}
+    		
+    		System.out.println("->adding resume");
     		//add resume to the header
     		name = se.createName("resume","d","http://demo");
     		element = sh.addHeaderElement(name);
