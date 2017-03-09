@@ -120,17 +120,40 @@ public class RegisterTest {
 			rs = p.executeQuery();
 			if(rs.next())
 				actualPubKey = rs.getBytes("publickey");	
-			assertArrayEquals(actualPubKey, publicKey);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		assertArrayEquals(actualPubKey, publicKey);
     }
     
     //Different sizes Key
     @Test
     public void exactSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
 		APIImplTest.register(exactSizeKey);
+		
+		String queryGetPubKey = "SELECT publickey "
+	              + "FROM users "
+	              + "WHERE publickey = ? ";
+		
+		//Get User ID
+		PreparedStatement p;
+		ResultSet rs = null;
+	  	byte[] actualPubKey = null;
+	  	
+	  	// Get password
+		try {
+			p = conn.prepareStatement(queryGetPubKey);
+			p.setBytes(1, exactSizeKey);
+			rs = p.executeQuery();
+			if(rs.next())
+				actualPubKey = rs.getBytes("publickey");	
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		assertArrayEquals(exactSizeKey, actualPubKey);
     }
     
     @Test (expected = PublicKeyInvalidSizeException.class)
