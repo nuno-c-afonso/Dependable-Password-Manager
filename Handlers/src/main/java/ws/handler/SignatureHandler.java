@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 
+import javax.crypto.SecretKey;
 import javax.xml.namespace.QName;
 import javax.xml.soap.Name;
 import javax.xml.soap.SOAPBody;
@@ -36,6 +37,7 @@ import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.Normalizer;
+import java.lang.System;
 
 //import pt.ca.cli.*;
 
@@ -44,15 +46,22 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     public static final String CONTEXT_PROPERTY = "my.property";
     public static final String MYNAME= "my.myname.property";
     public static final String OTHERSNAME= "my.othersname.property";
+    public static final String PRIVATEKEY = "my.privatekey.property";
+    public static final String SYMMETRICKEY ="my.symmetrickey.property";
+
 
     Random randomGenerator = new Random();
 
     protected int nonce=0;
-    protected int nonceReceived;
+    protected long timestamp;
     private String myName=null;
     private String othersName=null;
     String firstReceivedOriginName=null;
     String firstReceivedDestinationName=null;
+    
+    private static PrivateKey myprivateKey = null;
+    private SecretKey mysymmetricKey = null;
+    
     boolean needToCheckNames =false; /*used to protect the vulnerability of the first message received
      								by the server because the response handler will not have
      								access to the context variables that are set in the web service
@@ -87,6 +96,11 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			myName = (String) context.get(MYNAME);
     		if(othersName==null)
     			othersName = (String) context.get(OTHERSNAME);
+    		if(myprivateKey==null)
+    			myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
+    		if(mysymmetricKey==null)
+    			mysymmetricKey = (SecretKey) context.get(SYMMETRICKEY);
+    		
 
     		SOAPMessageContext smc = (SOAPMessageContext) context;
     		SOAPMessage msg = smc.getMessage();
@@ -97,29 +111,22 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		if (sh == null) {sh = se.addHeader();}
 
 
-    		//TODO verificar este namespace
-    		//add the name of the sender
-    		Name name = se.createName("senderName","d","http://demo");
+    		Name name = se.createName("destinationName","d","http://demo");
     		SOAPHeaderElement element = sh.addHeaderElement(name);
-    		element.addTextNode(myName);
-    		//add the name of the destination
-    		name = se.createName("destinationName","d","http://demo");
-    		element = sh.addHeaderElement(name);
     		element.addTextNode(othersName);
-    		//add nonce to the header
-    		name = se.createName("nonce","d","http://demo");
+    		//add timestamp to the header
+    		name = se.createName("timeStamp","d","http://demo");
     		element = sh.addHeaderElement(name);
-    		String stringNonce = Integer.toString(getNonce());
-    		element.addTextNode(stringNonce);
+    		String stringTimestamp = Long.toString(System.currentTimeMillis());
+    		element.addTextNode(stringTimestamp);
 
     		//concat everyting to make sign
-    		String toDigest=sb.getTextContent();
-    		toDigest= toDigest.concat(myName);
+    		String toDigest = sb.getTextContent();
     		toDigest= toDigest.concat(othersName);
-    		toDigest= toDigest.concat(stringNonce);
+    		toDigest= toDigest.concat(stringTimestamp);
     		//FIXME System.out.println(toDigest);
 
-    		 String toSend=makeDigitalSignature(toDigest,myName);
+    		 String toSend=makeDigitalSignature(toDigest);
     		if(toSend==null){
     			System.out.println("Error while signing");
     			return false;
@@ -156,21 +163,9 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		if (sh == null) {sh = se.addHeader();}
     		//TODO verificar este namespace
 
-    		//take senders name
-    		Name sendersName = se.createName("senderName","d","http://demo");
-    		Iterator it =sh.getChildElements(sendersName);
-    		if (!it.hasNext()) {
-                System.out.println("Sender header element not found.");
-                makeFault(sb,"missingSender","Sender header element not found.");
-                return false;
-            }
-            SOAPElement senderelement = (SOAPElement) it.next();
-    		String senderName = senderelement.getValue();
-    		//System.out.println("send by: "+senderName);
-
     		//take destination name
     		Name destinationname = se.createName("destinationName","d","http://demo");
-    		it =sh.getChildElements(destinationname);
+    		Iterator it =sh.getChildElements(destinationname);
     		if (!it.hasNext()) {
                 System.out.println("Destination header element not found.");
                 makeFault(sb,"missingDestination","Destination header element not found.");
@@ -180,21 +175,21 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		String destinationName = destinationElement.getValue();
     		//System.out.println("message destination: "+destinationName);
 
-    		//take nonce
-    		Name noncName = se.createName("nonce","d","http://demo");
-    		it =sh.getChildElements(noncName);
+    		//take time
+    		Name timeName = se.createName("timeStamp","d","http://demo");
+    		it =sh.getChildElements(timeName);
     		if (!it.hasNext()) {
                 System.out.println("Nonce header element not found.");
-                makeFault(sb,"missingNonce","Nonce header element not found.");
+                makeFault(sb,"missingTimestamp","Timestamp header element not found.");
                 return false;
             }
-    		SOAPElement nonceElement = (SOAPElement) it.next();
-    		String nonceValue = nonceElement.getValue();
-    		nonceReceived = Integer.parseInt(nonceValue);
+    		SOAPElement timeElement = (SOAPElement) it.next();
+    		String timeValue = timeElement.getValue();
+    		timestamp = Long.parseLong(timeValue);
     		//System.out.println("nonce received: "+nonceValue);
-    		if(!checkNonce(nonceReceived)){
-    			System.out.println("Nonce not the expected");
-    			makeFault(sb,"wrongNonce","Nonce not the expected");
+    		if(!checkTimestamp(timestamp)){
+    			System.out.println("Timestamp not valid");
+    			makeFault(sb,"wrongTimestamp","Timestamp not valid");
     			return false;
     		}
     		//take resume
@@ -209,35 +204,21 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		String signedResume = resumeElement.getValue();
 
     		String toDigest=sb.getTextContent();
-    		toDigest= toDigest.concat(senderName);
     		toDigest= toDigest.concat(destinationName);
-    		toDigest= toDigest.concat(nonceValue);
+    		toDigest= toDigest.concat(timeValue);
     		//System.out.println(toDigest);
 
     		boolean signatureAutentic ;
-    		if(myName==null||othersName==null){
-    			System.out.println("server first time");
-    			signatureAutentic = checkSignature(senderName,destinationName,toDigest,signedResume);
-    			if(!signatureAutentic){
-    				System.out.println("Violated message: The signature check FAILED !!!!!!");
-    				makeFault(sb,"ViolatedMessage","The signature check FAILED");
-    				return false;
-    			}
-    			firstReceivedOriginName=senderName;//used to check if this received parameters are the expected
-    			firstReceivedDestinationName=destinationName;
-    			needToCheckNames=true;
+
+    		if(!myName.equals(destinationName)){
+    			System.out.println("!!! Received Message  with wrong destination !!!");
+    			makeFault(sb,"WrongEndPoints","!!! Received Message with wrong destination !!!");
+    			return false;
     		}
-    		else{
-    			if(!myName.equals(destinationName)||!othersName.equals(senderName)){
-    				System.out.println("!!! Received Message from a not expecting sender or with wrong destination !!!");
-    				makeFault(sb,"WrongEndPoints","!!! Received Message from a not expecting sender or with wrong destination !!!");
-    				return false;
-    			}
-    			signatureAutentic = checkSignature(othersName,myName,toDigest,signedResume);
-    			if(!signatureAutentic){
-    				System.out.println("!!!The signature isnt ok");
-    				makeFault(sb,"ViolatedMessage","The signature check FAILED");
-    			}
+    		signatureAutentic = checkSignature(othersName,myName,toDigest,signedResume);
+    		if(!signatureAutentic){
+    			System.out.println("!!!The signature isnt ok");
+    			makeFault(sb,"ViolatedMessage","The signature check FAILED");
     		}
 
     		sh.detachNode();
@@ -268,22 +249,22 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     	//System.out.println("othername: "+ otherName+ " myname: "+myName);
     	final byte[] plainBytesText = parseBase64Binary(text);
     	final byte[] plainBytesSignedText = parseBase64Binary(signedText);
-
-    	String myKeyStore = myName.concat(".jks");
-
+    	
+//TODO-------------------------   Ver como carregar a keystore  ----------------
+    	
 		String current=null;
 		try {current = new java.io.File( "." ).getCanonicalPath();
 		} catch (IOException e1) {e1.printStackTrace();}
 
 		KeyStore ks=null;
-		try {ks = KeyStore.getInstance("jks");
+		try {ks = KeyStore.getInstance("jceks");
 		} catch (KeyStoreException e1) {//e1.printStackTrace();
 			}
 
 		//System.out.println("loading key store");
 		char[] passwordFile = "ins3cur3".toCharArray();
-		String path=current + "/../keys/" + myName + "/" + myKeyStore;
-		try {ks.load(new FileInputStream(current + "/../keys/" + myName + "/" + myKeyStore), passwordFile);
+		String path=current + "/../keys/allcerts/allcerts.jks";
+		try {ks.load(new FileInputStream(path), passwordFile);
 		} catch (NoSuchAlgorithmException | CertificateException | IOException e1) {e1.printStackTrace();}
 
 		//System.out.println("geting x509certeficate");
@@ -291,21 +272,16 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 		X509Certificate certificate=null;
 		try {certificate = (X509Certificate) ks.getCertificate(otherName.toLowerCase());
 		} catch (KeyStoreException e1) {e1.printStackTrace();}
-		/*if(certificate==null){
+		if(certificate==null){
 			System.out.println("Does not have certificate of: "+ otherName);
-			String uddiURL = "http://localhost:9090";
-			try {
-				CAClient cac = new CAClient(uddiURL,"CertAuth");
-				certificate=cac.saveCertificate(otherName.toLowerCase(),path,passwordFile);
-			} catch (Exception e) {	e.printStackTrace();}
-			if (certificate==null){
-				System.out.println("Entity not recognized by CA");
-				return false;
-			}
-		}*/
+			return false;
+		}
+		
 
 		//PublicKey pk = certificate.getPublicKey();
-
+		
+//TODO-------------------------   END -----------------------------
+		
 		//System.out.println(" verify the signature with the public key");
         try {
         	Signature sig = Signature.getInstance("SHA1WithRSA");
@@ -316,7 +292,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
         	//System.out.println("END CHEKING SIGNATURE1");
             return sig.verify(plainBytesSignedText);
         } catch (SignatureException se) {
-        	System.out.println("Exception veryfying certeficate"+se);
+        	System.out.println("Exception verifying certeficate"+se);
             return false;
         } catch (Exception e){ System.out.println("Exception veryfying certeficate"+e);
         System.out.println("Exception veryfying certeficate"+ e);}
@@ -324,9 +300,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     }
 
 
-    public static String makeDigitalSignature(String text,String myName) throws Exception {
+    public static String makeDigitalSignature(String text) throws Exception {
     	//System.out.println("START MAKING SIGNATURE");
-    	//System.out.println(" myname: "+myName);
     	byte[] plainBytesText;
     	try{
     	plainBytesText = parseBase64Binary(text);
@@ -334,18 +309,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		System.out.println("erro a passar para bytes"+e);
     		return null;
     	}
-    	//System.out.println("Get the others public key");
-    	String myKeyStore = myName.concat(".jks");
-		String current = new java.io.File( "." ).getCanonicalPath();
-		KeyStore ks  = KeyStore.getInstance("jks");
-		char[] password = "ins3cur3".toCharArray();
-		ks.load(new FileInputStream(current + "/../keys/" + myName + "/" + myKeyStore), password);
-		password = "1nsecure".toCharArray();
-		Key privateKey =(PrivateKey) ks.getKey(myName.toLowerCase(),password);
-		//System.out.println("get a signature object using the MD5 and RSA combo");
-    	// and sign the plaintext with the private key
     	Signature sig = Signature.getInstance("SHA1WithRSA");
-    	sig.initSign((PrivateKey) privateKey);
+    	sig.initSign((PrivateKey) myprivateKey);
     	sig.update(plainBytesText);
     	byte[] signature = sig.sign();
 
@@ -353,14 +318,10 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     	return printBase64Binary(signature);
     }
 
-    public boolean checkNonce(int nonceReceived){
-    	return nonceReceived == nonce;
-
-    }
-
-    public int getNonce(){
-    	nonce =randomGenerator.nextInt(1000000000);
-    	return nonce;
+    public boolean checkTimestamp(long sendTime){
+    	long now = System.currentTimeMillis()/1000;
+    	long send = sendTime/1000;
+    	return now-send < 5;//TODO CHECK THIS VALUE
     }
 
 
@@ -377,10 +338,9 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
         if(sb!=null){
         	fault =sb.getFault();
         	String faultCode =fault.getFaultCode();
-        	if(faultCode.equals("missingSender")||
-        			faultCode.equals("missingDestination")||
-        			faultCode.equals("missingNonce")||
-        			faultCode.equals("wrongNonce")||
+        	if(faultCode.equals("missingDestination")||
+        			faultCode.equals("missingTimestamp")||
+        			faultCode.equals("wrongTimestamp")||
         			faultCode.equals("missingResume")||
         			faultCode.equals("ViolatedMessage")||
         			faultCode.equals("WrongEndPoints")

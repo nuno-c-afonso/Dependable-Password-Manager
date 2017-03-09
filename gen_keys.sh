@@ -43,24 +43,44 @@ echo "CA Certificate generated."
 # generated, signed and imported into the entities keystore
 ################################################################################
 
+echo "Generating folder to storea all certs"
+mkdir "$OUTPUT_FOLDER/allcerts"
+
+LALA=""
 for server_name in $*
 do
+	
+  echo $server_name
+  server_name="$( echo  "$server_name" | tr  '[:upper:]' '[:lower:]'  )"
+  server_name="$( echo  "$server_name" | tr  '/' '0'  )"
+  echo $server_name
+
   server_folder=$OUTPUT_FOLDER/$server_name
   mkdir $server_folder
   server_kerystore_file="$server_folder/$server_name.jks"
   csr_file="$server_folder/$server_name.csr"
+
   echo "Generating keypair of $server_name..."
-  keytool -keystore $server_kerystore_file -genkey -alias $server_name -keyalg RSA -keysize 2048 -keypass $KEY_PASS -validity $KEYS_VALIDITY -storepass $STORE_PASS  -dname $D_NAME
+  keytool -keystore $server_kerystore_file -genkey -alias $server_name -keyalg RSA -keysize 4096 -keypass $KEY_PASS -validity $KEYS_VALIDITY -storepass $STORE_PASS  -dname $D_NAME
+  
   echo "Generating the Certificate Signing Request of $server_name..."
   keytool -keystore $server_kerystore_file -certreq -alias $server_name -keyalg rsa -file $csr_file -storepass $STORE_PASS -keypass $KEY_PASS
+
   echo "Generating the signed certificate of $server_name..."
   openssl  x509  -req  -CA $CA_PEM_FILE -CAkey $CA_KEY_FILE -passin pass:$CA_CERTIFICATE_PASS -in $csr_file -out "$server_folder/$server_name.cer"  -days $KEYS_VALIDITY -CAcreateserial
+
   echo "Importing the CA certificate to the keystore of $server_name..."
   keytool -import -keystore $server_kerystore_file -file $CA_PEM_FILE  -alias $CA_ALIAS -keypass $KEY_PASS -storepass $STORE_PASS -noprompt
+
   echo "Importing the signed certificate of $server_name to its keystore"
   keytool -import -keystore $server_kerystore_file -file "$server_folder/$server_name.cer" -alias $server_name -storepass $STORE_PASS -keypass $KEY_PASS
+
   echo "Importing the signed certificate of $server_name to the ca keystore"
   keytool -import -keystore $STORE_FILE -file "$server_folder/$server_name.cer" -alias $server_name -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
+
+	echo "Importing the signed certificate of $server_name to the allCerteficates"
+  keytool -import -keystore "$OUTPUT_FOLDER/allcerts/allcerts.jks" -file "$server_folder/$server_name.cer" -alias $server_name -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
+
   echo "Removing the Certificate Signing Request (.csr file)..."
   rm "$server_folder/$server_name.csr"
 done
