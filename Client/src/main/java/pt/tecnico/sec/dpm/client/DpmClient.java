@@ -8,6 +8,7 @@ import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
 import java.util.Map;
 
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
 import javax.xml.ws.BindingProvider;
@@ -17,7 +18,6 @@ import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
 import pt.tecnico.sec.dpm.client.exceptions.*;
 
 // Classes generated from WSDL
-import pt.tecnico.sec.dpm.server.*;
 import pt.tecnico.sec.dpm.server.*;
 import ws.handler.SignatureHandler;
 
@@ -72,7 +72,8 @@ public class DpmClient {
 			e.printStackTrace();
 		}
 	}
-	
+	//TODO: CIPHER INFORMATIONS
+	// EVERYTHING EXCEPT PUBKEY
 	public void register_user() throws NotInitializedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
@@ -87,8 +88,12 @@ public class DpmClient {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		try {
-			port.put(publicKey.getEncoded(), domain, username, password);
-		} catch (NoPublicKeyException_Exception e) {
+			port.put(publicKey.getEncoded(), 
+					 cipherWithSymmetric(symmetricKey, domain), 
+					 cipherWithSymmetric(symmetricKey,username), 
+					 cipherWithSymmetric(symmetricKey, password));
+			
+		} catch (NoPublicKeyException_Exception | NullArgException_Exception e) {
 			System.out.println(e.getMessage());
 		}
 	}
@@ -98,11 +103,14 @@ public class DpmClient {
 			throw new NotInitializedException();
 		byte[] retrivedPassword = null;
 		try {
-			retrivedPassword = port.get(publicKey.getEncoded(), domain, username);
+			retrivedPassword = port.get(publicKey.getEncoded(), 
+							   			cipherWithSymmetric(symmetricKey, domain),
+							   			cipherWithSymmetric(symmetricKey,username));
+			
 		} catch (NoPasswordException_Exception | NullArgException_Exception e) {
 			System.out.println(e.getMessage());
 		}
-		return retrivedPassword;
+		return decipherWithSymmetric(symmetricKey,retrivedPassword);
 	}
 	
 	public void close() throws NotInitializedException {
@@ -118,4 +126,36 @@ public class DpmClient {
 		}
 	}
 	
+	public byte[] cipherWithSymmetric(SecretKey key, byte[] data){
+		byte[] returnData = null;
+		try {
+	        Cipher c = Cipher.getInstance("AES");
+	        c.init(Cipher.ENCRYPT_MODE, key);
+	         returnData = c.doFinal(data);
+	    } catch(Exception e) {
+	    	e.printStackTrace();
+	    }
+
+		return returnData;		
+	}
+	
+	public byte[] decipherWithSymmetric(SecretKey key, byte[] ecryptedData) {
+		byte[] returnData = null;
+		try {
+	        Cipher c = Cipher.getInstance("AES");
+	        c.init(Cipher.DECRYPT_MODE, key);
+	         returnData = c.doFinal(ecryptedData);
+	    } catch(Exception e) {
+	    	e.printStackTrace();
+	    }
+
+		return returnData;
+	}
+	/*
+	private void setMessageContext() {
+		MessageContext messageContext = webServiceContext.getMessageContext();
+		messageContext.put(SignatureHandler.PUBKEY, name);
+		messageContext.put(SignatureHandler.OTHERSNAME, "Broker");
+	}
+	*/
 }
