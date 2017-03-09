@@ -11,6 +11,7 @@ import java.util.Map;
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
 import javax.xml.ws.BindingProvider;
+
 import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
 
 import pt.tecnico.sec.dpm.client.exceptions.*;
@@ -77,8 +78,8 @@ public class DpmClient {
 			throw new NotInitializedException();
 		try {
 			port.register(publicKey.getEncoded());
-		} catch (NullArgException_Exception | PublicKeyInUseException_Exception e) {
-			
+		} catch (NullArgException_Exception | PublicKeyInUseException_Exception | PublicKeyInvalidSizeException_Exception e) {
+			// TODO: Print some error message
 		}			
 	}
 	
