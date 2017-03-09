@@ -60,14 +60,16 @@ public class DpmClient {
 			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName))// || !keystore.containsAlias(url.toLowerCase().replace('/', '0')))
 				throw new GivenAliasNotFoundException();
 			
-			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(passwordKeystore);
+			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(passwordKeys);
 			symmetricKey = (SecretKey) keystore.getKey(symmName, passwordKeys);
 			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(cliPairName, protParam);
 		    publicKey = pke.getCertificate().getPublicKey();
 		    
+		    
 		    // TODO: Add handler configuration keys
 		    
 		} catch(UnrecoverableEntryException e) {
+			System.out.println(e.getMessage());
 			throw new WrongPasswordException();
 		} catch(NoSuchAlgorithmException | KeyStoreException e) {
 			publicKey = null;
