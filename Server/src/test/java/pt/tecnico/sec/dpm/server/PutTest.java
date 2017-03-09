@@ -24,6 +24,7 @@ public class PutTest {
 
     // static members
 	private static byte[] publicKey;
+	private static int userId;
 	final private byte[] USERNAME = "SECUSER".getBytes();
 	final private byte[] PASSWORD = "SECPASSWORD".getBytes();
 	final private byte[] DOMAIN = "SECDOMAIN.com".getBytes();
@@ -87,6 +88,9 @@ public class PutTest {
 
     	String queryInsertUser = "INSERT INTO users (publickey) "
     			               + "VALUES (?)";
+    	String queryGetUserId = "SELECT id "
+	              + "FROM users "
+	              + "WHERE publickey = ? ";
     	
     	PreparedStatement p = null;
     	
@@ -94,6 +98,14 @@ public class PutTest {
 		p = conn.prepareStatement(queryInsertUser);
 		p.setBytes(1, publicKey);
     	p.execute();
+    	
+    	//Get User ID
+    	p = conn.prepareStatement(queryGetUserId);
+    	p.setBytes(1, publicKey);
+    	p.execute();
+    	ResultSet rs = p.getResultSet();
+    	rs.next();
+    	userId = rs.getInt("id");
     }
 
     @After
@@ -124,6 +136,42 @@ public class PutTest {
     	ResultSet rs = p.executeQuery();
     	if(rs.next())actualPassword = rs.getBytes("password");	
 		assertArrayEquals(PASSWORD, actualPassword);
+    }
+    
+    @Test
+    public void updatePassword() throws NoPublicKeyException, SQLException, NullArgException {
+    	PreparedStatement p;
+    	final byte[] NEWPASS = "NEWPASS".getBytes();
+    	byte[] actualPassword = null;
+    	
+    	//Insert Password
+    	String queryInsertPassword = "INSERT INTO passwords (userID, domain, username, password) "
+                + "VALUES (?,?,?,?)";
+    	
+    	p = conn.prepareStatement(queryInsertPassword);
+    	p.setInt(1, userId);
+    	p.setBytes(2, DOMAIN);
+    	p.setBytes(3, USERNAME);
+    	p.setBytes(4, PASSWORD);
+    	p.execute();
+    	
+    	//Update Password
+    	APIImplTest.put(publicKey, DOMAIN, USERNAME, NEWPASS);
+    	
+    	//Get password form DB
+    	String queryGetPassword = "SELECT password "
+	              + "FROM passwords "
+	              + "WHERE userID = (SELECT id FROM users WHERE publickey = ?)"
+	              + " AND username = ?"
+	              + " AND domain = ?";
+    	
+		p = conn.prepareStatement(queryGetPassword);
+		p.setBytes(1, publicKey);
+    	p.setBytes(2, USERNAME);
+    	p.setBytes(3, DOMAIN);
+    	ResultSet rs = p.executeQuery();
+    	if(rs.next())actualPassword = rs.getBytes("password");	
+		assertArrayEquals(NEWPASS, actualPassword);
     }
     
     //The public key is not in the database
