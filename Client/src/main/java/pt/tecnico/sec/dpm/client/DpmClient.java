@@ -88,7 +88,7 @@ public class DpmClient {
 			throw new NotInitializedException();
 		try {
 			port.put(publicKey.getEncoded(), domain, username, password);
-		} catch (NoPublicKeyException_Exception e) {
+		} catch (NoPublicKeyException_Exception | NullArgException_Exception e) {
 			System.out.println(e.getMessage());
 		}
 	}
