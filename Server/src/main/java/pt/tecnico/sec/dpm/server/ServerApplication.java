@@ -2,6 +2,8 @@ package pt.tecnico.sec.dpm.server;
 
 import javax.xml.ws.Endpoint;
 
+import pt.tecnico.sec.dpm.server.exceptions.NullArgException;
+
 //import pt.ulisboa.tecnico.sdis.ws.uddi.UDDINaming;
 
 public class ServerApplication {
@@ -21,13 +23,20 @@ public class ServerApplication {
 			return;
 		}
 		
-		APIImpl service = new APIImpl();
-		
 		//String uddiURL = args[0];
 		//String name = args[1];
 		//String url = args[2];
-		String url = args[0];
 
+		String url = args[0];
+		APIImpl service = null;
+		
+		try {
+			service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+		} catch(NullArgException e) {
+			e.printStackTrace();
+			return;
+		}
+		
 		Endpoint endpoint = null;
 		//UDDINaming uddiNaming = null;
 		try {
