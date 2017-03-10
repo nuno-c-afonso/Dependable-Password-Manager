@@ -12,7 +12,11 @@ import javax.xml.ws.handler.soap.SOAPMessageContext;
  * This SOAPHandler outputs the contents of inbound and outbound messages.
  */
 public class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
-
+	public static final String ANSI_RESET = "\u001B[0m";
+	public static final String ANSI_PURPLE = "\u001B[35m";
+	public static final String ANSI_YELLOW = "\u001B[33m";
+	
+	
     public Set<QName> getHeaders() {
         return null;
     }
@@ -42,15 +46,15 @@ public class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
                 .get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
 
         if (outbound) {
-            System.out.println("Outbound SOAP message:");
+            System.out.println(ANSI_PURPLE + "Outbound SOAP message:");
         } else {
-            System.out.println("Inbound SOAP message:");
+            System.out.println(ANSI_YELLOW + "Inbound SOAP message:");
         }
 
         SOAPMessage message = smc.getMessage();
         try {
             message.writeTo(System.out);
-            System.out.println(); // just to add a newline to output
+            System.out.println(ANSI_RESET); // just to add a newline to output
         } catch (Exception e) {
             System.out.printf("Exception in handler: %s%n", e);
         }
