@@ -3,6 +3,8 @@ package ws.handler;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
+import java.util.Base64;
+import java.util.Base64.Decoder;
 
 import javax.crypto.SecretKey;
 import javax.xml.namespace.QName;
@@ -27,6 +29,7 @@ import static javax.xml.bind.DatatypeConverter.printBase64Binary;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -34,8 +37,10 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.X509EncodedKeySpec;
 import java.text.Normalizer;
 import java.lang.System;
 
@@ -217,7 +222,23 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			makeFault(sb,"WrongEndPoints","!!! Received Message with wrong destination !!!");
     			return false;
     		}
-    		signatureAutentic = checkSignature(othersName,myName,toDigest,signedResume);
+    		
+    		Name key = se.createName("arg0");
+            it =sb.getChildElements(key);
+            if (!it.hasNext()) {
+            	System.out.println("nao encontra o key");
+                return false;
+            } 
+            
+            SOAPElement pubkey = (SOAPElement) it.next();
+            String stringkey = pubkey.getValue();
+            System.out.println(stringkey);
+            byte[] arraykey= Base64.getDecoder().decode(stringkey);
+            X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(arraykey);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey publicKey = keyFactory.generatePublic(pubKeySpec);
+    		
+    		signatureAutentic = checkSignature(publicKey,toDigest,signedResume);
     		if(!signatureAutentic){
     			System.out.println("!!!The signature isnt ok");
     			makeFault(sb,"ViolatedMessage","The signature check FAILED");
@@ -246,49 +267,18 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
 
 
-    private boolean checkSignature(String otherName,String myName ,String text,String signedText){
+    private boolean checkSignature(PublicKey publicKey  ,String text,String signedText){
     	//System.out.println("START CHEKING SIGNATURE");
     	//System.out.println("othername: "+ otherName+ " myname: "+myName);
     	final byte[] plainBytesText = parseBase64Binary(text);
     	final byte[] plainBytesSignedText = parseBase64Binary(signedText);
     	
-//TODO-------------------------   Ver como carregar a keystore  ----------------
-    	
-		String current=null;
-		try {current = new java.io.File( "." ).getCanonicalPath();
-		} catch (IOException e1) {e1.printStackTrace();}
-
-		KeyStore ks=null;
-		try {ks = KeyStore.getInstance("jceks");
-		} catch (KeyStoreException e1) {//e1.printStackTrace();
-			}
-
-		//System.out.println("loading key store");
-		char[] passwordFile = "ins3cur3".toCharArray();
-		String path=current + "/../keys/allcerts/allcerts.jks";
-		try {ks.load(new FileInputStream(path), passwordFile);
-		} catch (NoSuchAlgorithmException | CertificateException | IOException e1) {e1.printStackTrace();}
-
-		//System.out.println("geting x509certeficate");
-
-		X509Certificate certificate=null;
-		try {certificate = (X509Certificate) ks.getCertificate(otherName.toLowerCase());
-		} catch (KeyStoreException e1) {e1.printStackTrace();}
-		if(certificate==null){
-			System.out.println("Does not have certificate of: "+ otherName);
-			return false;
-		}
-		
-
-		//PublicKey pk = certificate.getPublicKey();
-		
-//TODO-------------------------   END -----------------------------
 		
 		//System.out.println(" verify the signature with the public key");
         try {
         	Signature sig = Signature.getInstance("SHA256WithRSA");
         	//sig.initVerify(pk);
-        	sig.initVerify(certificate);
+        	sig.initVerify(publicKey);
         	sig.update(plainBytesText);
         	//System.out.println("signature check");
         	//System.out.println("END CHEKING SIGNATURE1");

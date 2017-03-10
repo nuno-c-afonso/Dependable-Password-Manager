@@ -98,8 +98,6 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			othersName = (String) context.get(OTHERSNAME);
     		if(myprivateKey==null)
     			myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
-    		if(mysymmetricKey==null)
-    			mysymmetricKey = (SecretKey) context.get(SYMMETRICKEY);
     		
 
     		SOAPMessageContext smc = (SOAPMessageContext) context;
