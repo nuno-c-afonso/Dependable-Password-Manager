@@ -16,6 +16,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  *  Unit Test example
@@ -54,8 +55,8 @@ public class RegisterTest {
     	publicKey = keyGen.genKeyPair().getPublic().getEncoded();
     	keyGen.initialize(4096);
     	exactSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
-    	keyGen.initialize(8192);
-    	biggerSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
+    	biggerSizeKey = new byte[8192];
+    	Arrays.fill(biggerSizeKey, (byte) 1);
     	
     	try {
 			Class.forName(JDBC_DRIVER);
