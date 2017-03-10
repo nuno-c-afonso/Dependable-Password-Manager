@@ -41,7 +41,6 @@ public class APIImpl implements API {
 		dbMan = new DPMDB();
 		this.url = url.toLowerCase();
 		this.url = this.url.replace('/', '0');
-		this.url = this.url.replace('\\', '0');
 		
 		retrievePrivateKey(keystorePass, keyPass);
 	}
@@ -95,15 +94,7 @@ public class APIImpl implements API {
 	}
 	
 	public void close() {
-		dbMan.close();
-		
-		try {
-			privKey.destroy();
-		} catch (DestroyFailedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+		dbMan.close();		
 		privKey = null;
 	}
 	
