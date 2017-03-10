@@ -217,14 +217,16 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
     		boolean signatureAutentic ;
 
-    		if(!myName.equals(destinationName)){
-    			System.out.println("!!! Received Message  with wrong destination !!!");
-    			makeFault(sb,"WrongEndPoints","!!! Received Message with wrong destination !!!");
-    			return false;
+    		if (myName != null){
+	    		if(!myName.equals(destinationName)){
+	    			System.out.println("!!! Received Message  with  destination"+destinationName+" but i am:"+myName +" !");
+	    			makeFault(sb,"WrongEndPoints","!!! Received Message with wrong destination !!!");
+	    			return false;
+	    		}
     		}
-    		
+    		SOAPElement method =(SOAPElement) sb.getFirstChild();
     		Name key = se.createName("arg0");
-            it =sb.getChildElements(key);
+            it =method.getChildElements(key);
             if (!it.hasNext()) {
             	System.out.println("nao encontra o key");
                 return false;
@@ -253,7 +255,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		fault.setFaultCode(faultName);
     		fault.setFaultString("Message  received does not have a correct signature");*/
 
-        }catch(Exception e){System.out.println(e.getMessage());}
+        }catch(Exception e){System.out.println("found it"+e.getMessage());e.printStackTrace();}
     	return false;
     }
 
@@ -268,6 +270,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
 
     private boolean checkSignature(PublicKey publicKey  ,String text,String signedText){
+    	System.out.println("Cliente começou a verificar assinatura");
     	//System.out.println("START CHEKING SIGNATURE");
     	//System.out.println("othername: "+ otherName+ " myname: "+myName);
     	final byte[] plainBytesText = parseBase64Binary(text);
@@ -282,9 +285,12 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
         	sig.update(plainBytesText);
         	//System.out.println("signature check");
         	//System.out.println("END CHEKING SIGNATURE1");
+        	System.out.println("Cliente vai sair assinatura");
             return sig.verify(plainBytesSignedText);
+            
         } catch (SignatureException se) {
-        	System.out.println("Exception verifying certeficate"+se);
+        	System.out.println("Client Exception verifying certeficate"+se);
+        	se.printStackTrace();
             return false;
         } catch (Exception e){ System.out.println("Exception veryfying certeficate"+e);
         System.out.println("Exception veryfying certeficate"+ e);}
@@ -301,7 +307,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		System.out.println("erro a passar para bytes"+e);
     		return null;
     	}
-    	Signature sig = Signature.getInstance("SHA1WithRSA");
+    	Signature sig = Signature.getInstance("SHA256WithRSA");
     	sig.initSign((PrivateKey) myprivateKey);
     	sig.update(plainBytesText);
     	byte[] signature = sig.sign();

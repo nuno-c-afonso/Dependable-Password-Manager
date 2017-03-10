@@ -95,7 +95,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		if(myName==null)
     			myName = (String) context.get(MYNAME);
     		if(othersName==null)
-    			othersName = (String) context.get(OTHERSNAME);
+    			othersName = ((String) context.get(OTHERSNAME)).toLowerCase().replace('/','0');
     		if(myprivateKey==null)
     			myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
     		
@@ -272,7 +272,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 		//System.out.println("geting x509certeficate");
 
 		X509Certificate certificate=null;
-		try {certificate = (X509Certificate) ks.getCertificate(otherName.toLowerCase());
+		try {certificate = (X509Certificate) ks.getCertificate(otherName.toLowerCase().replace('/','0'));
 		} catch (KeyStoreException e1) {e1.printStackTrace();}
 		if(certificate==null){
 			System.out.println("Does not have certificate of: "+ otherName);
@@ -294,7 +294,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
         	//System.out.println("END CHEKING SIGNATURE1");
             return sig.verify(plainBytesSignedText);
         } catch (SignatureException se) {
-        	System.out.println("Exception verifying certeficate"+se);
+        	System.out.println("Exception verifying certeficate");
+        	se.printStackTrace();
             return false;
         } catch (Exception e){ System.out.println("Exception veryfying certeficate"+e);
         System.out.println("Exception veryfying certeficate"+ e);}
@@ -311,7 +312,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		System.out.println("erro a passar para bytes"+e);
     		return null;
     	}
-    	Signature sig = Signature.getInstance("SHA1WithRSA");
+    	Signature sig = Signature.getInstance("SHA256WithRSA");
     	sig.initSign((PrivateKey) myprivateKey);
     	sig.update(plainBytesText);
     	byte[] signature = sig.sign();
