@@ -48,6 +48,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     public static final String OTHERSNAME= "my.othersname.property";
     public static final String PRIVATEKEY = "my.privatekey.property";
     public static final String SYMMETRICKEY ="my.symmetrickey.property";
+    public static final String PASSWORDKEYSTORE ="my.passwordKeystore.property";
+    public static final String PASSWORDKEYS ="my.passwordKeys.property";
 
 
     Random randomGenerator = new Random();
@@ -60,7 +62,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     String firstReceivedDestinationName=null;
     
     private static PrivateKey myprivateKey = null;
-    private SecretKey mysymmetricKey = null;
+    private char[] passwordKeystore = null;
+    private char[] passwordKeys = null;
     
     boolean needToCheckNames =false; /*used to protect the vulnerability of the first message received
      								by the server because the response handler will not have
@@ -98,6 +101,11 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			othersName = ((String) context.get(OTHERSNAME)).toLowerCase().replace('/','0');
     		if(myprivateKey==null)
     			myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
+    		if(passwordKeys==null)
+    			passwordKeys = (char[]) context.get(PASSWORDKEYS);
+    		if(passwordKeystore==null)
+    			passwordKeystore = (char[]) context.get(PASSWORDKEYSTORE);
+
     		
 
     		SOAPMessageContext smc = (SOAPMessageContext) context;
@@ -264,9 +272,9 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 			}
 
 		//System.out.println("loading key store");
-		char[] passwordFile = "ins3cur3".toCharArray();
+		//char[] passwordFile = "ins3cur3".toCharArray();
 		String path=current + "/../keys/allcerts/allcerts.jks";
-		try {ks.load(new FileInputStream(path), passwordFile);
+		try {ks.load(new FileInputStream(path), passwordKeystore);
 		} catch (NoSuchAlgorithmException | CertificateException | IOException e1) {e1.printStackTrace();}
 
 		//System.out.println("geting x509certeficate");

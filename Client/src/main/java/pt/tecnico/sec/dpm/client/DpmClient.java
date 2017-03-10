@@ -65,7 +65,7 @@ public class DpmClient {
 		    privateKey = pke.getPrivateKey();
 		    
 		    // Passes info to the handlers
-		    setMessageContext();
+		    setMessageContext(passwordKeystore, passwordKeys);
 		    
 		} catch(UnrecoverableEntryException e) {
 			System.out.println(e.getMessage());
@@ -162,11 +162,13 @@ public class DpmClient {
 		return returnData;
 	}
 	
-	private void setMessageContext() {		
+	private void setMessageContext(char[] passwordKeystore, char[] passwordKeys) {		
 		requestContext.put(ENDPOINT_ADDRESS_PROPERTY, url);
 		requestContext.put(SignatureHandler.MYNAME, "Client");
 		requestContext.put(SignatureHandler.OTHERSNAME, url);
 		requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
 		requestContext.put(SignatureHandler.SYMMETRICKEY, symmetricKey);
+		requestContext.put(SignatureHandler.PASSWORDKEYS, passwordKeys);
+		requestContext.put(SignatureHandler.PASSWORDKEYSTORE, passwordKeystore);
 	}
 }
