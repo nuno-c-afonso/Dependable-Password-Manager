@@ -5,5 +5,8 @@
             <handler-class>ws.handler.LoggingHandler</handler-class>
         </handler>
         -->
+        <handler>
+            <handler-class>ws.handler.ServerSignatureHandler</handler-class>
+        </handler>
     </handler-chain>
 </handler-chains>

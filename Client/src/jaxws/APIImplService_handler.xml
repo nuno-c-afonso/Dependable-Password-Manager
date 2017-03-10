@@ -4,6 +4,9 @@
             <handler-class>ws.handler.MessageContentHandler</handler-class>
         </handler>-->
         <handler>
+            <handler-class>ws.handler.LoggingHandler</handler-class>
+        </handler>
+        <handler>
             <handler-class>ws.handler.SignatureHandler</handler-class>
         </handler>
         <!--  <handler>

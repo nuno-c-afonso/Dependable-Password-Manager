@@ -41,13 +41,12 @@ import java.lang.System;
 
 //import pt.ca.cli.*;
 
-public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
+public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
     public static final String CONTEXT_PROPERTY = "my.property";
     public static final String MYNAME= "my.myname.property";
     public static final String OTHERSNAME= "my.othersname.property";
     public static final String PRIVATEKEY = "my.privatekey.property";
-    public static final String SYMMETRICKEY ="my.symmetrickey.property";
 
 
     Random randomGenerator = new Random();
@@ -98,8 +97,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			othersName = (String) context.get(OTHERSNAME);
     		if(myprivateKey==null)
     			myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
-    		if(mysymmetricKey==null)
-    			mysymmetricKey = (SecretKey) context.get(SYMMETRICKEY);
+
     		
 
     		SOAPMessageContext smc = (SOAPMessageContext) context;
@@ -111,20 +109,20 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		if (sh == null) {sh = se.addHeader();}
 
 
-    		Name name = se.createName("destinationName","d","http://demo");
+    		/*Name name = se.createName("destinationName","d","http://demo");
     		SOAPHeaderElement element = sh.addHeaderElement(name);
-    		element.addTextNode(othersName);
+    		element.addTextNode(othersName);*/
     		
     		System.out.println("->adding timestamp");
     		//add timestamp to the header
-    		name = se.createName("timeStamp","d","http://demo");
-    		element = sh.addHeaderElement(name);
+    		Name name = se.createName("timeStamp","d","http://demo");
+    		SOAPHeaderElement element = sh.addHeaderElement(name);
     		String stringTimestamp = Long.toString(System.currentTimeMillis());
     		element.addTextNode(stringTimestamp);
 
     		//concat everyting to make sign
     		String toDigest = sb.getTextContent();
-    		toDigest= toDigest.concat(othersName);
+    		//toDigest= toDigest.concat(othersName);
     		toDigest= toDigest.concat(stringTimestamp);
     		//FIXME System.out.println(toDigest);
 
@@ -167,7 +165,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		if (sh == null) {sh = se.addHeader();}
     		//TODO verificar este namespace
 
-    		/*take destination name
+    		//take destination name
     		Name destinationname = se.createName("destinationName","d","http://demo");
     		Iterator it =sh.getChildElements(destinationname);
     		if (!it.hasNext()) {
@@ -177,13 +175,13 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
             }
             SOAPElement destinationElement = (SOAPElement) it.next();
     		String destinationName = destinationElement.getValue();
-    		//System.out.println("message destination: "+destinationName);*/
+    		//System.out.println("message destination: "+destinationName);
 
     		//take time
     		Name timeName = se.createName("timeStamp","d","http://demo");
-    		Iterator it =sh.getChildElements(timeName);
+    		it =sh.getChildElements(timeName);
     		if (!it.hasNext()) {
-                System.out.println("Nonce header element not found.");
+                System.out.println("timeStamp header element not found.");
                 makeFault(sb,"missingTimestamp","Timestamp header element not found.");
                 return false;
             }
@@ -208,17 +206,17 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		String signedResume = resumeElement.getValue();
 
     		String toDigest=sb.getTextContent();
-    		//toDigest= toDigest.concat(destinationName);
+    		toDigest= toDigest.concat(destinationName);
     		toDigest= toDigest.concat(timeValue);
     		//System.out.println(toDigest);
 
     		boolean signatureAutentic ;
 
-    		/*if(!myName.equals(destinationName)){
+    		if(!myName.equals(destinationName)){
     			System.out.println("!!! Received Message  with wrong destination !!!");
     			makeFault(sb,"WrongEndPoints","!!! Received Message with wrong destination !!!");
     			return false;
-    		}*/
+    		}
     		signatureAutentic = checkSignature(othersName,myName,toDigest,signedResume);
     		if(!signatureAutentic){
     			System.out.println("!!!The signature isnt ok");
