@@ -1,7 +1,11 @@
 package pt.tecnico.sec.dpm.server;
 
 import org.junit.*;
+import org.junit.runner.RunWith;
 
+import mockit.Mock;
+import mockit.MockUp;
+import mockit.integration.junit4.JMockit;
 import pt.tecnico.sec.dpm.server.exceptions.NullArgException;
 import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
 import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInvalidSizeException;
@@ -24,6 +28,8 @@ import java.util.Arrays;
  *  Invoked by Maven in the "test" life-cycle phase
  *  If necessary, should invoke "mock" remote servers
  */
+
+@RunWith(JMockit.class)
 public class RegisterTest {
 
     // static members
@@ -49,6 +55,11 @@ public class RegisterTest {
 
     @BeforeClass
     public static void oneTimeSetUp() throws NoSuchAlgorithmException {
+    	new MockUp<APIImpl> () {
+    		@Mock
+    		void setMessageContext() { }
+    	};
+    	
     	APIImplTest = new APIImpl();     
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
     	keyGen.initialize(2048);

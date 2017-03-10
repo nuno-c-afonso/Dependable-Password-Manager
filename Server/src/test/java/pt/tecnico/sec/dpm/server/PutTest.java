@@ -1,7 +1,11 @@
 package pt.tecnico.sec.dpm.server;
 
 import org.junit.*;
+import org.junit.runner.RunWith;
 
+import mockit.Mock;
+import mockit.MockUp;
+import mockit.integration.junit4.JMockit;
 import pt.tecnico.sec.dpm.server.exceptions.*;
 
 import static org.junit.Assert.*;
@@ -20,6 +24,8 @@ import java.sql.SQLException;
  *  Invoked by Maven in the "test" life-cycle phase
  *  If necessary, should invoke "mock" remote servers
  */
+
+@RunWith(JMockit.class)
 public class PutTest {
 
     // static members
@@ -81,6 +87,11 @@ public class PutTest {
 
     @Before
     public void setUp() throws NoSuchAlgorithmException, SQLException {
+    	new MockUp<APIImpl> () {
+    		@Mock
+    		void setMessageContext() { }
+    	};
+    	
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         publicKey = keyGen.genKeyPair().getPublic().getEncoded(); 

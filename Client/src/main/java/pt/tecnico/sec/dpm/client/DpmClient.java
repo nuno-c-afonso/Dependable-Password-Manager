@@ -35,16 +35,11 @@ public class DpmClient {
 		// Creates the stub
 		APIImplService service = new APIImplService();
 		port = service.getAPIImplPort();
+		this.url= url;
 		
 		// Handler stuff
 		BindingProvider bindingProvider = (BindingProvider) port;
 		requestContext = bindingProvider.getRequestContext();
-		requestContext.put(ENDPOINT_ADDRESS_PROPERTY, url);
-		requestContext.put(SignatureHandler.MYNAME, "Client");
-		requestContext.put(SignatureHandler.OTHERSNAME, url);
-		this.url= url;
-		//requestContext.put(SignatureHandler.MYNAME, "")
-		
 	}
 	
 	// It is assumed that all keys are protected by the same password
@@ -69,9 +64,8 @@ public class DpmClient {
 		    publicKey = pke.getCertificate().getPublicKey();
 		    privateKey = pke.getPrivateKey();
 		    
-		    requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
-			requestContext.put(SignatureHandler.SYMMETRICKEY, symmetricKey);
-		    // TODO: Add handler configuration keys
+		    // Passes info to the handlers
+		    setMessageContext();
 		    
 		} catch(UnrecoverableEntryException e) {
 			System.out.println(e.getMessage());
@@ -167,11 +161,12 @@ public class DpmClient {
 
 		return returnData;
 	}
-	/*
-	private void setMessageContext() {
-		MessageContext messageContext = webServiceContext.getMessageContext();
-		messageContext.put(SignatureHandler.PUBKEY, name);
-		messageContext.put(SignatureHandler.OTHERSNAME, "Broker");
+	
+	private void setMessageContext() {		
+		requestContext.put(ENDPOINT_ADDRESS_PROPERTY, url);
+		requestContext.put(SignatureHandler.MYNAME, "Client");
+		requestContext.put(SignatureHandler.OTHERSNAME, url);
+		requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
+		requestContext.put(SignatureHandler.SYMMETRICKEY, symmetricKey);
 	}
-	*/
 }
