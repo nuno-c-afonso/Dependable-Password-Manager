@@ -1,9 +1,10 @@
 package pt.tecnico.sec.dpm.client;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -48,6 +49,10 @@ public class IntegrationTest {
 	public static final char[] KEYS_PASS = "1nsecure".toCharArray();
 	public static final String MY_NAME = "client";
 	public static final String SYMM_NAME = "secretkey";
+	
+	// To capture the library output
+	private final PrintStream standard = System.out;
+	private ByteArrayOutputStream testOut;
 	
 	
 	@BeforeClass
@@ -143,11 +148,14 @@ public class IntegrationTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	
+    	testOut = new ByteArrayOutputStream();
+    	System.setOut(new PrintStream(testOut));
     }
 	
 	@After
     public void tearDown() {
-		// TODO: Set to the basic System.out
+		System.setOut(standard);
 		
     	try {
 			client.close();
@@ -158,12 +166,27 @@ public class IntegrationTest {
     }
 	
 	
-	// tests
-
+	// TESTS
+	
+	
+	/************
+	 * REGISTER *
+	 ************/
     @Test
     public void correctRegister() throws NotInitializedException { 
-    	// TODO: Add a system.out redirect
+    	testOut.reset();
+    	
     	client.register_user();
+    	assertEquals("", testOut.toString());
+    }
+    
+    @Test
+    public void keyInUseRegister() throws NotInitializedException {
+    	testOut.reset();
+    	
+    	client.register_user();
+    	client.register_user();
+    	assertEquals("Ignoring fault message...\nThe given Public Key is already being used.\n", testOut.toString());
     }
     
     // Given by the faculty

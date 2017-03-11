@@ -82,12 +82,12 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     public boolean handleRequest(MessageContext context){
     	//Initialize the the variables if needed
     	try {
+    		myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
+    		
     		if(myName==null)
     			myName = (String) context.get(MYNAME);
     		if(othersName==null)
     			othersName = ((String) context.get(OTHERSNAME)).toLowerCase().replace('/','0');
-    		if(myprivateKey==null)
-    			myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
     		if(passwordKeys==null)
     			passwordKeys = (char[]) context.get(PASSWORDKEYS);
     		if(passwordKeystore==null)
