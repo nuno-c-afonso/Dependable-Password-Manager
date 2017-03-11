@@ -51,7 +51,7 @@ public class DpmClient {
 		if(publicKey != null && symmetricKey != null)
 			throw new AlreadyInitializedException();
 		
-		if(keystore == null || passwordKeys == null || passwordKeystore == null)
+		if(keystore == null || passwordKeys == null || passwordKeystore == null || cliPairName==null || symmName == null)
 			throw new NullKeystoreElementException();
 		
 		try {
@@ -69,11 +69,14 @@ public class DpmClient {
 		    
 		} catch(UnrecoverableEntryException e) {
 			System.out.println(e.getMessage());
+			System.out.println("erro a abrir chave 1");
 			throw new WrongPasswordException();
 		} catch(NoSuchAlgorithmException | KeyStoreException e) {
+			System.out.println("erro a abrir chave 2");
 			publicKey = null;
 			symmetricKey = null;
 			e.printStackTrace();
+			
 		}
 	}
 	
@@ -127,13 +130,10 @@ public class DpmClient {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		
-		//Destroy Symmetric Key
-		try {
-			symmetricKey.destroy();
-			if(symmetricKey.isDestroyed()) symmetricKey = null;
-		} catch (DestroyFailedException e) {
-			System.out.println(e.getMessage());
-		}
+		symmetricKey = null;					
+		privateKey = null;
+		publicKey = null;
+
 	}
 	
 	public byte[] cipherWithSymmetric(SecretKey key, byte[] data){
