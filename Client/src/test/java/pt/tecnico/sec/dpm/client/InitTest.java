@@ -188,12 +188,6 @@ public class InitTest {
     }
     
     
-    @Test(expected = WrongPasswordException.class)
-    public void wrongPassword1() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
-    	System.out.println("--> starting test wrongPassword Test");
-    	client.init(keystore, "wrong".toCharArray(),"client", "secretkey", "1nsecure".toCharArray()); 
-    	System.out.println("--> ending test wrongPassword Test");
-    }
     
     @Test(expected = NullKeystoreElementException.class)
     public void NullPassword1() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
