@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 import java.util.Base64;
-import java.util.Base64.Decoder;
 
 import javax.crypto.SecretKey;
 import javax.xml.namespace.QName;
@@ -26,22 +25,12 @@ import javax.xml.ws.soap.SOAPFaultException;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static javax.xml.bind.DatatypeConverter.printBase64Binary;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.Key;
 import java.security.KeyFactory;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.security.spec.X509EncodedKeySpec;
-import java.text.Normalizer;
 import java.lang.System;
 
 //import pt.ca.cli.*;
@@ -64,12 +53,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     String firstReceivedDestinationName=null;
     
     private static PrivateKey myprivateKey = null;
-    private SecretKey mysymmetricKey = null;
-    
-    boolean needToCheckNames =false; /*used to protect the vulnerability of the first message received
-     								by the server because the response handler will not have
-     								access to the context variables that are set in the web service
-     								1 is yes*/
+
 
     public Set<QName> getHeaders() {
         return null;
@@ -88,14 +72,8 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 	}
 
     public boolean handleRequest(MessageContext context){
-    	if (needToCheckNames){
-    		 System.out.println("needToCheckNames");		//TODO
-    		needToCheckNames=false;
-    	}
 
-    	System.out.println(this + ">\n\t handleRequest(MessageContext=" + context+ ")");
     	try {
-    		//System.out.println("handling Request");
     		if(myName==null)
     			myName = (String) context.get(MYNAME);
     		if(othersName==null)
@@ -104,7 +82,6 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			myprivateKey = (PrivateKey) context.get(PRIVATEKEY);
 
     		
-
     		SOAPMessageContext smc = (SOAPMessageContext) context;
     		SOAPMessage msg = smc.getMessage();
     		SOAPPart sp = msg.getSOAPPart();
@@ -113,12 +90,6 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		SOAPHeader sh = se.getHeader();
     		if (sh == null) {sh = se.addHeader();}
 
-
-    		/*Name name = se.createName("destinationName","d","http://demo");
-    		SOAPHeaderElement element = sh.addHeaderElement(name);
-    		element.addTextNode(othersName);*/
-    		
-    		System.out.println("->adding timestamp");
     		//add timestamp to the header
     		Name name = se.createName("timeStamp","d","http://demo");
     		SOAPHeaderElement element = sh.addHeaderElement(name);
@@ -127,9 +98,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
     		//concat everyting to make sign
     		String toDigest = sb.getTextContent();
-    		//toDigest= toDigest.concat(othersName);
     		toDigest= toDigest.concat(stringTimestamp);
-    		//FIXME System.out.println(toDigest);
 
     		 String toSend=makeDigitalSignature(toDigest);
     		if(toSend==null){
@@ -137,29 +106,18 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			return false;
     		}
     		
-    		System.out.println("->adding resume");
     		//add resume to the header
     		name = se.createName("resume","d","http://demo");
     		element = sh.addHeaderElement(name);
     		element.addTextNode(toSend);
-    		//element.addTextNode(toDigest);
     	}catch(Exception e){System.out.println(e);}
 
-    	//System.out.println("exiting handler");
-    	//System.out.println("");
     	return true;
     }
 
 
-
-
-
-
-
     public boolean handleResponse(MessageContext context){
-    	//System.out.println(this + ">\n\t handleResponse(MessageContext=" + context+ ")");
     	try {
-    		//System.out.println("handling Response");
 
     		SOAPMessageContext smc = (SOAPMessageContext) context;
     		SOAPMessage msg = smc.getMessage();
@@ -168,7 +126,6 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		SOAPBody sb = se.getBody();
     		SOAPHeader sh = se.getHeader();
     		if (sh == null) {sh = se.addHeader();}
-    		//TODO verificar este namespace
 
     		//take destination name
     		Name destinationname = se.createName("destinationName","d","http://demo");
@@ -180,9 +137,8 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
             }
             SOAPElement destinationElement = (SOAPElement) it.next();
     		String destinationName = destinationElement.getValue();
-    		//System.out.println("message destination: "+destinationName);
 
-    		//take time
+    		//take the received timestamp
     		Name timeName = se.createName("timeStamp","d","http://demo");
     		it =sh.getChildElements(timeName);
     		if (!it.hasNext()) {
@@ -193,13 +149,14 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		SOAPElement timeElement = (SOAPElement) it.next();
     		String timeValue = timeElement.getValue();
     		timestamp = Long.parseLong(timeValue);
-    		//System.out.println("nonce received: "+nonceValue);
+    		//check if the time is in the expected interval for freshness
     		if(!checkTimestamp(timestamp)){
     			System.out.println("Timestamp not valid");
     			makeFault(sb,"wrongTimestamp","Timestamp not valid");
     			return false;
     		}
-    		//take resume
+    		
+    		//take the received resume
     		Name resumeName = se.createName("resume","d","http://demo");
     		it =sh.getChildElements(resumeName);
     		if (!it.hasNext()) {
@@ -213,9 +170,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		String toDigest=sb.getTextContent();
     		toDigest= toDigest.concat(destinationName);
     		toDigest= toDigest.concat(timeValue);
-    		//System.out.println(toDigest);
 
-    		boolean signatureAutentic ;
 
     		if (myName != null){
 	    		if(!myName.equals(destinationName)){
@@ -232,28 +187,22 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
                 return false;
             } 
             
+            //get the client PUBLIC KEY from the message
             SOAPElement pubkey = (SOAPElement) it.next();
             String stringkey = pubkey.getValue();
-            System.out.println(stringkey);
             byte[] arraykey= Base64.getDecoder().decode(stringkey);
             X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(arraykey);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             PublicKey publicKey = keyFactory.generatePublic(pubKeySpec);
     		
-    		signatureAutentic = checkSignature(publicKey,toDigest,signedResume);
+            boolean signatureAutentic = checkSignature(publicKey,toDigest,signedResume);
     		if(!signatureAutentic){
     			System.out.println("!!!The signature isnt ok");
     			makeFault(sb,"ViolatedMessage","The signature check FAILED");
     		}
 
     		sh.detachNode();
-    		//System.out.println("");
     		return signatureAutentic;
-    		/*sb.removeContents();
-    		SOAPFault fault = sb.addFault();
-    		QName faultName = new QName("SignatureIncorrect");
-    		fault.setFaultCode(faultName);
-    		fault.setFaultString("Message  received does not have a correct signature");*/
 
         }catch(Exception e){System.out.println("found it"+e.getMessage());e.printStackTrace();}
     	return false;
@@ -270,22 +219,15 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
 
     private boolean checkSignature(PublicKey publicKey  ,String text,String signedText){
-    	System.out.println("Cliente começou a verificar assinatura");
-    	//System.out.println("START CHEKING SIGNATURE");
-    	//System.out.println("othername: "+ otherName+ " myname: "+myName);
+    	
     	final byte[] plainBytesText = parseBase64Binary(text);
     	final byte[] plainBytesSignedText = parseBase64Binary(signedText);
     	
-		
-		//System.out.println(" verify the signature with the public key");
+
         try {
         	Signature sig = Signature.getInstance("SHA256WithRSA");
-        	//sig.initVerify(pk);
         	sig.initVerify(publicKey);
         	sig.update(plainBytesText);
-        	//System.out.println("signature check");
-        	//System.out.println("END CHEKING SIGNATURE1");
-        	System.out.println("Cliente vai sair assinatura");
             return sig.verify(plainBytesSignedText);
             
         } catch (SignatureException se) {
@@ -299,7 +241,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
 
     public static String makeDigitalSignature(String text) throws Exception {
-    	//System.out.println("START MAKING SIGNATURE");
+
     	byte[] plainBytesText;
     	try{
     	plainBytesText = parseBase64Binary(text);
@@ -312,7 +254,6 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     	sig.update(plainBytesText);
     	byte[] signature = sig.sign();
 
-    	//System.out.println("return the signature");
     	return printBase64Binary(signature);
     }
 
@@ -344,20 +285,11 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
         			faultCode.equals("WrongEndPoints")
         			)
         	throw new SOAPFaultException(sb.getFault());
-        	//throw new RuntimeException();
         }
         return true;
     }
 
     public void close(MessageContext messageContext) {
     }
-
-/*		QName faultName = new QName(faultNamein);
-		fault.setFaultCode(faultName);
-		fault.setFaultString(faultText);*/
-
-
-
-
 
 }
