@@ -15,6 +15,7 @@ import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
 import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
+import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
 
 //import pt.tecnico.sec.dpm.client.DpmClient;
 
@@ -111,21 +112,25 @@ public class ClientApplication{
 						client.register_user();
 						break;
 					case 2:
-						System.out.println("Domain: ");
+						System.out.print("Domain: ");
 						domain = scanner.next();
-						System.out.println("Username: ");
+						System.out.print("Username: ");
 						username = scanner.next();
-						System.out.println("Password: ");
+						System.out.print("Password: ");
 						password = scanner.next();
 						client.save_password(domain.getBytes(), username.getBytes(), password.getBytes());
 						break;
 					case 3:
-						System.out.println("Domain: ");
+						System.out.print("Domain: ");
 						domain = scanner.next();
-						System.out.println("Username: ");
+						System.out.print("Username: ");
 						username = scanner.next();
-						password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
-						System.out.println("Recovered password: " + password);
+						try {
+							password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
+							System.out.println("Recovered password: " + password);
+						} catch(NoPasswordException_Exception e) {
+							System.out.println(e.getMessage());
+						}
 						break;
 					case 4:
 						cont = false;

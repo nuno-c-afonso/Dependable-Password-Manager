@@ -1,5 +1,8 @@
 package pt.tecnico.sec.dpm.client.exceptions;
 
 public class GivenAliasNotFoundException extends Exception {
-	public GivenAliasNotFoundException() { }
+	@Override
+	public String getMessage() {
+		return "The Keystore alias were not found.";
+	}
 }

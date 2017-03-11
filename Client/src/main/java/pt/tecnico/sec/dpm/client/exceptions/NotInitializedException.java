@@ -5,7 +5,7 @@ public class NotInitializedException extends Exception {
 	
 	@Override
 	public String getMessage() {
-		return "The Distributed password manager client is not initialized";
+		return "The Distributed Password Manager client is not initialized.";
 	}
 	
 }

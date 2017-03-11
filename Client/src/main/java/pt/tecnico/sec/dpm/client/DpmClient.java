@@ -89,8 +89,8 @@ public class DpmClient {
 		try {
 			port.register(publicKey.getEncoded());
 		} catch (NullArgException_Exception | PublicKeyInUseException_Exception | PublicKeyInvalidSizeException_Exception e) {
-			// TODO: Print some error message
-		}			
+			System.out.println(e.getMessage());
+		}
 	}
 	
 	
@@ -111,19 +111,22 @@ public class DpmClient {
 	
 	
 	
-	public byte[] retrieve_password(byte[] domain, byte[] username) throws NotInitializedException {
+	public byte[] retrieve_password(byte[] domain, byte[] username) throws NotInitializedException, NoPasswordException_Exception {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
+		
 		byte[] retrivedPassword = null;
 		try {
 			retrivedPassword = port.get(publicKey.getEncoded(), 
 							   			cipherWithSymmetric(symmetricKey, domain),
 							   			cipherWithSymmetric(symmetricKey,username));
 			
-		} catch (NoPasswordException_Exception | NullArgException_Exception e) {
+			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword);
+		} catch (NullArgException_Exception e) {
 			System.out.println(e.getMessage());
 		}
-		return decipherWithSymmetric(symmetricKey,retrivedPassword);
+		
+		return retrivedPassword;
 	}
 	
 	public void close() throws NotInitializedException {

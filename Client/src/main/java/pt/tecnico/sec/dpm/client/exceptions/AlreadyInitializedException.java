@@ -5,7 +5,7 @@ public class AlreadyInitializedException extends Exception {
 	
 	@Override
 	public String getMessage() {
-		return "The Distributed password manager client is already initialized";
+		return "The Distributed Password Manager client is already initialized.";
 	}
 	
 }
