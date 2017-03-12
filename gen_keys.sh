@@ -102,12 +102,13 @@ do
 
 	for destination_name in $*
 	do
-	  destination_name="$( echo  "$destination_name" | tr  '[:upper:]' '[:lower:]'  )"
-  	  destination_name="$( echo  "$destination_name" | tr  '/' '0'  )"
+		if [ "$source_name" != "$destination_name" ]; then			
+		  destination_name="$( echo  "$destination_name" | tr  '[:upper:]' '[:lower:]'  )"
+	  	destination_name="$( echo  "$destination_name" | tr  '/' '0'  )"
 
-	  echo "Importing the signed certificate of $source_name to the $destination_name"
-	  keytool -import -keystore "$OUTPUT_FOLDER/$destination_name/$destination_name.jks" -file "$OUTPUT_FOLDER/$source_name/$source_name.cer" -alias $source_name -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
-
+		  echo "Importing the signed certificate of $source_name to the $destination_name"
+		  keytool -import -keystore "$OUTPUT_FOLDER/$destination_name/$destination_name.jks" -file "$OUTPUT_FOLDER/$source_name/$source_name.cer" -alias $source_name -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
+		fi
 	done
 
 done
