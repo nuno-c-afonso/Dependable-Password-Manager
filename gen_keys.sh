@@ -1,6 +1,9 @@
 #!/bin/sh
 
 # author: Professores de Sistemas Distribuídos - Instituto Superior Técnico
+# author: Students of SEC
+#this script originaly created some keys we used the comands and made a new one 
+# to our needs 
 ################################################################################
 # Script to generate signed X509 certificates
 # usage:
@@ -17,8 +20,8 @@ STORE_PASS="ins3cur3"
 KEY_PASS="1nsecure"
 CA_CERTIFICATE_PASS="1ns3cur3"
 CA_CSR_FILE="ca.csr"
-D_NAME="CN=DistributedSystems,OU=DEI,O=IST,L=Lisbon,S=Lisbon,C=PT"
-SUBJ="/CN=DistributedSystems/OU=DEI/O=IST/L=Lisbon/C=PT"
+D_NAME="CN=SEC,OU=DEI,O=IST,L=Lisbon,S=Lisbon,C=PT"
+SUBJ="/CN=SEC/OU=DEI/O=IST/L=Lisbon/C=PT"
 KEYS_VALIDITY=90
 OUTPUT_FOLDER="keys"
 CA_FOLDER="$OUTPUT_FOLDER/ca"
@@ -46,7 +49,7 @@ echo "CA Certificate generated."
 echo "Generating folder to storea all certs"
 mkdir "$OUTPUT_FOLDER/allcerts"
 
-LALA=""
+
 for server_name in $*
 do
 	
@@ -83,4 +86,22 @@ do
 
   echo "Removing the Certificate Signing Request (.csr file)..."
   rm "$server_folder/$server_name.csr"
+done
+
+#save all certs everywhere
+for source_name in $*
+do
+	source_name="$( echo  "$source_name" | tr  '[:upper:]' '[:lower:]'  )"
+  	source_name="$( echo  "$source_name" | tr  '/' '0'  )"
+
+	for destination_name in $*
+	do
+	  destination_name="$( echo  "$destination_name" | tr  '[:upper:]' '[:lower:]'  )"
+  	  destination_name="$( echo  "$destination_name" | tr  '/' '0'  )"
+
+	  echo "Importing the signed certificate of $source_name to the $destination_name"
+	  keytool -import -keystore "$OUTPUT_FOLDER/$destination_name/$destination_name.jks" -file "$OUTPUT_FOLDER/$source_name/$source_name.cer" -alias $source_name -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
+
+	done
+
 done
