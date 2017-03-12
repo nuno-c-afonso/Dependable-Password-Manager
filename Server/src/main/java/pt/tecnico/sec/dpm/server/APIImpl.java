@@ -90,8 +90,7 @@ public class APIImpl implements API {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		// TODO: Sometimes this will return null!!!
+
 		return res;
 	}
 	

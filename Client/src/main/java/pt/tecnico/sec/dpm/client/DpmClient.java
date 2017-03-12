@@ -85,8 +85,6 @@ public class DpmClient {
 	}
 	
 	
-	//TODO: CIPHER INFORMATIONS
-	// EVERYTHING EXCEPT PUBKEY
 	public void register_user() throws NotInitializedException,
 	PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
 		if(publicKey == null || symmetricKey == null)
@@ -98,7 +96,6 @@ public class DpmClient {
 			System.out.println(e.getMessage());
 		}
 	}
-	
 	
 	
 	public void save_password(byte[] domain, byte[] username, byte[] password)
