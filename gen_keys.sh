@@ -89,7 +89,7 @@ do
 
 	if [[ "$server_name" == *"client"* ]]; then
 		echo "Adding symmetric key..."
-		keytool -genseckey -alias "secretKey" -keyalg AES -keysize 192 -storetype jceks -keystore $server_kerystore_file -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
+		keytool -import -genseckey -alias "secretKey" -keyalg AES -keysize 192 -storetype jceks -keystore $server_kerystore_file -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
 	fi
 
 done

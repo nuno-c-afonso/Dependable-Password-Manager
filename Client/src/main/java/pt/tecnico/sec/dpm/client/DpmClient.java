@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
+import java.security.cert.X509Certificate;
 import java.util.Map;
 
 import javax.crypto.Cipher;
@@ -26,6 +27,7 @@ public class DpmClient {
 	PublicKey publicKey = null;
 	SecretKey symmetricKey = null;
 	PrivateKey privateKey = null;
+	X509Certificate cert = null;
 	String url;
 	Map<String, Object> requestContext = null;
 
@@ -57,6 +59,8 @@ public class DpmClient {
 		try {
 			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName))// || !keystore.containsAlias(url.toLowerCase().replace('/', '0')))
 				throw new GivenAliasNotFoundException();
+			
+			cert = (X509Certificate) keystore.getCertificate(url.toLowerCase().replace('/','0'));
 			
 			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(passwordKeys);
 			symmetricKey = (SecretKey) keystore.getKey(symmName, passwordKeys);
@@ -189,8 +193,6 @@ public class DpmClient {
 		requestContext.put(SignatureHandler.MYNAME, "Client");
 		requestContext.put(SignatureHandler.OTHERSNAME, url);
 		requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
-		requestContext.put(SignatureHandler.SYMMETRICKEY, symmetricKey);
-		requestContext.put(SignatureHandler.PASSWORDKEYS, passwordKeys);
-		requestContext.put(SignatureHandler.PASSWORDKEYSTORE, passwordKeystore);
+		requestContext.put(SignatureHandler.SERVERCERT, cert);
 	}
 }

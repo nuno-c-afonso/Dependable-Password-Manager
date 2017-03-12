@@ -53,7 +53,7 @@ public class CloseTest {
 	   java.io.FileInputStream file = null;
 	   char[] passwordFile = "ins3cur3".toCharArray();
 	   try {
-	   	file = new java.io.FileInputStream("keys/client/client.jks");
+	   	file = new java.io.FileInputStream("../keys/client/client.jks");
 			keystore.load(file,passwordFile);
 		} catch (NoSuchAlgorithmException e1) {	e1.printStackTrace();
 		} catch (CertificateException e1) { e1.printStackTrace();
@@ -93,7 +93,7 @@ public class CloseTest {
 			
 	       java.io.FileOutputStream file2 = null;
 	       try {
-	       	file2 = new java.io.FileOutputStream("keys/client/client.jks");
+	       	file2 = new java.io.FileOutputStream("../keys/client/client.jks");
 				keystore.store(file2, passwordFile);
 			} catch (NoSuchAlgorithmException e1) {	e1.printStackTrace();
 			} catch (CertificateException e1) { e1.printStackTrace();

@@ -43,10 +43,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     public static final String MYNAME= "my.myname.property";
     public static final String OTHERSNAME= "my.othersname.property";
     public static final String PRIVATEKEY = "my.privatekey.property";
-    public static final String SYMMETRICKEY ="my.symmetrickey.property";
-    public static final String PASSWORDKEYSTORE ="my.passwordKeystore.property";
-    public static final String PASSWORDKEYS ="my.passwordKeys.property";
-
+    public static final String SERVERCERT ="my.servercert.property";
 
     Random randomGenerator = new Random();
 
@@ -57,10 +54,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     String firstReceivedOriginName=null;
     String firstReceivedDestinationName=null;
     
-    private static PrivateKey myprivateKey = null;
-    private char[] passwordKeystore = null;
-    private char[] passwordKeys = null;
-    
+    private PrivateKey myprivateKey = null;
+    private X509Certificate cert = null;
 
 
     public Set<QName> getHeaders() {
@@ -88,10 +83,6 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     			myName = (String) context.get(MYNAME);
     		if(othersName==null)
     			othersName = ((String) context.get(OTHERSNAME)).toLowerCase().replace('/','0');
-    		if(passwordKeys==null)
-    			passwordKeys = (char[]) context.get(PASSWORDKEYS);
-    		if(passwordKeystore==null)
-    			passwordKeystore = (char[]) context.get(PASSWORDKEYSTORE);
 
     		
     		//Dissecate the message
@@ -139,6 +130,8 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
 
     public boolean handleResponse(MessageContext context){
+    	cert = (X509Certificate) context.get(SERVERCERT);
+    	
     	try {
     		//Dissecate the message
     		SOAPMessageContext smc = (SOAPMessageContext) context;
@@ -207,37 +200,11 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
     	final byte[] plainBytesText = parseBase64Binary(text);
     	final byte[] plainBytesSignedText = parseBase64Binary(signedText);
-    	
-    	
-		String currentDir=null;
-		try {currentDir = new java.io.File( "." ).getCanonicalPath();
-		} catch (IOException e1) {e1.printStackTrace();}
-
-		KeyStore ks=null;
-		try {ks = KeyStore.getInstance("jceks");
-		} catch (KeyStoreException e1) {//e1.printStackTrace();
-			}
-
-		//Load the keystore from the filesystem
-		String path=currentDir + "/../keys/allcerts/allcerts.jks";
-		try {ks.load(new FileInputStream(path), passwordKeystore);
-		} catch (NoSuchAlgorithmException | CertificateException | IOException e1) {e1.printStackTrace();}
-
-
-		//Get the certeficate from the Keysore
-		X509Certificate certificate=null;
-		try {certificate = (X509Certificate) ks.getCertificate(otherName.toLowerCase().replace('/','0'));
-		} catch (KeyStoreException e1) {e1.printStackTrace();}
-		if(certificate==null){
-			System.out.println("Does not have certificate of: "+ otherName);
-			return false;
-		}
-		
 		
 		//Verify the signature with the corresponding public key
         try {
         	Signature sig = Signature.getInstance("SHA256WithRSA");
-        	sig.initVerify(certificate);
+        	sig.initVerify(cert);
         	sig.update(plainBytesText);
             return sig.verify(plainBytesSignedText);
         } catch (SignatureException se) {
@@ -250,7 +217,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     }
 
 
-    public static String makeDigitalSignature(String text) throws Exception {
+    public String makeDigitalSignature(String text) throws Exception {
 
     	byte[] plainBytesText;
     	try{

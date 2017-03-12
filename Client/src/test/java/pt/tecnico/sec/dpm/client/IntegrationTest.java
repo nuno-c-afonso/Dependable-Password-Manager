@@ -50,6 +50,7 @@ import sun.security.x509.*;
 public class IntegrationTest {
 	public static DpmClient client = null;
 	public static SecretKey symmKey = null;
+	public static X509Certificate cert = null;
 	public static final char[] KEYSTORE_PASS = "ins3cur3".toCharArray();
 	public static final char[] KEYS_PASS = "1nsecure".toCharArray();
 	public static final String MY_NAME = "client";
@@ -58,6 +59,7 @@ public class IntegrationTest {
 	public static final byte[] USERNAME = "username".getBytes();
 	public static final byte[] ORIGINAL_PASS = "pass".getBytes();
 	public static final byte[] CHANGED_PASS = "pass2".getBytes();
+	public static final String SERVER_ADDR = "http://localhost:8080/ws.API/endpoint";
 	
 	// To capture the library output
 	private final PrintStream standard = System.out;
@@ -75,7 +77,7 @@ public class IntegrationTest {
         
         java.io.FileInputStream file = null;
         try {
-        	file = new java.io.FileInputStream("keys/client/client.jks");
+        	file = new java.io.FileInputStream("../keys/client/client.jks");
 			keystore.load(file, KEYSTORE_PASS);
 		} catch (NoSuchAlgorithmException e1) {	e1.printStackTrace();
 		} catch (CertificateException e1) { e1.printStackTrace();
@@ -88,43 +90,13 @@ public class IntegrationTest {
 	        }
 	    }
         
-        //See if keystore already have a symmetric key, if don't add one
-		try {symmKey =  (SecretKey) keystore.getKey("secretkey", "1nsecure".toCharArray());
+		try {
+			symmKey =  (SecretKey) keystore.getKey("secretkey", "1nsecure".toCharArray());
+			cert = (X509Certificate) keystore.getCertificate(SERVER_ADDR.toLowerCase().replace('/', '0'));
 		} catch (KeyStoreException e1) {e1.printStackTrace();
 		} catch (UnrecoverableKeyException e) { e.printStackTrace();
 		} catch (NoSuchAlgorithmException e) { e.printStackTrace();}
 		
-        KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(KEYS_PASS);
-		
-		if (symmKey == null){
-			KeyGenerator keyGenAES = null;
-			try{
-	    		keyGenAES = KeyGenerator.getInstance("AES");
-	    	}catch(NoSuchAlgorithmException e){System.out.print(e.getMessage());}
-			
-	        keyGenAES.init(256);
-	        symmKey = keyGenAES.generateKey();
-	        
-	        KeyStore.SecretKeyEntry skEntry = new KeyStore.SecretKeyEntry(symmKey);
-	        try {keystore.setEntry("secretkey", skEntry, protParam);
-			} catch (KeyStoreException e) {e.printStackTrace();}
-			
-	        java.io.FileOutputStream file2 = null;
-	        try {
-	        	file2 = new java.io.FileOutputStream("keys/client/client.jks");
-				keystore.store(file2, KEYSTORE_PASS);
-			} catch (NoSuchAlgorithmException e1) {	e1.printStackTrace();
-			} catch (CertificateException e1) { e1.printStackTrace();
-			} catch (IOException e1) { e1.printStackTrace();
-			} catch (KeyStoreException e) { e.printStackTrace();
-			}finally {
-		        if (file != null) {
-		            try {
-						file.close();
-					} catch (IOException e) { e.printStackTrace();}
-		        }
-		    }
-		}
     }
 	
 	@Before
@@ -143,12 +115,13 @@ public class IntegrationTest {
 	    	KeyPair pair = keyGen.generateKeyPair();
 			privKeyEntry = new KeyStore.PrivateKeyEntry(pair.getPrivate(), generateCertificate(pair));
 			keystore.setEntry(MY_NAME, privKeyEntry, protParam);
+			keystore.setEntry(SERVER_ADDR.toLowerCase().replace('/', '0'), new KeyStore.TrustedCertificateEntry(cert), null);
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		
-    	client = new DpmClient("http://localhost:8080/ws.API/endpoint");
+    	client = new DpmClient(SERVER_ADDR);
     	
     	try {
 			client.init(keystore, KEYSTORE_PASS, MY_NAME, SYMM_NAME, KEYS_PASS);
@@ -212,6 +185,7 @@ public class IntegrationTest {
 			keystore.load(null, null);
 			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(KEYS_PASS);
 			keystore.setEntry(SYMM_NAME, new KeyStore.SecretKeyEntry(symmKey), protParam);
+			keystore.setEntry(SERVER_ADDR.toLowerCase().replace('/', '0'), new KeyStore.TrustedCertificateEntry(cert), null);
 			
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 	    	
@@ -226,7 +200,7 @@ public class IntegrationTest {
 			e1.printStackTrace();
 		}
 		
-    	client = new DpmClient("http://localhost:8080/ws.API/endpoint");
+    	client = new DpmClient(SERVER_ADDR);
     	
     	try {
 			client.init(keystore, KEYSTORE_PASS, MY_NAME, SYMM_NAME, KEYS_PASS);
