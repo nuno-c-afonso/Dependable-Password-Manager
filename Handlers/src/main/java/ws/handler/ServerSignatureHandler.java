@@ -179,11 +179,13 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 	    			return false;
 	    		}
     		}
+    		
     		SOAPElement method =(SOAPElement) sb.getFirstChild();
     		Name key = se.createName("arg0");
             it =method.getChildElements(key);
             if (!it.hasNext()) {
             	System.out.println("nao encontra o key");
+            	makeFault(sb,"ClientePublicKeyNotFound","!!! Received Message without publicKey !!!");
                 return false;
             } 
             
@@ -282,7 +284,8 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
         			faultCode.equals("wrongTimestamp")||
         			faultCode.equals("missingResume")||
         			faultCode.equals("ViolatedMessage")||
-        			faultCode.equals("WrongEndPoints")
+        			faultCode.equals("WrongEndPoints")||
+        			faultCode.equals("ClientePublicKeyNotFound")
         			)
         	throw new SOAPFaultException(sb.getFault());
         }
