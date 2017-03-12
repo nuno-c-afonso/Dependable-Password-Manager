@@ -41,7 +41,9 @@ import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
 import pt.tecnico.sec.dpm.client.exceptions.UnregisteredUserException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
+import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException;
 import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
 import sun.security.x509.*;
 
@@ -197,53 +199,44 @@ public class IntegrationTest {
     	client.register_user();
     }
     
-    @Test
+    // Needs to create a new client, with a key size bigger than allowed
+    @Test(expected=PublicKeyInvalidSizeException_Exception.class)
     public void keyTooBigRegister()
     		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
     	
-    	testOut.reset();
+    	KeyStore keystore = null;
+		KeyStore.PrivateKeyEntry privKeyEntry = null;
+		
+		try {
+			keystore = KeyStore.getInstance("jceks");
+			keystore.load(null, null);
+			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(KEYS_PASS);
+			keystore.setEntry(SYMM_NAME, new KeyStore.SecretKeyEntry(symmKey), protParam);
+			
+			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+	    	
+			// Increased the size to one not allowed
+			keyGen.initialize(6144);
+			
+	    	KeyPair pair = keyGen.generateKeyPair();
+			privKeyEntry = new KeyStore.PrivateKeyEntry(pair.getPrivate(), generateCertificate(pair));
+			keystore.setEntry(MY_NAME, privKeyEntry, protParam);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+    	client = new DpmClient("http://localhost:8080/ws.API/endpoint");
     	
-    	// TODO: Create a keystore with a 8192 bit key.
-    	// FIXME: This test will always fail until fixed.
-    	/*
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * 
-    	 * */
-    	//assertEquals("Ignoring fault message...\nThe given Public Key is already being used.\n", testOut.toString());
+    	try {
+			client.init(keystore, KEYSTORE_PASS, MY_NAME, SYMM_NAME, KEYS_PASS);
+		} catch (AlreadyInitializedException | NullKeystoreElementException | GivenAliasNotFoundException
+				| WrongPasswordException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	client.register_user();
     }
     
     
@@ -251,7 +244,7 @@ public class IntegrationTest {
 	 * SAVE *
 	 ********/
     @Test
-    public void correctSave()
+    public void correctInsertSave()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException {
     	
@@ -262,9 +255,128 @@ public class IntegrationTest {
     	assertEquals("", testOut.toString());
     }
     
+    @Test
+    public void correctUpdateSave()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException {
+    	
+    	testOut.reset();
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    	client.save_password(DOMAIN, USERNAME, CHANGED_PASS);
+    	assertEquals("", testOut.toString());
+    }
+    
     @Test(expected=UnregisteredUserException.class)
     public void unregisteredSave() throws NotInitializedException, NullClientArgException, UnregisteredUserException {    	
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    }
+    
+    @Test(expected=NullClientArgException.class)
+    public void nullDomainSave()
+    		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    	
+    	client.register_user();
+    	client.save_password(null, USERNAME, ORIGINAL_PASS);
+    }
+    
+    @Test(expected=NullClientArgException.class)
+    public void nullUsernameSave()
+    		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, null, ORIGINAL_PASS);
+    }
+    
+    @Test(expected=NullClientArgException.class)
+    public void nullPassSave()
+    		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, null);
+    }
+    
+    
+    /************
+	 * RETRIEVE *
+	 ************/
+    @Test
+    public void correctInsertRetrieve()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
+    		UnregisteredUserException, NoPasswordException_Exception {
+    	
+    	testOut.reset();
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    	byte[] pass = client.retrieve_password(DOMAIN, USERNAME);
+    	
+    	assertArrayEquals(ORIGINAL_PASS, pass);
+    	assertEquals("", testOut.toString());
+    }
+    
+    @Test
+    public void correctUpdateRetrieve()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
+    		UnregisteredUserException, NoPasswordException_Exception {
+    	
+    	testOut.reset();
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    	client.save_password(DOMAIN, USERNAME, CHANGED_PASS);
+    	byte[] pass = client.retrieve_password(DOMAIN, USERNAME);
+    	
+    	assertArrayEquals(CHANGED_PASS, pass);
+    	assertEquals("", testOut.toString());
+    }
+    
+    @Test(expected=UnregisteredUserException.class)
+    public void unregisteredRetrieve()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
+    		UnregisteredUserException, NoPasswordException_Exception {
+    	
+    	client.retrieve_password(DOMAIN, "noone".getBytes());
+    }
+    
+    @Test(expected=NoPasswordException_Exception.class)
+    public void noMatchingPassRetrieve()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
+    		UnregisteredUserException, NoPasswordException_Exception {
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    	client.retrieve_password(DOMAIN, "noone".getBytes());
+    }
+    
+    @Test(expected=NullClientArgException.class)
+    public void nullDomainRetrieve()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
+    		UnregisteredUserException, NoPasswordException_Exception {
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    	client.retrieve_password(null, USERNAME);
+    }
+    
+    @Test(expected=NullClientArgException.class)
+    public void nullUsernameRetrieve()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
+    		UnregisteredUserException, NoPasswordException_Exception {
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    	client.retrieve_password(DOMAIN, null);
     }
     
     
