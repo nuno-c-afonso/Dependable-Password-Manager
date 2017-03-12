@@ -75,7 +75,9 @@ public class APIImpl implements API {
 	}
 
 	@Override
-	public byte[] get(byte[] publicKey, byte[] domain, byte[] username) throws NoPasswordException, NullArgException {
+	public byte[] get(byte[] publicKey, byte[] domain, byte[] username)
+			throws NoPasswordException, NullArgException, NoPublicKeyException {
+		
 		setMessageContext();
 		
 		byte[] res = null;

@@ -115,7 +115,7 @@ public class DPMDB extends DBManager {
 	
 	// Retrieves the password from the DB
 	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException,
-			NoResultException, NullArgException {
+			NoResultException, NullArgException, NoPublicKeyException {
 		
 		String q = "SELECT p.password "
 				 + "FROM users AS u, passwords AS p "
@@ -128,6 +128,7 @@ public class DPMDB extends DBManager {
 		byte[] res = null;
 		
 		try {
+			existsUser(toArrayList(pubKey));
 			PreparedStatement p = createStatement(q, lst);
 			ResultSet returned = select(p);
 			res = returned.getBytes("p.password");

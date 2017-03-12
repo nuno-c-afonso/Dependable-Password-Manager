@@ -14,5 +14,5 @@ import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInvalidSizeException;
 public interface API {
 	void register(byte[] publicKey) throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException;
 	void put(byte[] publicKey, byte[] domain, byte[] username, byte[] password) throws NoPublicKeyException, NullArgException;
-	byte[] get(byte[] publicKey, byte[] domain, byte[] username) throws NoPasswordException, NullArgException;
+	byte[] get(byte[] publicKey, byte[] domain, byte[] username) throws NoPasswordException, NullArgException, NoPublicKeyException;
 }

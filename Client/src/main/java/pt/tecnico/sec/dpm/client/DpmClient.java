@@ -83,37 +83,53 @@ public class DpmClient {
 	
 	//TODO: CIPHER INFORMATIONS
 	// EVERYTHING EXCEPT PUBKEY
-	public void register_user() throws NotInitializedException {
+	public void register_user() throws NotInitializedException,
+	PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		try {
 			port.register(publicKey.getEncoded());
-		} catch (NullArgException_Exception | PublicKeyInUseException_Exception | PublicKeyInvalidSizeException_Exception e) {
+		} catch (NullArgException_Exception e) {
+			// It should not occur
 			System.out.println(e.getMessage());
 		}
 	}
 	
 	
 	
-	public void save_password(byte[] domain, byte[] username, byte[] password) throws NotInitializedException {
+	public void save_password(byte[] domain, byte[] username, byte[] password)
+			throws NotInitializedException, NullClientArgException, UnregisteredUserException {
+		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
+		
+		if(domain == null || username == null || password == null)
+			throw new NullClientArgException();
+		
 		try {
-
 			port.put(publicKey.getEncoded(), 
 					 cipherWithSymmetric(symmetricKey, domain), 
 					 cipherWithSymmetric(symmetricKey,username), 
 					 cipherWithSymmetric(symmetricKey, password));
-		} catch (NoPublicKeyException_Exception | NullArgException_Exception e) {
+			
+		} catch (NoPublicKeyException_Exception e) {
+			throw new UnregisteredUserException();
+		} catch (NullArgException_Exception e) {
+			// It should not occur
 			System.out.println(e.getMessage());
 		}
 	}
 	
 	
 	
-	public byte[] retrieve_password(byte[] domain, byte[] username) throws NotInitializedException, NoPasswordException_Exception {
+	public byte[] retrieve_password(byte[] domain, byte[] username)
+			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException, UnregisteredUserException {
+		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
+		
+		if(domain == null || username == null)
+			throw new NullClientArgException();
 		
 		byte[] retrivedPassword = null;
 		try {
@@ -122,7 +138,10 @@ public class DpmClient {
 							   			cipherWithSymmetric(symmetricKey,username));
 			
 			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword);
+		} catch(NoPublicKeyException_Exception e) {
+			throw new UnregisteredUserException();
 		} catch (NullArgException_Exception e) {
+			// It should not occur
 			System.out.println(e.getMessage());
 		}
 		

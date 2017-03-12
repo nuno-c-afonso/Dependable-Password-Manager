@@ -154,7 +154,7 @@ public class GetTest {
     // tests
     //Verifies if the the Get function is working correctly
     @Test
-    public void correctGet() throws NoPasswordException, NullArgException {
+    public void correctGet() throws NoPasswordException, NullArgException, NoPublicKeyException {
     	//call function to get
     	byte[] password = APIImplTest.get(publicKey, DOMAIN, USERNAME);
     	assert(password != null);
@@ -162,22 +162,22 @@ public class GetTest {
     }
     // create test for each field being null
     @Test(expected = NullArgException.class)
-    public void nullPubKey() throws NoPasswordException, NullArgException  {
+    public void nullPubKey() throws NoPasswordException, NullArgException, NoPublicKeyException  {
     	APIImplTest.get(null, DOMAIN, USERNAME);
     }
     
     @Test(expected = NullArgException.class)
-    public void nullDomain() throws NoPasswordException, NullArgException  {
+    public void nullDomain() throws NoPasswordException, NullArgException, NoPublicKeyException  {
     	APIImplTest.get(publicKey, null, USERNAME);    	
     }
     
     @Test(expected = NullArgException.class)
-    public void nullUsername () throws NoPasswordException, NullArgException  {
+    public void nullUsername () throws NoPasswordException, NullArgException, NoPublicKeyException  {
     	APIImplTest.get(publicKey, DOMAIN, null);    	
     }
     
-    @Test(expected = NoPasswordException.class)
-    public void noExistingPassword () throws NoPasswordException, NullArgException {
+    @Test(expected = NoPublicKeyException.class)
+    public void noExistingPassword () throws NoPasswordException, NullArgException, NoPublicKeyException {
     	APIImplTest.get("INVALIDPUBKEY".getBytes(), "INVALIDDOMAIN".getBytes(), "INVALIDUSERNAME".getBytes());
     }
     

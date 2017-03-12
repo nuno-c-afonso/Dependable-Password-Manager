@@ -13,9 +13,13 @@ import javax.crypto.SecretKey;
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
 import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.client.exceptions.UnregisteredUserException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
 import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
 
 //import pt.tecnico.sec.dpm.client.DpmClient;
 
@@ -93,7 +97,6 @@ public class ClientApplication{
 		DpmClient client = new DpmClient("http://localhost:8080/ws.API/endpoint");
 		Scanner scanner = new Scanner(System.in);
 		
-		//TODO: Change the null entry by the server's certificate name
 		try {
 			client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
 			
@@ -109,7 +112,11 @@ public class ClientApplication{
 				String domain, username, password;				
 				switch(option) {
 					case 1:
+					try {
 						client.register_user();
+					} catch (PublicKeyInUseException_Exception e1) {
+						System.out.println(e1.getMessage());
+					}
 						break;
 					case 2:
 						System.out.print("Domain: ");
@@ -118,7 +125,11 @@ public class ClientApplication{
 						username = scanner.next();
 						System.out.print("Password: ");
 						password = scanner.next();
+					try {
 						client.save_password(domain.getBytes(), username.getBytes(), password.getBytes());
+					} catch (NullClientArgException | UnregisteredUserException e1) {
+						System.out.println(e1.getMessage());
+					}
 						break;
 					case 3:
 						System.out.print("Domain: ");
@@ -128,7 +139,7 @@ public class ClientApplication{
 						try {
 							password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
 							System.out.println("Recovered password: " + password);
-						} catch(NoPasswordException_Exception e) {
+						} catch(Exception e) {
 							System.out.println(e.getMessage());
 						}
 						break;
@@ -145,7 +156,7 @@ public class ClientApplication{
 			
 			
 		} catch (AlreadyInitializedException | NullKeystoreElementException | GivenAliasNotFoundException
-				| WrongPasswordException | NotInitializedException e) {
+				| WrongPasswordException | NotInitializedException | PublicKeyInvalidSizeException_Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

@@ -37,9 +37,12 @@ import mockit.integration.junit4.JMockit;
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
 import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.client.exceptions.UnregisteredUserException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
-
+import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
 import sun.security.x509.*;
 
 public class IntegrationTest {
@@ -49,6 +52,10 @@ public class IntegrationTest {
 	public static final char[] KEYS_PASS = "1nsecure".toCharArray();
 	public static final String MY_NAME = "client";
 	public static final String SYMM_NAME = "secretkey";
+	public static final byte[] DOMAIN = "domain".getBytes();
+	public static final byte[] USERNAME = "username".getBytes();
+	public static final byte[] ORIGINAL_PASS = "pass".getBytes();
+	public static final byte[] CHANGED_PASS = "pass2".getBytes();
 	
 	// To capture the library output
 	private final PrintStream standard = System.out;
@@ -173,21 +180,93 @@ public class IntegrationTest {
 	 * REGISTER *
 	 ************/
     @Test
-    public void correctRegister() throws NotInitializedException { 
+    public void correctRegister()
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception { 
+    	
     	testOut.reset();
     	
     	client.register_user();
     	assertEquals("", testOut.toString());
     }
     
-    @Test
-    public void keyInUseRegister() throws NotInitializedException {
-    	testOut.reset();
+    @Test(expected=PublicKeyInUseException_Exception.class)
+    public void keyInUseRegister()
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
     	
     	client.register_user();
     	client.register_user();
-    	assertEquals("Ignoring fault message...\nThe given Public Key is already being used.\n", testOut.toString());
     }
+    
+    @Test
+    public void keyTooBigRegister()
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    	
+    	testOut.reset();
+    	
+    	// TODO: Create a keystore with a 8192 bit key.
+    	// FIXME: This test will always fail until fixed.
+    	/*
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * 
+    	 * */
+    	//assertEquals("Ignoring fault message...\nThe given Public Key is already being used.\n", testOut.toString());
+    }
+    
+    
+    /********
+	 * SAVE *
+	 ********/
+    @Test
+    public void correctSave()
+    		throws NotInitializedException, PublicKeyInUseException_Exception,
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException {
+    	
+    	testOut.reset();
+    	
+    	client.register_user();
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    	assertEquals("", testOut.toString());
+    }
+    
+    @Test(expected=UnregisteredUserException.class)
+    public void unregisteredSave() throws NotInitializedException, NullClientArgException, UnregisteredUserException {    	
+    	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
+    }
+    
     
     // Given by the faculty
     private X509Certificate[] generateCertificate(KeyPair pair) throws Exception {
