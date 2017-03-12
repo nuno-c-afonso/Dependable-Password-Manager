@@ -5,6 +5,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 import javax.crypto.KeyGenerator;
@@ -63,8 +64,17 @@ public class ClientApplication{
 				System.out.println("2 - Save password;");
 				System.out.println("3 - Retrieve password;");
 				System.out.println("4 - Close.");
+				System.out.print("> ");
 				
-				int option = scanner.nextInt();
+				int option = -1;
+				
+				try {
+					option = scanner.nextInt();
+				} catch(InputMismatchException e) {
+					// It will be treated on the default case
+					scanner.next(); // It cleans the input
+				}
+				
 				String domain, username, password;				
 				switch(option) {
 					case 1:
