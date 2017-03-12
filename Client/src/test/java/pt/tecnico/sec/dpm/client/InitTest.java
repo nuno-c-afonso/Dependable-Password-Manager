@@ -43,6 +43,8 @@ public class InitTest {
 	public static SecretKey symmetricKey = null;	
 	public static DpmClient client = null;
 	public static KeyStore keystore = null; 
+	public static int SYMM_KEY_SIZE = 192;
+	
     // one-time initialization and clean-up
 
     @BeforeClass
@@ -88,7 +90,7 @@ public class InitTest {
 	    		keyGenAES = KeyGenerator.getInstance("AES");
 	    	}catch(NoSuchAlgorithmException e){System.out.print(e.getMessage());}
 			
-	        keyGenAES.init(256);
+	        keyGenAES.init(SYMM_KEY_SIZE);
 	        symmetricKey = keyGenAES.generateKey();
 	        
 	        KeyStore.SecretKeyEntry skEntry = new KeyStore.SecretKeyEntry(symmetricKey);
