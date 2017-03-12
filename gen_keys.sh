@@ -2,8 +2,8 @@
 
 # author: Professores de Sistemas Distribuídos - Instituto Superior Técnico
 # author: Students of SEC
-#this script originaly created some keys we used the comands and made a new one 
-# to our needs 
+#this script originaly created some keys we used the comands and made a new one
+# to our needs
 ################################################################################
 # Script to generate signed X509 certificates
 # usage:
@@ -52,7 +52,7 @@ mkdir "$OUTPUT_FOLDER/allcerts"
 
 for server_name in $*
 do
-	
+
   echo $server_name
   server_name="$( echo  "$server_name" | tr  '[:upper:]' '[:lower:]'  )"
   server_name="$( echo  "$server_name" | tr  '/' '0'  )"
@@ -65,7 +65,7 @@ do
 
   echo "Generating keypair of $server_name..."
   keytool -keystore $server_kerystore_file -genkey -alias $server_name -keyalg RSA -keysize 4096 -keypass $KEY_PASS -validity $KEYS_VALIDITY -storepass $STORE_PASS  -dname $D_NAME
-  
+
   echo "Generating the Certificate Signing Request of $server_name..."
   keytool -keystore $server_kerystore_file -certreq -alias $server_name -keyalg rsa -file $csr_file -storepass $STORE_PASS -keypass $KEY_PASS
 
@@ -86,6 +86,12 @@ do
 
   echo "Removing the Certificate Signing Request (.csr file)..."
   rm "$server_folder/$server_name.csr"
+
+	if [[ "$server_name" == *"client"* ]]; then
+		echo "Adding symmetric key..."
+		keytool -genseckey -alias "secretKey" -keyalg AES -keysize 192 -storetype jceks -keystore $server_kerystore_file -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
+	fi
+
 done
 
 #save all certs everywhere
