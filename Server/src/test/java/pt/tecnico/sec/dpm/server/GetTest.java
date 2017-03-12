@@ -160,10 +160,15 @@ public class GetTest {
     	assert(password != null);
     	assertArrayEquals(password, PASSWORD);
     }
-    // create test for each field being null
+    
     @Test(expected = NullArgException.class)
     public void nullPubKey() throws NoPasswordException, NullArgException, NoPublicKeyException  {
     	APIImplTest.get(null, DOMAIN, USERNAME);
+    }
+    
+    @Test(expected = NullArgException.class)
+    public void bullArgs() throws NoPasswordException, NullArgException, NoPublicKeyException  {
+    	APIImplTest.get(publicKey, null, null);
     }
     
     @Test(expected = NullArgException.class)
