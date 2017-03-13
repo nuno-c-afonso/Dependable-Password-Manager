@@ -12,6 +12,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
 import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
 import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
@@ -102,12 +103,12 @@ public class ClientApplication{
 						domain = scanner.next();
 						System.out.print("Username: ");
 						username = scanner.next();
-						try {
-							password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
-							System.out.println("Recovered password: " + password);
-						} catch(Exception e) {
-							System.out.println(e.getMessage());
-						}
+					try {
+						password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
+						System.out.println("Recovered password: " + password);
+					} catch (NoPasswordException_Exception | NullClientArgException | UnregisteredUserException e) {
+						System.out.println(e.getMessage());
+					}
 						break;
 					case 4:
 						cont = false;
@@ -125,6 +126,8 @@ public class ClientApplication{
 				| WrongPasswordException | NotInitializedException | PublicKeyInvalidSizeException_Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (ConnectionWasClosedException e) {
+			System.out.println("Could not reach the server. Please try again later.");
 		}
 		
 		

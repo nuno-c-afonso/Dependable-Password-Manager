@@ -1,5 +1,6 @@
 package pt.tecnico.sec.dpm.client;
 
+import java.net.ConnectException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -13,6 +14,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
 import javax.xml.ws.BindingProvider;
+import javax.xml.ws.WebServiceException;
 
 import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
 
@@ -86,7 +88,7 @@ public class DpmClient {
 	
 	
 	public void register_user() throws NotInitializedException,
-	PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+	PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		try {
@@ -94,12 +96,14 @@ public class DpmClient {
 		} catch (NullArgException_Exception e) {
 			// It should not occur
 			System.out.println(e.getMessage());
+		} catch (WebServiceException e) {
+			checkWebServiceException(e);
 		}
 	}
 	
 	
 	public void save_password(byte[] domain, byte[] username, byte[] password)
-			throws NotInitializedException, NullClientArgException, UnregisteredUserException {
+			throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException {
 		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
@@ -118,13 +122,15 @@ public class DpmClient {
 		} catch (NullArgException_Exception e) {
 			// It should not occur
 			System.out.println(e.getMessage());
+		} catch (WebServiceException e) {
+			checkWebServiceException(e);
 		}
 	}
 	
 	
 	
 	public byte[] retrieve_password(byte[] domain, byte[] username)
-			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException, UnregisteredUserException {
+			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException {
 		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
@@ -144,6 +150,8 @@ public class DpmClient {
 		} catch (NullArgException_Exception e) {
 			// It should not occur
 			System.out.println(e.getMessage());
+		} catch (WebServiceException e) {
+			checkWebServiceException(e);
 		}
 		
 		return retrivedPassword;
@@ -191,5 +199,19 @@ public class DpmClient {
 		requestContext.put(SignatureHandler.OTHERSNAME, url);
 		requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
 		requestContext.put(SignatureHandler.SERVERCERT, cert);
+	}
+	
+	// To see what to do when getting a WebServiceException
+	private void checkWebServiceException(WebServiceException e) throws ConnectionWasClosedException {
+		Throwable cause = e.getCause();
+
+        while (cause != null) {
+            if (cause instanceof ConnectException)
+                throw new ConnectionWasClosedException();
+
+            cause = cause.getCause();
+        }
+        
+        e.printStackTrace();
 	}
 }

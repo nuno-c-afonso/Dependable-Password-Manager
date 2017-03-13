@@ -35,6 +35,7 @@ import mockit.Mock;
 import mockit.MockUp;
 import mockit.integration.junit4.JMockit;
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
 import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
 import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
@@ -156,7 +157,7 @@ public class IntegrationTest {
 	 ************/
     @Test
     public void correctRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception { 
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException { 
     	
     	testOut.reset();
     	
@@ -166,7 +167,7 @@ public class IntegrationTest {
     
     @Test(expected=PublicKeyInUseException_Exception.class)
     public void keyInUseRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException {
     	
     	client.register_user();
     	client.register_user();
@@ -175,7 +176,7 @@ public class IntegrationTest {
     // Needs to create a new client, with a key size bigger than allowed
     @Test(expected=PublicKeyInvalidSizeException_Exception.class)
     public void keyTooBigRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException {
     	
     	KeyStore keystore = null;
 		KeyStore.PrivateKeyEntry privKeyEntry = null;
@@ -220,7 +221,7 @@ public class IntegrationTest {
     @Test
     public void correctInsertSave()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException {
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException {
     	
     	testOut.reset();
     	
@@ -232,7 +233,7 @@ public class IntegrationTest {
     @Test
     public void correctUpdateSave()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException {
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException {
     	
     	testOut.reset();
     	
@@ -243,14 +244,14 @@ public class IntegrationTest {
     }
     
     @Test(expected=UnregisteredUserException.class)
-    public void unregisteredSave() throws NotInitializedException, NullClientArgException, UnregisteredUserException {    	
+    public void unregisteredSave() throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException {    	
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
     }
     
     @Test(expected=NullClientArgException.class)
     public void nullDomainSave()
     		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException {
     	
     	client.register_user();
     	client.save_password(null, USERNAME, ORIGINAL_PASS);
@@ -259,7 +260,7 @@ public class IntegrationTest {
     @Test(expected=NullClientArgException.class)
     public void nullUsernameSave()
     		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException {
     	
     	client.register_user();
     	client.save_password(DOMAIN, null, ORIGINAL_PASS);
@@ -268,7 +269,7 @@ public class IntegrationTest {
     @Test(expected=NullClientArgException.class)
     public void nullPassSave()
     		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception {
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, null);
@@ -282,7 +283,7 @@ public class IntegrationTest {
     public void correctInsertRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException {
     	
     	testOut.reset();
     	
@@ -298,7 +299,7 @@ public class IntegrationTest {
     public void correctUpdateRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException {
     	
     	testOut.reset();
     	
@@ -315,7 +316,7 @@ public class IntegrationTest {
     public void unregisteredRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException {
     	
     	client.retrieve_password(DOMAIN, "noone".getBytes());
     }
@@ -324,7 +325,7 @@ public class IntegrationTest {
     public void noMatchingPassRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
@@ -335,7 +336,7 @@ public class IntegrationTest {
     public void nullDomainRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
@@ -346,7 +347,7 @@ public class IntegrationTest {
     public void nullUsernameRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
