@@ -113,6 +113,7 @@
             </executions>
             <configuration>
     	         <mainClass>pt.tecnico.sec.dpm.server.ServerApplication</mainClass>
+    	         <cleanupDaemonThreads>false</cleanupDaemonThreads>
                  <arguments>
                      <argument>${ws.url}</argument>
                  </arguments>
