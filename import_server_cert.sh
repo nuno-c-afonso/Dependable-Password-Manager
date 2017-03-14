@@ -13,5 +13,5 @@ echo "\n-->Usage: import_server_cert.sh certeficateFileWithoutTermination [certe
 for cert_file in $*
 do
 	echo "Importing the signed certificate of $cert_file to the client at ./keys/client/client.jks"
-	keytool -import -keystore "./keys/client/client.jks" -file "$cert_file.cer" -alias $cert_file -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
+	keytool -import -keystore "./keys/client/client.jks" -file "$cert_file.cer" -alias $cert_file -storepass $STORE_PASS -keypass $KEY_PASS -noprompt -storetype jceks
 done
