@@ -52,6 +52,8 @@ public class DpmClient {
 		throws AlreadyInitializedException, NullKeystoreElementException,
 		GivenAliasNotFoundException, WrongPasswordException {
 		
+		String modUrl = url.toLowerCase().replace('/','0');
+		
 		if(publicKey != null && symmetricKey != null)
 			throw new AlreadyInitializedException();
 		
@@ -59,10 +61,10 @@ public class DpmClient {
 			throw new NullKeystoreElementException();
 		
 		try {
-			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName))// || !keystore.containsAlias(url.toLowerCase().replace('/', '0')))
+			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName) || !keystore.containsAlias(modUrl))
 				throw new GivenAliasNotFoundException();
 			
-			cert = (X509Certificate) keystore.getCertificate(url.toLowerCase().replace('/','0'));
+			cert = (X509Certificate) keystore.getCertificate(modUrl);
 			
 			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(passwordKeys);
 			symmetricKey = (SecretKey) keystore.getKey(symmName, passwordKeys);

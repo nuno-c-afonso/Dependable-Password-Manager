@@ -3,13 +3,9 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.InputMismatchException;
 import java.util.Scanner;
-
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
@@ -29,7 +25,16 @@ import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
 public class ClientApplication{
 	public static void main(String[] args){
 		KeyStore keystore = null;
-
+		
+		// Check arguments
+		if (args.length == 0) {
+			System.err.println("Argument missing!");
+			System.err.printf("Usage: java %s wsURL%n", ClientApplication.class.getName());
+			return;
+		}
+		
+		String url = args[0];
+		
         try {
         	keystore = KeyStore.getInstance("jceks");
 		} catch (KeyStoreException e) {
@@ -52,7 +57,7 @@ public class ClientApplication{
 	        }
 	    }		
 		
-		DpmClient client = new DpmClient("http://localhost:8080/ws.API/endpoint");
+		DpmClient client = new DpmClient(url);
 		Scanner scanner = new Scanner(System.in);
 		
 		try {
@@ -130,6 +135,7 @@ public class ClientApplication{
 			System.out.println("Could not reach the server. Please try again later.");
 		}
 		
+		scanner.close();
 		
 		try {
 			System.out.println("Goodbye.");

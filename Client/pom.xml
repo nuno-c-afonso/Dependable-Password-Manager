@@ -135,6 +135,9 @@
             <configuration>
     	         <mainClass>pt.tecnico.sec.dpm.client.ClientApplication</mainClass>
                <killAfter>-1</killAfter>
+               <arguments>
+                 <argument>${ws.url}</argument>
+               </arguments>
             </configuration>
           </plugin>
         </plugins>
