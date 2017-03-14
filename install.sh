@@ -13,9 +13,3 @@ sudo mysql_secure_installation
 cd SQL
 mysql -u root -p < create_database.sql
 cd ..
-
-# jUDDI
-cd Tools
-unzip juddi-3.3.2_tomcat-7.0.64_9090.zip 'juddi-3.3.2_tomcat-7.0.64_9090/*' -d $HOME
-chmod +x $HOME/juddi-3.3.2_tomcat-7.0.64_9090/bin/*.sh
-cd ..
