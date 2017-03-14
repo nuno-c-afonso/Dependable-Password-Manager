@@ -179,7 +179,9 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
     		String toDigest=sb.getTextContent();
     		toDigest= toDigest.concat(timeValue);
+    		toDigest = toDigest.concat("-");
     		toDigest = toDigest.concat(mypublicKey);
+    		toDigest = toDigest.concat("-");
 
     		// Check if the Signature of the received content is correct
     		boolean signatureAutentic = checkSignature(othersName,myName,toDigest,signedResume);

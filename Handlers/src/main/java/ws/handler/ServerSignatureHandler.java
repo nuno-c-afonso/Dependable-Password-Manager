@@ -99,8 +99,10 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		//concat everyting to make sign
     		String toDigest = sb.getTextContent();
     		toDigest= toDigest.concat(stringTimestamp);
+    		toDigest = toDigest.concat("-");
     		toDigest = toDigest.concat(prevPubKey);
-
+    		toDigest = toDigest.concat("-");
+    		
     		 String toSend=makeDigitalSignature(toDigest);
     		if(toSend==null){
     			System.out.println("Error while signing");
