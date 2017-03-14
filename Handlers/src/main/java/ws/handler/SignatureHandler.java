@@ -1,5 +1,6 @@
 package ws.handler;
 
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
@@ -29,6 +30,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
@@ -43,6 +45,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     public static final String MYNAME= "my.myname.property";
     public static final String OTHERSNAME= "my.othersname.property";
     public static final String PRIVATEKEY = "my.privatekey.property";
+    public static final String PUBLICKEY = "my.publickey.property";
     public static final String SERVERCERT ="my.servercert.property";
 
     Random randomGenerator = new Random();
@@ -55,6 +58,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
     String firstReceivedDestinationName=null;
     
     private PrivateKey myprivateKey = null;
+    private String mypublicKey = null;
     private X509Certificate cert = null;
 
 
@@ -131,8 +135,11 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
     public boolean handleResponse(MessageContext context){
     	cert = (X509Certificate) context.get(SERVERCERT);
-    	
+		PublicKey pubKey = (PublicKey) context.get(PUBLICKEY);    	
+		mypublicKey = Base64.getEncoder().encodeToString(pubKey.getEncoded());
+		
     	try {
+    		
     		//Dissecate the message
     		SOAPMessageContext smc = (SOAPMessageContext) context;
     		SOAPMessage msg = smc.getMessage();
@@ -172,6 +179,7 @@ public class SignatureHandler implements SOAPHandler<SOAPMessageContext> {
 
     		String toDigest=sb.getTextContent();
     		toDigest= toDigest.concat(timeValue);
+    		toDigest = toDigest.concat(mypublicKey);
 
     		// Check if the Signature of the received content is correct
     		boolean signatureAutentic = checkSignature(othersName,myName,toDigest,signedResume);

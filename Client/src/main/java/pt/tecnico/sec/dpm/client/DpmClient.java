@@ -198,6 +198,7 @@ public class DpmClient {
 		requestContext.put(SignatureHandler.MYNAME, "Client");
 		requestContext.put(SignatureHandler.OTHERSNAME, url);
 		requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
+		requestContext.put(SignatureHandler.PUBLICKEY, publicKey);
 		requestContext.put(SignatureHandler.SERVERCERT, cert);
 	}
 	

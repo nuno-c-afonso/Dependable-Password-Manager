@@ -51,6 +51,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     private String othersName=null;
     String firstReceivedOriginName=null;
     String firstReceivedDestinationName=null;
+    String prevPubKey = null;
     
     private static PrivateKey myprivateKey = null;
 
@@ -72,7 +73,6 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
 	}
 
     public boolean handleRequest(MessageContext context){
-
     	try {
     		if(myName==null)
     			myName = (String) context.get(MYNAME);
@@ -89,7 +89,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		SOAPBody sb = se.getBody();
     		SOAPHeader sh = se.getHeader();
     		if (sh == null) {sh = se.addHeader();}
-
+    		
     		//add timestamp to the header
     		Name name = se.createName("timeStamp","d","http://demo");
     		SOAPHeaderElement element = sh.addHeaderElement(name);
@@ -99,6 +99,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     		//concat everyting to make sign
     		String toDigest = sb.getTextContent();
     		toDigest= toDigest.concat(stringTimestamp);
+    		toDigest = toDigest.concat(prevPubKey);
 
     		 String toSend=makeDigitalSignature(toDigest);
     		if(toSend==null){
@@ -191,8 +192,8 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
             
             //get the client PUBLIC KEY from the message
             SOAPElement pubkey = (SOAPElement) it.next();
-            String stringkey = pubkey.getValue();
-            byte[] arraykey= Base64.getDecoder().decode(stringkey);
+            prevPubKey = pubkey.getValue();
+            byte[] arraykey= Base64.getDecoder().decode(prevPubKey);
             X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(arraykey);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             PublicKey publicKey = keyFactory.generatePublic(pubKeySpec);
@@ -249,6 +250,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     	plainBytesText = parseBase64Binary(text);
     	}catch(Exception e){
     		System.out.println("erro a passar para bytes"+e);
+    		e.printStackTrace();
     		return null;
     	}
     	Signature sig = Signature.getInstance("SHA256WithRSA");
