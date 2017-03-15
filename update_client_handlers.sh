@@ -4,16 +4,16 @@ echo "Usage: ./update_client_handlers.sh <server ip> <server port>"
 echo "Default IP: localhost"
 echo "Default port: 8080"
 
+ip="localhost"
+port="8080"
+
 # Dealing with arguments
 if [ "$#" -gt 1 ]; then
   ip="$1"
   port="$2"
 else
-    port="8080"
     if [ "$#" -eq 1 ]; then
         ip="$1"
-    else
-        ip="localhost"
     fi
 fi
 
