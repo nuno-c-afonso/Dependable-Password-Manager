@@ -1,5 +1,23 @@
 #!/bin/bash
 
+echo "Usage: ./update_client_handlers.sh <server ip> <server port>"
+echo "Default IP: localhost"
+echo "Default port: 8080"
+
+# Dealing with arguments
+if [ "$#" -gt 1 ]; then
+  ip="$1"
+  port="$2"
+else
+    port="8080"
+    if [ "$#" -eq 1 ]; then
+        ip="$1"
+    else
+        ip="localhost"
+    fi
+fi
+
+
 PS3='Please enter your choice: '
 options=("Reset" "Exit")
 
@@ -9,7 +27,7 @@ function cp_chain {
     cd Client/src/jaxws/$1
     \cp APIImplService_handler.xml ..
     cd ../../..
-    mvn clean compile
+    mvn clean compile exec:java -Dws.url="http://$ip:$port/ws.API/endpoint"
     cd ..
     echo "Done!"
 }
