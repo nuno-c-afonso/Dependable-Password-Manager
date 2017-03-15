@@ -39,7 +39,6 @@ public class ChangePubKeyHandler implements SOAPHandler<SOAPMessageContext>{
 	PrivateKey privKey = null;
 	
 	String registerPacket;
-	Boolean register = false;
 	Boolean firstTime = true;
 	
 	
@@ -67,20 +66,10 @@ public class ChangePubKeyHandler implements SOAPHandler<SOAPMessageContext>{
 	}
 	
 	public boolean handleRequest(MessageContext context) {
-		if(privKey == null) {
+		if(privKey == null)
 			setUp();
-			registerPacket = "<S:Envelope xmlns:S=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\">"
-					+ "<SOAP-ENV:Header/>"
-					+ "<S:Body><ns2:register xmlns:ns2=\"http://server.dpm.sec.tecnico.pt/\">"
-					+ "<arg0>"
-					+ Base64.getEncoder().encodeToString(pubKey.getEncoded())
-					+ "</arg0>"
-					+ "</ns2:register>"
-					+ "</S:Body>"
-					+ "</S:Envelope>";
-		}
+
 		try {
-			
 			SOAPMessageContext smc = (SOAPMessageContext) context;
 			SOAPMessage msg = smc.getMessage();
 			SOAPPart sp = msg.getSOAPPart();
@@ -93,17 +82,17 @@ public class ChangePubKeyHandler implements SOAPHandler<SOAPMessageContext>{
 			Iterator it = sb.getChildElements(name);
 			Name nameRegister = se.createName("register", "ns2", "http://server.dpm.sec.tecnico.pt/");
 			Iterator itReg = sb.getChildElements(nameRegister);
-			if(itReg.hasNext() && firstTime ){
+			
+			if(itReg.hasNext() && firstTime){
 				firstTime = false;
-			} else if(itReg.hasNext() && !firstTime ){
-				register = true;
+				return true;
 			}
-			if(it.hasNext() || (itReg.hasNext() && register)) {		
-				
-				
+
+			if(it.hasNext() || (itReg.hasNext() && !firstTime)) {
 				SOAPElement method = (SOAPElement) sb.getFirstChild();
 				Name key = se.createName("arg0");
 				Iterator itAUX = method.getChildElements(key);
+				
 				if(!itAUX.hasNext()) {
 					System.out.println("Nao encontra key");
 				
