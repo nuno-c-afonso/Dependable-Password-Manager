@@ -8,10 +8,8 @@
         <handler>
             <handler-class>ws.handler.SignatureHandler</handler-class>
         </handler>
-        <!-- 
         <handler>
-            <handler-class>ws.handler.LoggingHandler</handler-class>
+            <handler-class>ws.handler.ChangePubKeyHandler</handler-class>
         </handler>
-        -->
     </handler-chain>
 </handler-chains>
