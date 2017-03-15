@@ -1,7 +1,7 @@
 <handler-chains xmlns="http://java.sun.com/xml/ns/javaee">
     <handler-chain>
         <handler>
-            <handler-class>ws.handler.SignatureHandler</handler-class>
+            <handler-class>ws.handler.ServerSignatureHandler</handler-class>
         </handler>
     </handler-chain>
 </handler-chains>
