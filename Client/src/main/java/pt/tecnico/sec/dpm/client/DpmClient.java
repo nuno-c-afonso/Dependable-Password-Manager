@@ -1,5 +1,7 @@
 package pt.tecnico.sec.dpm.client;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.ConnectException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -90,7 +92,7 @@ public class DpmClient {
 	
 	
 	public void register_user() throws NotInitializedException,
-	PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException {
+	PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		try {
@@ -105,7 +107,7 @@ public class DpmClient {
 	
 	
 	public void save_password(byte[] domain, byte[] username, byte[] password)
-			throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException {
+			throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException {
 		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
@@ -132,7 +134,7 @@ public class DpmClient {
 	
 	
 	public byte[] retrieve_password(byte[] domain, byte[] username)
-			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException {
+			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException {
 		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
@@ -205,7 +207,7 @@ public class DpmClient {
 	}
 	
 	// To see what to do when getting a WebServiceException
-	private void checkWebServiceException(WebServiceException e) throws ConnectionWasClosedException {
+	private void checkWebServiceException(WebServiceException e) throws ConnectionWasClosedException, HandlerException {
 		Throwable cause = e.getCause();
 
         while (cause != null) {
@@ -215,6 +217,9 @@ public class DpmClient {
             cause = cause.getCause();
         }
         
-        e.printStackTrace();
+        StringWriter errors = new StringWriter();
+        e.printStackTrace(new PrintWriter(errors));
+        
+        throw new HandlerException(errors.toString());
 	}
 }

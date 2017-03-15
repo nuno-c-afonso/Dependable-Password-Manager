@@ -19,7 +19,7 @@ fi
 
 
 PS3='Please enter your choice: '
-options=("Reset" "Exit")
+options=("Reset" "SimpleTamperHandler" "Exit")
 
 # Changes the server handler chain
 function cp_chain {
@@ -47,6 +47,9 @@ do
     case $opt in
         "Reset")
             cp_chain Reset
+            ;;
+        "SimpleTamperHandler")
+            cp_chain SimpleTamperHandler
             ;;
         "Exit")
             echo "Goodbye."

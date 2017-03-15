@@ -10,6 +10,7 @@ import java.util.Scanner;
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
 import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
+import pt.tecnico.sec.dpm.client.exceptions.HandlerException;
 import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
@@ -88,6 +89,8 @@ public class ClientApplication{
 						client.register_user();
 					} catch (PublicKeyInUseException_Exception e1) {
 						System.out.println(e1.getMessage());
+					} catch (HandlerException e) {
+						System.out.println(e.getMessage());
 					}
 						break;
 					case 2:
@@ -101,6 +104,8 @@ public class ClientApplication{
 						client.save_password(domain.getBytes(), username.getBytes(), password.getBytes());
 					} catch (NullClientArgException | UnregisteredUserException e1) {
 						System.out.println(e1.getMessage());
+					} catch (HandlerException e) {
+						System.out.println(e.getMessage());
 					}
 						break;
 					case 3:
@@ -112,6 +117,8 @@ public class ClientApplication{
 						password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
 						System.out.println("Recovered password: " + password);
 					} catch (NoPasswordException_Exception | NullClientArgException | UnregisteredUserException e) {
+						System.out.println(e.getMessage());
+					} catch (HandlerException e) {
 						System.out.println(e.getMessage());
 					}
 						break;
