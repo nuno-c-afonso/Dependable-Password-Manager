@@ -19,7 +19,7 @@ fi
 
 
 PS3='Please enter your choice: '
-options=("Reset" "SimpleTamperHandler" "Exit")
+options=("Reset" "SimpleTamperHandler" "ReplayHandler" "Exit")
 
 # Changes the server handler chain
 function cp_chain {
@@ -50,6 +50,9 @@ do
             ;;
         "SimpleTamperHandler")
             cp_chain SimpleTamperHandler
+            ;;
+        "ReplayHandler")
+            cp_chain ReplayHandler
             ;;
         "Exit")
             echo "Goodbye."
