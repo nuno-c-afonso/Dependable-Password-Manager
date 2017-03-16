@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Usage: ./update_client_handlers.sh <server ip> <server port>"
+echo "Usage: ./demo_client_handlers.sh <server ip> <server port>"
 echo "Default IP: localhost"
 echo "Default port: 8080"
 

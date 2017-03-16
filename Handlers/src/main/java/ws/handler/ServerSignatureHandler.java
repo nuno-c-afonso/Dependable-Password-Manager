@@ -267,7 +267,7 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     	long now = System.currentTimeMillis()/1000;
     	long send = sendTime/1000;
     	long offset = now - send;
-    	return offset < 5 && offset > -2;//TODO CHECK THIS VALUE
+    	return offset < 5 && offset > -2;
     }
 
 
