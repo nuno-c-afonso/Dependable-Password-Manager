@@ -10,10 +10,13 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.X509Certificate;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.security.auth.DestroyFailedException;
 import javax.xml.ws.BindingProvider;
 import javax.xml.ws.WebServiceException;
@@ -34,6 +37,10 @@ public class DpmClient {
 	X509Certificate cert = null;
 	String url;
 	Map<String, Object> requestContext = null;
+	
+	byte[] ivDomain = new byte[16];
+	byte[] ivUsername = new byte[16];
+	byte[] ivPassword = new byte[16];
 
 	private API port = null; 
 	
@@ -46,6 +53,23 @@ public class DpmClient {
 		// Handler stuff
 		BindingProvider bindingProvider = (BindingProvider) port;
 		requestContext = bindingProvider.getRequestContext();
+		
+		//---this code have been used to generate the  IV and may be needed in the future---
+		/*SecureRandom randomSecureRandom = null;
+		try {randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
+		} catch (NoSuchAlgorithmException e) {e.printStackTrace();}
+		byte[] iv = new byte[16];
+		randomSecureRandom.nextBytes(iv);
+		System.out.println(Base64.getEncoder().encodeToString(iv));*/
+		//randomSecureRandom.nextBytes(iv);
+		//System.out.println(Base64.getEncoder().encodeToString(iv));
+		//randomSecureRandom.nextBytes(iv);
+		//System.out.println(Base64.getEncoder().encodeToString(iv));
+		//----------------------------------------------------------------------------------
+		
+		ivDomain 	= Base64.getDecoder().decode("q3OWG12R8JbMZSP9D5R4Pw==");		
+		ivPassword 	= Base64.getDecoder().decode("WenL0g+2szf5SEauCQA2eQ==");	
+		ivUsername 	= Base64.getDecoder().decode("nlZYLtopBbgrrmpUH/pVJg==");
 	}
 	
 	// It is assumed that all keys are protected by the same password
@@ -117,9 +141,9 @@ public class DpmClient {
 		
 		try {
 			port.put(publicKey.getEncoded(), 
-					 cipherWithSymmetric(symmetricKey, domain), 
-					 cipherWithSymmetric(symmetricKey,username), 
-					 cipherWithSymmetric(symmetricKey, password));
+					 cipherWithSymmetric(symmetricKey, domain, ivDomain), 
+					 cipherWithSymmetric(symmetricKey,username, ivUsername), 
+					 cipherWithSymmetric(symmetricKey, password, ivPassword));
 			
 		} catch (NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
@@ -145,10 +169,10 @@ public class DpmClient {
 		byte[] retrivedPassword = null;
 		try {
 			retrivedPassword = port.get(publicKey.getEncoded(), 
-							   			cipherWithSymmetric(symmetricKey, domain),
-							   			cipherWithSymmetric(symmetricKey,username));
+							   			cipherWithSymmetric(symmetricKey, domain, ivDomain),
+							   			cipherWithSymmetric(symmetricKey,username, ivUsername));
 			
-			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword);
+			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, ivPassword);
 		} catch(NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
 		} catch (NullArgException_Exception e) {
@@ -171,11 +195,11 @@ public class DpmClient {
 
 	}
 	
-	public byte[] cipherWithSymmetric(SecretKey key, byte[] data){
+	public byte[] cipherWithSymmetric(SecretKey key, byte[] data, byte[] iv){
 		byte[] returnData = null;
 		try {
-	        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
-	        c.init(Cipher.ENCRYPT_MODE, key);
+	        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+	        c.init(Cipher.ENCRYPT_MODE, key,new IvParameterSpec(iv));
 	        returnData = c.doFinal(data);
 	    } catch(Exception e) {
 	    	e.printStackTrace();
@@ -184,11 +208,11 @@ public class DpmClient {
 		return returnData;		
 	}
 	
-	public byte[] decipherWithSymmetric(SecretKey key, byte[] ecryptedData) {
+	public byte[] decipherWithSymmetric(SecretKey key, byte[] ecryptedData,byte[] iv) {
 		byte[] returnData = null;
 		try {
-	        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
-	        c.init(Cipher.DECRYPT_MODE, key);
+	        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+	        c.init(Cipher.DECRYPT_MODE, key,new IvParameterSpec(iv) );
 	        returnData = c.doFinal(ecryptedData);
 	    } catch(Exception e) {
 	    	e.printStackTrace();
