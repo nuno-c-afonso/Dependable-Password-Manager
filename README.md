@@ -36,7 +36,7 @@ Dependable Password Manager
 
 # Running the project
 
-* The following steps will make possible to run the project only on one local machine;
+* The following steps allow to run the project only on one local machine;
 * However, it can also be run with a remote server and remote clients.
 
 ## Generation of the keystores
@@ -55,3 +55,10 @@ Dependable Password Manager
 1. Start by making the installation of the Server;
 2. Check if the server is currently running;
 3. On Proj-SEC16-17/Client, run: mvn clean install exec:java.
+
+## Demo of the attacks
+
+1. Confirm that the keystores were previously generated;
+2. Run: ./demo_server.sh;
+3. On other terminal, run: ./demo_client_handlers.sh;
+4. Navigate through the menus to perform the different attacks.
