@@ -266,7 +266,8 @@ public class ServerSignatureHandler implements SOAPHandler<SOAPMessageContext> {
     public boolean checkTimestamp(long sendTime){
     	long now = System.currentTimeMillis()/1000;
     	long send = sendTime/1000;
-    	return now-send < 5;//TODO CHECK THIS VALUE
+    	long offset = now - send;
+    	return offset < 5 && offset > -2;//TODO CHECK THIS VALUE
     }
 
 
