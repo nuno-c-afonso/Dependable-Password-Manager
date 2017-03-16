@@ -174,9 +174,9 @@ public class DpmClient {
 	public byte[] cipherWithSymmetric(SecretKey key, byte[] data){
 		byte[] returnData = null;
 		try {
-	        Cipher c = Cipher.getInstance("AES");
+	        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
 	        c.init(Cipher.ENCRYPT_MODE, key);
-	         returnData = c.doFinal(data);
+	        returnData = c.doFinal(data);
 	    } catch(Exception e) {
 	    	e.printStackTrace();
 	    }
@@ -187,9 +187,9 @@ public class DpmClient {
 	public byte[] decipherWithSymmetric(SecretKey key, byte[] ecryptedData) {
 		byte[] returnData = null;
 		try {
-	        Cipher c = Cipher.getInstance("AES");
+	        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
 	        c.init(Cipher.DECRYPT_MODE, key);
-	         returnData = c.doFinal(ecryptedData);
+	        returnData = c.doFinal(ecryptedData);
 	    } catch(Exception e) {
 	    	e.printStackTrace();
 	    }
