@@ -19,7 +19,7 @@ fi
 
 
 PS3='Please enter your choice: '
-options=("Reset" "SimpleTamperHandler" "ReplayHandler" "Exit")
+options=("Reset" "SimpleTamperHandler" "ReplayHandler" "DoSHandler" "Exit")
 
 # Changes the server handler chain
 function cp_chain {
@@ -30,6 +30,27 @@ function cp_chain {
     mvn clean compile exec:java -Dws.url="http://$ip:$port/ws.API/endpoint"
     cd ..
     echo "Done!"
+}
+
+# Redirects to the version with the logging function
+function wants_logging {
+    log=""
+
+
+    while true; do
+        read -p "Show message log (y/n): " yn
+        case $yn in
+            [Yy] )
+                log="Logging"
+                break
+                ;;
+            [Nn] )
+                break
+                ;;
+        esac
+    done
+
+    cp_chain "$1$log"
 }
 
 # Shows the available options at the end of each loop
@@ -46,13 +67,16 @@ select opt in "${options[@]}"
 do
     case $opt in
         "Reset")
-            cp_chain Reset
+            wants_logging Reset
             ;;
         "SimpleTamperHandler")
-            cp_chain SimpleTamperHandler
+            wants_logging SimpleTamperHandler
             ;;
         "ReplayHandler")
-            cp_chain ReplayHandler
+            wants_logging ReplayHandler
+            ;;
+        "DoSHandler")
+            wants_logging DoSHandler
             ;;
         "Exit")
             echo "Goodbye."
