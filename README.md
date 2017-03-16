@@ -61,4 +61,5 @@ Dependable Password Manager
 1. Confirm that the keystores were previously generated;
 2. Run: ./demo_server.sh;
 3. On other terminal, run: ./demo_client_handlers.sh;
-4. Navigate through the menus to perform the different attacks.
+4. Navigate through the menus to perform the different attacks;
+5. On each attack, start by making two register operations to register the public keys of the user and the attacker.
