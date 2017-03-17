@@ -13,3 +13,13 @@ sudo mysql_secure_installation
 cd SQL
 mysql -u root -p < create_database.sql
 cd ..
+
+# Java Cryptography Extension (JCE) unlimited strength jurisdiction policy
+cd Tools
+unzip jce_policy-8.zip
+cd UnlimitedJCEPolicyJDK8
+DIR=$(dirname $(dirname $(readlink -f $(which javac))))
+mv *.jar $DIR/jre/lib/security
+cd ..
+rm -rf UnlimitedJCEPolicyJDK8
+cd ..

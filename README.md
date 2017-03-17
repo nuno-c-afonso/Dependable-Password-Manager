@@ -33,6 +33,12 @@ Dependable Password Manager
 6. Go to SQL directory;
 7. To configure the MySQL server, run: mysql -u root -p < create_database.sql.
 
+## Java Cryptography Extension (JCE) unlimited strength jurisdiction policy
+1. Go to Proj-SEC16-17/Tools;
+2. Run: unzip jce_policy-8.zip;
+3. Go to UnlimitedJCEPolicyJDK8;
+4. Run: mv *.jar $JAVA_HOME/jre/lib/security;
+5. Delete the UnlimitedJCEPolicyJDK8 directory.
 
 # Running the project
 
