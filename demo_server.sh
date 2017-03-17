@@ -24,5 +24,5 @@ cd ..
 
 # Starts the server
 cd Server
-mvn clean install exec:java
+mvn clean install exec:java -Dws.url="http://$ip:$port/ws.API/endpoint"
 cd ..
