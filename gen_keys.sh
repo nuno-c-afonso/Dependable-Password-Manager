@@ -87,7 +87,7 @@ do
   echo "Removing the Certificate Signing Request (.csr file)..."
   rm "$server_folder/$server_name.csr"
 
-	if [ "$server_name" == "client" ]; then
+	if [ $server_name = "client" ]; then
 		echo "Adding symmetric key..."
 		keytool -import -genseckey -alias "secretKey" -keyalg AES -keysize 192 -storetype jceks -keystore $server_kerystore_file -storepass $STORE_PASS -keypass $KEY_PASS -noprompt
 	fi
