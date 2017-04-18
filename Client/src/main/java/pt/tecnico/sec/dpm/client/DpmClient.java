@@ -238,7 +238,7 @@ public class DpmClient {
 		
 		System.arraycopy(bytesKey, 0, toHash, 0, bytesKey.length);
 		System.arraycopy(domain, 0, toHash, bytesKey.length, domain.length);
-		System.arraycopy(username, 0, toHash, bytesKey.length + username.length, username.length);
+		System.arraycopy(username, 0, toHash, bytesKey.length + domain.length, username.length);
 		
 		try {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");

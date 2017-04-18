@@ -9,7 +9,7 @@ import java.util.List;
 import pt.tecnico.sec.dpm.server.exceptions.*;
 
 public class DPMDB extends DBManager {
-	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm";
+	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm?useLegacyDatetimeCode=false&serverTimezone=UTC";
 	private static final String USER = "dpm_account";
 	private static final String PASS = "FDvlalaland129&&";
 	
