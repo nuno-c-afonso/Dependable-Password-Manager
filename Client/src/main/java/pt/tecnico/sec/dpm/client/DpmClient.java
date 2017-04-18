@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.net.ConnectException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -37,10 +38,6 @@ public class DpmClient {
 	X509Certificate cert = null;
 	String url;
 	Map<String, Object> requestContext = null;
-	
-	byte[] ivDomain = new byte[16];
-	byte[] ivUsername = new byte[16];
-	byte[] ivPassword = new byte[16];
 
 	private API port = null; 
 	
@@ -53,23 +50,6 @@ public class DpmClient {
 		// Handler stuff
 		BindingProvider bindingProvider = (BindingProvider) port;
 		requestContext = bindingProvider.getRequestContext();
-		
-		//---this code have been used to generate the  IV and may be needed in the future---
-		/*SecureRandom randomSecureRandom = null;
-		try {randomSecureRandom = SecureRandom.getInstance("SHA1PRNG");
-		} catch (NoSuchAlgorithmException e) {e.printStackTrace();}
-		byte[] iv = new byte[16];
-		randomSecureRandom.nextBytes(iv);
-		System.out.println(Base64.getEncoder().encodeToString(iv));*/
-		//randomSecureRandom.nextBytes(iv);
-		//System.out.println(Base64.getEncoder().encodeToString(iv));
-		//randomSecureRandom.nextBytes(iv);
-		//System.out.println(Base64.getEncoder().encodeToString(iv));
-		//----------------------------------------------------------------------------------
-		
-		ivDomain 	= Base64.getDecoder().decode("q3OWG12R8JbMZSP9D5R4Pw==");		
-		ivPassword 	= Base64.getDecoder().decode("WenL0g+2szf5SEauCQA2eQ==");	
-		ivUsername 	= Base64.getDecoder().decode("nlZYLtopBbgrrmpUH/pVJg==");
 	}
 	
 	// It is assumed that all keys are protected by the same password
@@ -140,10 +120,12 @@ public class DpmClient {
 			throw new NullClientArgException();
 		
 		try {
-			port.put(publicKey.getEncoded(), 
-					 cipherWithSymmetric(symmetricKey, domain, ivDomain), 
-					 cipherWithSymmetric(symmetricKey,username, ivUsername), 
-					 cipherWithSymmetric(symmetricKey, password, ivPassword));
+			byte[] iv = createIV(domain, username);
+			
+			port.put(publicKey.getEncoded(),
+					 cipherWithSymmetric(symmetricKey, domain, iv), 
+					 cipherWithSymmetric(symmetricKey,username, iv), 
+					 cipherWithSymmetric(symmetricKey, password, iv));
 			
 		} catch (NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
@@ -168,11 +150,13 @@ public class DpmClient {
 		
 		byte[] retrivedPassword = null;
 		try {
-			retrivedPassword = port.get(publicKey.getEncoded(), 
-							   			cipherWithSymmetric(symmetricKey, domain, ivDomain),
-							   			cipherWithSymmetric(symmetricKey,username, ivUsername));
+			byte[] iv = createIV(domain, username);
 			
-			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, ivPassword);
+			retrivedPassword = port.get(publicKey.getEncoded(), 
+							   			cipherWithSymmetric(symmetricKey, domain, iv),
+							   			cipherWithSymmetric(symmetricKey,username, iv));
+			
+			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
 		} catch(NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
 		} catch (NullArgException_Exception e) {
@@ -245,5 +229,26 @@ public class DpmClient {
         e.printStackTrace(new PrintWriter(errors));
         
         throw new HandlerException(errors.toString());
+	}
+	
+	private byte[] createIV(byte[] domain, byte[] username) {		
+		byte[] result = new byte[16];
+		byte[] bytesKey = publicKey.getEncoded();
+		byte[] toHash = new byte[bytesKey.length + domain.length + username.length];
+		
+		System.arraycopy(bytesKey, 0, toHash, 0, bytesKey.length);
+		System.arraycopy(domain, 0, toHash, bytesKey.length, domain.length);
+		System.arraycopy(username, 0, toHash, bytesKey.length + username.length, username.length);
+		
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] hash = md.digest(toHash);
+			System.arraycopy(hash, 0, result, 0, 16);
+		} catch (NoSuchAlgorithmException e) {
+			// It should not happen
+			e.printStackTrace();
+		}
+		
+		return result;
 	}
 }
