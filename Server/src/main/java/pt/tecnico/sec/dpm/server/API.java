@@ -1,7 +1,5 @@
 package pt.tecnico.sec.dpm.server;
 
-import java.security.Key;
-
 import javax.jws.WebService;
 
 import pt.tecnico.sec.dpm.server.exceptions.NoPasswordException;
