@@ -9,15 +9,26 @@ id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
 publickey VARBINARY(4400) NOT NULL
 );
 
+CREATE TABLE sessions(
+	sessionID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	userID INT,
+	nonce BINARY(64),
+	FOREIGN KEY (userID)
+		REFERENCES users(id)
+		ON DELETE CASCADE
+);
 
 CREATE TABLE passwords(
-	userID int ,
-	username CHARACTER(50) ,
+	sessionID INT NOT NULL,
+	username CHARACTER(50),
 	domain CHARACTER(100),
 	password CHARACTER(50) NOT NULL,
-	PRIMARY KEY (userID,username,domain),
-	FOREIGN KEY(userID)
-		REFERENCES users(id)
+	counter INT NOT NULL,
+	tmstamp INT NOT NULL,
+	signature BINARY(64),
+	PRIMARY KEY (sessionID,counter,username,domain),
+	FOREIGN KEY (sessionID)
+		REFERENCES sessions(sessionID)
 		ON DELETE CASCADE
 );
 
@@ -25,6 +36,7 @@ CREATE USER 'dpm_account'@'localhost' IDENTIFIED BY 'FDvlalaland129&&';
 
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.users TO 'dpm_account'@'localhost';
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.passwords TO 'dpm_account'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm.sessions TO 'dpm_account'@'localhost';
 
 -- Will only work on tables with SELECT privilege
 GRANT LOCK TABLES ON * TO 'dpm_account'@'localhost';
