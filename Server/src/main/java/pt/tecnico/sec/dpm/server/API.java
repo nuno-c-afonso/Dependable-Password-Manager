@@ -1,5 +1,7 @@
 package pt.tecnico.sec.dpm.server;
 
+import java.util.List;
+
 import javax.jws.WebService;
 
 import pt.tecnico.sec.dpm.server.exceptions.NoPasswordException;
@@ -10,7 +12,15 @@ import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInvalidSizeException;
 
 @WebService
 public interface API {
-	void register(byte[] publicKey) throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException;
-	void put(byte[] publicKey, byte[] domain, byte[] username, byte[] password) throws NoPublicKeyException, NullArgException;
-	byte[] get(byte[] publicKey, byte[] domain, byte[] username) throws NoPasswordException, NullArgException, NoPublicKeyException;
+	void register(byte[] publicKey, byte[] sig) throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException;
+	
+	// The return will have: nonce + 1, sessionID, sig
+	// TODO: Add some exceptions!!!
+	List<byte[]> login(byte[] publicKey, byte[] nonce, byte[] sig);
+	
+	// The return will have: (int) counter + 1, (byte[]) sig
+	List<Object> put(byte[] sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig) throws NoPublicKeyException, NullArgException;
+	
+	// The return will have: (int) counter + 1, (byte[]) password, (int) wTS, (byte[]) serverSig, (int) wrCounter, (byte[]) clientSig
+	List<Object> get(byte[] sessionID, int counter, byte[] domain, byte[] username, byte[] sig) throws NoPasswordException, NullArgException, NoPublicKeyException;
 }

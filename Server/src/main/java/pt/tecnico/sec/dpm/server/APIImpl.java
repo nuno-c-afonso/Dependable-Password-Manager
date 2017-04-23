@@ -9,12 +9,16 @@ import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
+import java.util.List;
 
 import javax.annotation.Resource;
 import javax.jws.HandlerChain;
@@ -30,9 +34,6 @@ public class APIImpl implements API {
 	private DPMDB dbMan = null;
 	private String url = null;
 	private PrivateKey privKey = null;
-	
-	@Resource
-	private WebServiceContext webServiceContext;
 	
 	public APIImpl(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
 		if(url == null)
@@ -51,8 +52,9 @@ public class APIImpl implements API {
 	}
 	
 	@Override
-	public void register(byte[] publicKey) throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
-		setMessageContext();
+	public void register(byte[] publicKey, byte[] sig) throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {		
+		
+		// TODO: Check signature!!!
 		
 		try {
 			dbMan.register(publicKey);
@@ -60,6 +62,30 @@ public class APIImpl implements API {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
+	}
+	
+	@Override
+	public List<byte[]> login(byte[] publicKey, byte[] nonce, byte[] sig) {
+		
+		// TODO: Check signature!!!
+		byte[] sessionID = null;
+		
+		try {
+			
+			// TODO: Insert a new counter in this new session
+			// TODO: Save the counter here (HashMap) or in the DB?
+			sessionID = dbMan.login(publicKey, nonce);
+		} catch (ConnectionClosedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// TODO: The return will have: nounce + 1, sessionID, sig
+		nonce = intToByteArray(byteArrayToInt(nonce) + 1);
+		
+		// TODO: Create signature
+		
+		return null;
 	}
 
 	@Override
@@ -124,5 +150,17 @@ public class APIImpl implements API {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	// Some extra methods for type conversion
+	private int byteArrayToInt(byte[] bytes) {
+	     return new BigInteger(bytes).intValue();
+	}
+	
+	private byte[] intToByteArray(int n) {
+		int ARRAY_SIZE = 64;
+		ByteBuffer b = ByteBuffer.allocate(ARRAY_SIZE + 1);
+		b.putInt(n);
+		return b.array();
 	}
 }
