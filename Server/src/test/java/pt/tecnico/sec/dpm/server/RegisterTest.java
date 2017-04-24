@@ -60,7 +60,12 @@ public class RegisterTest {
     		void setMessageContext() { }
     	};
     	
-    	APIImplTest = new APIImpl();     
+    	try {
+			APIImplTest = new APIImpl("http://localhost:8080/ws.api/endpoint", "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+		} catch (NullArgException e) {
+			// It will not happen
+			e.printStackTrace();
+		}
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
     	keyGen.initialize(2048);
     	publicKey = keyGen.genKeyPair().getPublic().getEncoded();
@@ -97,7 +102,7 @@ public class RegisterTest {
 
     // members
 
-
+/*
     // initialization and clean-up for each test
 
     @Before
@@ -188,4 +193,5 @@ public class RegisterTest {
 		APIImplTest.register(pubKey);
     	APIImplTest.register(pubKey);    	
     }
+    */
 }

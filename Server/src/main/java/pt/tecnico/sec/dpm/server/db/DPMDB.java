@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.Base64;
+
 import pt.tecnico.sec.dpm.server.exceptions.*;
 
 public class DPMDB extends DBManager {
@@ -55,57 +57,118 @@ public class DPMDB extends DBManager {
 		unlock();
 	}
 	
-	// Checks if a user is already registered
-	private void existsUser(List<byte[]> lst) throws NoPublicKeyException, ConnectionClosedException, SQLException {
-		String q = "SELECT id FROM users WHERE publickey = ?";
-		PreparedStatement p = createStatement(q, lst);
+	// Creates new sessions for registered users
+	public int login(byte[] pubKey, byte[] nonce) throws ConnectionClosedException, NullArgException,
+	NoPublicKeyException, DuplicatedNonceException {
+		String q = "INSERT INTO sessions (userID, nonce) VALUES (?,?)";
+		String q_rec = "SELECT sessionID FROM sessions WHERE userID = ? AND nonce = ?";
+		int userid = -1;
+		int sessionid = -1;
 		
-		try {
-			select(p);
-		} catch (NoResultException e) {
-			throw new NoPublicKeyException();
-		}
-	}
-	
-	// Inserts/updates a password in the DB
-	public void put(byte[] pubKey, byte[] domain, byte[] username, byte[] password)
-	throws ConnectionClosedException, NoPublicKeyException, NullArgException {
-		String getUserID = "SELECT id FROM users WHERE publickey=?";
-		
-		String in = "INSERT INTO passwords(userID, domain, username, password) "
-				  + "VALUES ((" + getUserID + "),?, ?, ?)";
-		
-		String up = "UPDATE passwords "
-				  + "SET password=? "
-				  + "WHERE userID=(" + getUserID + ") AND domain=? AND username=?";
-		
-		if(pubKey == null || domain == null || username == null || password == null)
+		if(pubKey == null || nonce == null)
 			throw new NullArgException();
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
-		
-		lock("users", "READ", "passwords", "WRITE");
+		lock("users", "READ", "sessions", "WRITE");
 		try {
-			existsUser(lst);
-		} catch(NoPublicKeyException pkiue) {
+			userid = existsUser(lst);
+		} catch (NoPublicKeyException pkiue) {
 			unlock();
 			throw new NoPublicKeyException();
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			unlock();
-			return;
+			return -1;
 		}
 		
 		try {
-			lst = toArrayList(password, pubKey, domain, username);
-			PreparedStatement p = createStatement(up, lst);
-			if(update(p) == 0) {
-				lst = toArrayList(pubKey, domain, username, password);
-				p = createStatement(in, lst);
-				update(p);
+			PreparedStatement p = getConnection().prepareStatement(q);
+			p.setInt(1, userid);
+			p.setBytes(2, nonce);
+			if(update(p) == -1) {
+				unlock();
+				throw new DuplicatedNonceException();
+			}
+			
+			try {
+				p = getConnection().prepareStatement(q_rec);
+				p.setInt(1, userid);
+				p.setBytes(2, nonce);
+				ResultSet rs = select(p);
+				sessionid = rs.getInt(1);
+			} catch (NoResultException e) {
+				// It will not happen!
+				e.printStackTrace();
 			}
 		} catch(SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		unlock();
+		return sessionid;
+	}
+	
+	// Checks if a user is already registered
+	private int existsUser(List<byte[]> lst) throws NoPublicKeyException, ConnectionClosedException, SQLException {
+		String q = "SELECT id FROM users WHERE publickey = ?";
+		PreparedStatement p = createStatement(q, lst);
+		int result = -1;
+		
+		try {
+			ResultSet rs = select(p);
+			result = rs.getInt(1);
+		} catch (NoResultException e) {
+			throw new NoPublicKeyException();
+		}
+		
+		return result;
+	}
+	
+	// Gets the user's public key for a specific function
+	public byte[] pubKeyFromSession(int session) throws SessionNotFoundException, ConnectionClosedException{
+		String q = "SELECT U.publickey FROM users as U, sessions AS S WHERE S.sessionID = ? AND S.userID = U.id";
+		byte[] result = null;
+		
+		try {
+			PreparedStatement p = getConnection().prepareStatement(q);
+			p.setInt(1, session);
+			ResultSet rs = select(p);
+			result = rs.getBytes(1);
+		} catch (NoResultException e) {
+			throw new SessionNotFoundException();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return result;
+	}
+	
+	// Inserts/updates a password in the DB
+	// FIXME: Check if the records already exists && only apply the transformation iff wTS > prevWTS!!!
+	public void put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTS, byte[] sig)
+	throws ConnectionClosedException, NullArgException {		
+		String in = "INSERT INTO passwords(sessionID, counter, domain, username, password, tmstamp, signature) "
+				  + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+		
+		if(domain == null || username == null || password == null || sig == null)
+			throw new NullArgException();
+				
+		lock("passwords", "WRITE");
+
+		try {
+			PreparedStatement p = getConnection().prepareStatement(in);
+			p.setInt(1, sessionID);
+			p.setInt(2, counter);
+			p.setBytes(3, domain);
+			p.setBytes(4, username);
+			p.setBytes(5, password);
+			p.setInt(6, wTS);
+			p.setBytes(7, sig);
+			update(p);
+		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -114,24 +177,30 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Retrieves the password from the DB
-	public byte[] get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException,
-			NoResultException, NullArgException, NoPublicKeyException {
+	public List<Object> get(byte[] pubKey, byte[] domain, byte[] username) throws ConnectionClosedException,
+			NoResultException {
 		
-		String q = "SELECT p.password "
-				 + "FROM users AS u, passwords AS p "
-				 + "WHERE u.publickey=? AND u.id = p.userID AND domain=? AND username=?";
+		final int RES_LEN = 4; 
+		String q = "SELECT P.password, P.tmstamp, P.counter, P.signature "
+				     + "FROM users AS U, sessions AS S, passwords AS P "
+				     + "WHERE U.publickey = ? AND U.id = S.userID AND S.sessionID = P.sessionID "
+				     	+ "AND P.domain = ? AND P.username = ? "
+				     + "HAVING P.tmstamp >= ALL("
+				     	+ "SELECT PW.tmstamp "
+				     	+ "FROM users AS US, sessions AS SS, passwords AS PW "
+				     	+ "WHERE US.publickey = ? AND US.id = SS.userID AND SS.sessionID = PW.sessionID "
+				     		+ "AND PW.domain = ? AND PW.username = ?)";
 		
-		if(pubKey == null || domain == null || username == null)
-			throw new NullArgException();
-		
-		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username);
-		byte[] res = null;
+		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username, pubKey, domain, username);
+		List<Object> res = null;
 		
 		try {
-			existsUser(toArrayList(pubKey));
 			PreparedStatement p = createStatement(q, lst);
 			ResultSet returned = select(p);
-			res = returned.getBytes("p.password");
+			
+			res = new ArrayList<Object>();
+			for(int i = 0; i < RES_LEN; i++)
+				res.add(returned.getObject(i + 1));
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

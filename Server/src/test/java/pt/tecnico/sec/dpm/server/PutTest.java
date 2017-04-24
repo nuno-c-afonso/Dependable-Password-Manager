@@ -51,10 +51,15 @@ public class PutTest {
 
 
     // one-time initialization and clean-up
-
     @BeforeClass
     public static void oneTimeSetUp() {
-    	APIImplTest = new APIImpl();
+    	try {
+			APIImplTest = new APIImpl("http://localhost:8080/ws.api/endpoint", "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+		} catch (NullArgException e) {
+			// It will not happen
+			e.printStackTrace();
+		}
+    	
 		// Register driver
 		try {
 			Class.forName(JDBC_DRIVER);
@@ -84,7 +89,7 @@ public class PutTest {
     }
 
     // initialization and clean-up for each test
-
+/*
     @Before
     public void setUp() throws NoSuchAlgorithmException, SQLException {
     	new MockUp<APIImpl> () {
@@ -214,7 +219,7 @@ public class PutTest {
     	APIImplTest.put(publicKey, DOMAIN, USERNAME, null);
     }
     
-    
+*/
     
     
 }
