@@ -12,7 +12,9 @@ import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 import javax.crypto.Cipher;
@@ -25,31 +27,31 @@ import javax.xml.ws.WebServiceException;
 import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
 
 import pt.tecnico.sec.dpm.client.exceptions.*;
-
+import pt.tecnico.sec.dpm.security.SecurityFunctions;
+import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
 // Classes generated from WSDL
 import pt.tecnico.sec.dpm.server.*;
 import ws.handler.SignatureHandler;
 
 public class DpmClient {
+	private final static int NONCE_SIZE = 64;
 	
 	PublicKey publicKey = null;
 	SecretKey symmetricKey = null;
 	PrivateKey privateKey = null;
 	X509Certificate cert = null;
 	String url;
-	Map<String, Object> requestContext = null;
-
-	private API port = null; 
+	int sessionID = -1;
+	int counter = 0;
+	int writeTS = 0;
+	private API port = null;
 	
 	public DpmClient(String url) {
 		// Creates the stub
 		APIImplService service = new APIImplService();
 		port = service.getAPIImplPort();
 		this.url= url;
-		
-		// Handler stuff
-		BindingProvider bindingProvider = (BindingProvider) port;
-		requestContext = bindingProvider.getRequestContext();
 	}
 	
 	// It is assumed that all keys are protected by the same password
@@ -77,9 +79,7 @@ public class DpmClient {
 			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(cliPairName, protParam);
 		    publicKey = pke.getCertificate().getPublicKey();
 		    privateKey = pke.getPrivateKey();
-		    
-		    // Passes info to the handlers
-		    setMessageContext(passwordKeystore, passwordKeys);
+		    sessionID = -1;
 		    
 		} catch(UnrecoverableEntryException e) {
 			System.out.println(e.getMessage());
@@ -95,12 +95,64 @@ public class DpmClient {
 	}
 	
 	
-	public void register_user() throws NotInitializedException,
-	PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException {
+	public void register_user() throws NotInitializedException, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException,
+	HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception,
+	WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		try {
-			port.register(publicKey.getEncoded());
+			byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
+					SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()));
+			try {				
+				sig = port.register(publicKey.getEncoded(), sig);
+				SecurityFunctions.checkSignature(cert.getPublicKey(),
+						SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()), sig);
+				
+			} catch(PublicKeyInUseException_Exception e) {
+				// Continues execution
+			}
+			
+			// Asks the server for a new valid sessionID
+			boolean cont = true;
+			SecureRandom sr = null;
+			
+			try {
+				sr = SecureRandom.getInstance("SHA1PRNG");
+			} catch(NoSuchAlgorithmException nsae) {
+				// It should not happen!
+				nsae.printStackTrace();
+			}
+			
+			byte[] nonce = new byte[NONCE_SIZE];
+			List<Object> result = null;
+			
+			while(cont) {
+				sr.nextBytes(nonce);
+
+				try {					
+					sig = SecurityFunctions.makeDigitalSignature(privateKey,
+							SecurityFunctions.concatByteArrays("login".getBytes(), publicKey.getEncoded(), nonce));
+					
+					result = port.login(publicKey.getEncoded(), nonce, sig);					
+					cont = false;
+				} catch(DuplicatedNonceException_Exception dne) { /* Continue trying to connect */ }
+			}
+
+			byte[] serverNonce = (byte[]) result.get(0);
+			int sessionID = (int) result.get(1);
+			sig = (byte[]) result.get(2);
+			
+			nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);
+			
+			if(!Arrays.equals(nonce, serverNonce))
+				throw new WrongNonceException();
+			
+			SecurityFunctions.checkSignature(cert.getPublicKey(),
+					SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()), sig);
+			
+			this.sessionID = sessionID;
+			counter = 0;
+			writeTS = 0;
 		} catch (NullArgException_Exception e) {
 			// It should not occur
 			System.out.println(e.getMessage());
@@ -111,21 +163,45 @@ public class DpmClient {
 	
 	
 	public void save_password(byte[] domain, byte[] username, byte[] password)
-			throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException {
+			throws NotInitializedException, NullClientArgException, UnregisteredUserException,
+			ConnectionWasClosedException, HandlerException, SigningException,
+			KeyConversionException_Exception, SessionNotFoundException_Exception,
+			SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
+		
+// TODO: For testing purposes
+//System.out.println("WRITE TIMESTAMP:" + writeTS);
 		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
+		
+		if(sessionID < 0)
+			throw new UnregisteredUserException();
 		
 		if(domain == null || username == null || password == null)
 			throw new NullClientArgException();
 		
 		try {
 			byte[] iv = createIV(domain, username);
+			byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
+			byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
+			byte[] cPassword = cipherWithSymmetric(symmetricKey, password, iv);
 			
-			port.put(publicKey.getEncoded(),
-					 cipherWithSymmetric(symmetricKey, domain, iv), 
-					 cipherWithSymmetric(symmetricKey,username, iv), 
-					 cipherWithSymmetric(symmetricKey, password, iv));
+			int tmpCounter = counter + 1;
+			byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
+					SecurityFunctions.concatByteArrays("put".getBytes(), ("" + sessionID).getBytes(),
+							("" + tmpCounter).getBytes(), cDomain, cUsername, cPassword, ("" + writeTS).getBytes()));
+			
+			List<Object> result = port.put(sessionID, tmpCounter, cDomain, cUsername, cPassword, writeTS, sig);
+			
+			sig = (byte[]) result.get(1);
+			tmpCounter++;
+			
+			SecurityFunctions.checkSignature(cert.getPublicKey(),
+					SecurityFunctions.concatByteArrays("put".getBytes(), ("" + sessionID).getBytes(), ("" + tmpCounter).getBytes()),
+					sig);
+			
+			counter = tmpCounter;
+			writeTS ++;
 			
 		} catch (NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
@@ -140,10 +216,16 @@ public class DpmClient {
 	
 	
 	public byte[] retrieve_password(byte[] domain, byte[] username)
-			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException {
+			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException,
+			UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException,
+			KeyConversionException_Exception, SessionNotFoundException_Exception, SigningException_Exception,
+			WrongSignatureException_Exception, WrongSignatureException {
 		
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
+		
+		if(sessionID < 0)
+			throw new UnregisteredUserException();
 		
 		if(domain == null || username == null)
 			throw new NullClientArgException();
@@ -151,12 +233,38 @@ public class DpmClient {
 		byte[] retrivedPassword = null;
 		try {
 			byte[] iv = createIV(domain, username);
+			byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
+			byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
 			
-			retrivedPassword = port.get(publicKey.getEncoded(), 
-							   			cipherWithSymmetric(symmetricKey, domain, iv),
-							   			cipherWithSymmetric(symmetricKey,username, iv));
+			int tmpCounter = counter + 1;
+			byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
+					SecurityFunctions.concatByteArrays("get".getBytes(), ("" + sessionID).getBytes(),
+							("" + tmpCounter).getBytes(), cDomain, cUsername));
+			
+			List<Object> result = port.get(sessionID, tmpCounter, cDomain, cUsername,sig);
+			
+			// TODO: Check for null pointers and casts [IN ALL OF THE SERVER METHODS]!!!
+			
+			// Parsing the server result
+			int serverCounter = (int) result.get(0);
+			retrivedPassword = (byte[]) result.get(1);
+			int serverTS = (int) result.get(2);
+			int writeCounter = (int) result.get(3);
+			byte[] clientSig = (byte[]) result.get(4);
+			sig = (byte[]) result.get(5);
+			tmpCounter ++;
+			
+			// TODO: Check if need to do the additional verifications here!!!
+			
+			SecurityFunctions.checkSignature(cert.getPublicKey(),
+					SecurityFunctions.concatByteArrays("get".getBytes(), ("" + sessionID).getBytes(),
+							("" + tmpCounter).getBytes(), retrivedPassword, ("" + serverTS).getBytes(),
+							("" + writeCounter).getBytes(), clientSig),
+					sig);
 			
 			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
+			writeTS = serverTS;
+			counter = tmpCounter;			
 		} catch(NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
 		} catch (NullArgException_Exception e) {
@@ -203,15 +311,6 @@ public class DpmClient {
 	    }
 
 		return returnData;
-	}
-	
-	private void setMessageContext(char[] passwordKeystore, char[] passwordKeys) {		
-		requestContext.put(ENDPOINT_ADDRESS_PROPERTY, url);
-		requestContext.put(SignatureHandler.MYNAME, "Client");
-		requestContext.put(SignatureHandler.OTHERSNAME, url);
-		requestContext.put(SignatureHandler.PRIVATEKEY, privateKey);
-		requestContext.put(SignatureHandler.PUBLICKEY, publicKey);
-		requestContext.put(SignatureHandler.SERVERCERT, cert);
 	}
 	
 	// To see what to do when getting a WebServiceException

@@ -19,7 +19,6 @@ public interface API {
 	PublicKeyInvalidSizeException, KeyConversionException, WrongSignatureException, SigningException;
 	
 	// The return will have: nonce + 1, sessionID, sig
-	// TODO: Add some exceptions!!!
 	List<Object> login(byte[] publicKey, byte[] nonce, byte[] sig) throws SigningException,
 	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException;
 	
@@ -27,7 +26,7 @@ public interface API {
 	List<Object> put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
 			throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException;
 	
-	// The return will have: (int) counter + 1, (byte[]) password, (int) wTS, (byte[]) serverSig, (int) wrCounter, (byte[]) clientSig
+	// The return will have: (int) counter + 1, (byte[]) password, (int) wTS, (int) wrCounter, (byte[]) clientSig, (byte[]) serverSig
 	List<Object> get(int sessionID, int counter, byte[] domain, byte[] username, byte[] sig)
 			throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException, KeyConversionException,
 			WrongSignatureException, SigningException;

@@ -154,6 +154,7 @@ public class DPMDB extends DBManager {
 			p.setBytes(5, password);
 			p.setInt(6, wTS);
 			p.setBytes(7, sig);
+			
 			update(p);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block

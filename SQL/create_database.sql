@@ -26,7 +26,7 @@ CREATE TABLE passwords(
 	password VARBINARY(50) NOT NULL,
 	counter INT NOT NULL,
 	tmstamp INT NOT NULL,
-	signature VARBINARY(256),
+	signature VARBINARY(512),
 	PRIMARY KEY (sessionID,counter),
 	FOREIGN KEY (sessionID)
 		REFERENCES sessions(sessionID)

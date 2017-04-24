@@ -68,7 +68,7 @@ public class APIImpl implements API {
 			throw new PublicKeyInvalidSizeException();
 		
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
-		SecurityFunctions.checkSignature(pubKey, concatByteArrays("register".getBytes(), publicKey), sig);
+		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("register".getBytes(), publicKey), sig);
 		
 		try {
 			dbMan.register(publicKey);
@@ -77,14 +77,14 @@ public class APIImpl implements API {
 			e.printStackTrace();
 		}
 		
-		return SecurityFunctions.makeDigitalSignature(privKey, concatByteArrays("register".getBytes(), publicKey));
+		return SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("register".getBytes(), publicKey));
 	}
 	
 	@Override
 	public List<Object> login(byte[] publicKey, byte[] nonce, byte[] sig) throws SigningException,
 	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException {
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
-		SecurityFunctions.checkSignature(pubKey, concatByteArrays("login".getBytes(), publicKey, nonce), sig);
+		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("login".getBytes(), publicKey, nonce), sig);
 		int sessionID = -1;
 		
 		try {
@@ -95,8 +95,8 @@ public class APIImpl implements API {
 		}
 		
 		sessionCounters.put(sessionID, 0);
-		nonce = intToByteArray(byteArrayToInt(nonce) + 1);		
-		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()));
+		nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);		
+		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()));
 		List<Object> res = new ArrayList<Object>();
 		res.add(nonce);
 		res.add(sessionID);
@@ -123,7 +123,7 @@ public class APIImpl implements API {
 			
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
 			SecurityFunctions.checkSignature(pubKey,
-					concatByteArrays("put".getBytes(),("" + sessionID).getBytes(), ("" + matchingCounter).getBytes(),
+					SecurityFunctions.concatByteArrays("put".getBytes(),("" + sessionID).getBytes(), ("" + matchingCounter).getBytes(),
 							domain, username, password, ("" + wTs).getBytes()),
 					sig);
 			
@@ -137,7 +137,7 @@ public class APIImpl implements API {
 		
 		int updateCounter = matchingCounter + 1;
 		sessionCounters.put(sessionID, updateCounter);				
-		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, concatByteArrays("put".getBytes(),
+		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("put".getBytes(),
 				("" + sessionID).getBytes(), ("" + updateCounter).getBytes()));
 		
 		List<Object> res = new ArrayList<Object>();
@@ -166,7 +166,7 @@ public class APIImpl implements API {
 				throw new WrongSignatureException();
 			
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);			
-			SecurityFunctions.checkSignature(pubKey, concatByteArrays("get".getBytes(),("" + sessionID).getBytes(),
+			SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("get".getBytes(),("" + sessionID).getBytes(),
 					("" + matchingCounter).getBytes(), domain, username), sig);
 			
 			// Returns: [password, w_ts, counter_ws, cl_sig]
@@ -181,7 +181,7 @@ public class APIImpl implements API {
 		int updateCounter = matchingCounter + 1;
 		sessionCounters.put(sessionID, updateCounter);				
 		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey,
-				concatByteArrays("get".getBytes(),
+				SecurityFunctions.concatByteArrays("get".getBytes(),
 				("" + sessionID).getBytes(),
 				("" + updateCounter).getBytes(),
 				(byte[]) prevWrite.get(0),
@@ -222,42 +222,5 @@ public class APIImpl implements API {
 	// Functions needed for testing
 	public void insertSessionCounter(int session, int counter) {
 		sessionCounters.put(session, counter);
-	}
-	
-	// Some extra methods for type conversion
-	private int byteArrayToInt(byte[] bytes) {
-	     return new BigInteger(bytes).intValue();
-	}
-	
-	private byte[] intToByteArray(int n) {
-		int ARRAY_SIZE = 64;
-		ByteBuffer b = ByteBuffer.allocate(ARRAY_SIZE + 1);
-		b.putInt(n);
-		return b.array();
-	}
-	
-	private List<byte[]> insertByteArraysOnList(byte[]... arrays) {
-		List<byte[]> lst = new ArrayList<byte[]>();
-		
-		for(byte[] el : arrays)
-			lst.add(el);
-		return lst;
-	}
-	
-	private byte[] concatByteArrays(byte[]... arrays) {
-		int newSize = 0;
-		int counterSize = 0;
-		
-		for(byte[] el : arrays)
-			newSize += el.length;
-		
-		byte[] result = new byte[newSize];
-		for(byte[] el : arrays) {
-			int elSize = el.length;
-			System.arraycopy(el, 0, result, counterSize, elSize);
-			counterSize += elSize;
-		}
-		
-		return result;
 	}
 }
