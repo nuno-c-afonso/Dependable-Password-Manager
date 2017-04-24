@@ -98,12 +98,20 @@ public class APIImpl implements API {
 	// FIXME: Use locks for the counters!!!
 	@Override
 	public List<Object> put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
-			throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {		
+			throws NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {		
 		
-		int matchingCounter = sessionCounters.get(sessionID) + 1;
+		if(domain == null || username == null || password == null || sig == null)
+			throw new NullArgException();
+		
+		int matchingCounter = -1;
 		
 		try {
 			byte[] publicKey = dbMan.pubKeyFromSession(sessionID);
+			
+			matchingCounter = sessionCounters.get(sessionID) + 1;
+			if(counter != matchingCounter)
+				throw new WrongSignatureException();
+			
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
 			SecurityFunctions.checkSignature(pubKey,
 					concatByteArrays("put".getBytes(),("" + sessionID).getBytes(), ("" + matchingCounter).getBytes(),
@@ -132,7 +140,7 @@ public class APIImpl implements API {
 	// FIXME: Use locks for the counters!!!
 	@Override
 	public List<Object> get(int sessionID, int counter, byte[] domain, byte[] username, byte[] sig)
-			throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException,
+			throws NoPasswordException, NullArgException, SessionNotFoundException,
 			KeyConversionException, WrongSignatureException, SigningException {		
 		
 		if(domain == null || username == null || sig == null)
@@ -144,6 +152,9 @@ public class APIImpl implements API {
 		try {
 			byte[] publicKey = dbMan.pubKeyFromSession(sessionID);
 			matchingCounter = sessionCounters.get(sessionID) + 1;
+			
+			if(counter != matchingCounter)
+				throw new WrongSignatureException();
 			
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);			
 			SecurityFunctions.checkSignature(pubKey, concatByteArrays("get".getBytes(),("" + sessionID).getBytes(),

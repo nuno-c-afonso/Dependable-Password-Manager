@@ -149,12 +149,9 @@ public class DPMDB extends DBManager {
 	// Inserts/updates a password in the DB
 	// FIXME: Check if the records already exists && only apply the transformation iff wTS > prevWTS!!!
 	public void put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTS, byte[] sig)
-	throws ConnectionClosedException, NullArgException {		
+	throws ConnectionClosedException {		
 		String in = "INSERT INTO passwords(sessionID, counter, domain, username, password, tmstamp, signature) "
 				  + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-		
-		if(domain == null || username == null || password == null || sig == null)
-			throw new NullArgException();
 				
 		lock("passwords", "WRITE");
 
