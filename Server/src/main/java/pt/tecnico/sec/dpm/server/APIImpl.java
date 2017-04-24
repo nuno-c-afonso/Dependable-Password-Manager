@@ -37,6 +37,9 @@ import javax.xml.ws.handler.MessageContext;
 @WebService(endpointInterface = "pt.tecnico.sec.dpm.server.API")
 @HandlerChain(file = "/handler-chain.xml")
 public class APIImpl implements API {  	
+	// Size is given in bytes
+	private static final int MAX_KEY_SIZE = 550;
+	
 	private DPMDB dbMan = null;
 	private String url = null;
 	private PrivateKey privKey = null;
@@ -58,8 +61,14 @@ public class APIImpl implements API {
 	public byte[] register(byte[] publicKey, byte[] sig) throws PublicKeyInUseException, NullArgException,
 	PublicKeyInvalidSizeException, KeyConversionException, WrongSignatureException, SigningException {		
 		
+		if(publicKey == null || sig == null)
+			throw new NullArgException();
+		
+		if(publicKey.length > MAX_KEY_SIZE)
+			throw new PublicKeyInvalidSizeException();
+		
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
-		SecurityFunctions.checkSignature(pubKey, "register", sig);
+		SecurityFunctions.checkSignature(pubKey, concatByteArrays("register".getBytes(), publicKey), sig);
 		
 		try {
 			dbMan.register(publicKey);

@@ -15,23 +15,13 @@ public class DPMDB extends DBManager {
 	private static final String USER = "dpm_account";
 	private static final String PASS = "FDvlalaland129&&";
 	
-	// Size is given in bytes
-	private static final int MAX_KEY_SIZE = 550;
-	
 	public DPMDB() {
 		super(DB_URL, USER, PASS);
 	}
 	
 	// Registers the users only when pubKey is new
-	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException,
-	NullArgException, PublicKeyInvalidSizeException {
+	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException {
 		String q = "INSERT INTO users (publickey) VALUES (?)";
-		
-		if(pubKey == null)
-			throw new NullArgException();
-		
-		if(pubKey.length > MAX_KEY_SIZE)
-			throw new PublicKeyInvalidSizeException();
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
 		
