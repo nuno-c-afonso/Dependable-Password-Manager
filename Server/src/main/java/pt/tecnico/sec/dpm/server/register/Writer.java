@@ -4,66 +4,61 @@ import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static javax.xml.bind.DatatypeConverter.printBase64Binary;
 
 import java.security.InvalidKeyException;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-
-/*
- * Implementation of the (1,N) Byzantine Regular Register
- */
-
-public class Bonrr {
+public class Writer {
 	//Variables used during the execution of the algorithm
 	private int ts;
 	private int val;
 	private byte[] signature;
 	private int wts;
-	private static Map<String, String> ackList;
 	private int rid;
 	private Map<String, HashMap<String,String[]>> readList;
-	private int numberOfServers;
 	private int numberOfFaults;
-	private String[] serversInfo;
+	private List<ByzantineRegisterConnection> servers;
 	
 	private PrivateKey myPrivateKey = null;
 	//private PublicKey myPublicKey = null;
     
-    public Bonrr(PrivateKey privateKey, String[] serversInfo, int numberOfFaults) { //, PublicKey publicKey) {
+    public Writer(KeyStore keyStore, List<String> serversUrl, ByzantineConnectionFactory bcf, int numberOfFaults) { //, PublicKey publicKey) {
         //Constructor works as the init of the algorithm
-    	ts = 0;
     	wts = 0;
-    	ackList = new HashMap<String, String>();
-    	rid = 0;
     	readList = new HashMap<String, HashMap<String, String[]>>();
     	
     	//Gather info about the system 
-    	this.myPrivateKey = privateKey; //Server Private Key
+    	//this.myPrivateKey = privateKey; //Server Private Key TODO: Get from KeyStore
     	//this.myPublicKey = publicKey; // Server Public Key
-    	this.serversInfo = serversInfo; //Populate the server info
-    	numberOfServers = serversInfo.length;
     	this.numberOfFaults = numberOfFaults; //This should be define a priori
-    	
+    	//TODO: Call byzantineConnectionFacotry
+    	for(String server : serversUrl) {
+    		//Get Public key from this Server
+    	}
     }
     
     /*
      * Write Method that will start the execution of the algorithm for the write request
      *
      */
+    
     private void write(byte[] publicKey, byte[] domain, byte[] username, byte[] password) {
     	//TODO: This wts might have to be changed
     	wts += 1; //Incrementing the write timeStamp
-    	ackList = new HashMap<String, String>(); //Cleaning the AckList
+    	List<List<Object>> ackList = new ArrayList<List<Object>>(); //Cleaning the AckList
     	signature = doSignature(publicKey, domain, username, password); //Signature of the register information
     	//Now for all Server send them the write information
-    	for(String server : serversInfo){
-    		Thread aux = new Thread(new SendWrite(server));
+    	/*for(String server : serversInfo){
+    		Thread aux = new Thread(new SendWrite()); //Send object of bonrr connection, e wts
     	    aux.start();
-    	}
+    	}*/
     	
     	boolean cont = true;
     	while(cont) {
@@ -75,7 +70,7 @@ public class Bonrr {
 			}
     		
     		synchronized(ackList) {
-    			cont  = (ackList.size() <= (numberOfServers + numberOfFaults) / 2);
+    			cont  = (ackList.size() <= ( + numberOfFaults) / 2);
     		}
     	}
     	return;
@@ -85,20 +80,25 @@ public class Bonrr {
      * Class that is going to be execute on the thread to do the requests to the server
      */
     private class SendWrite implements Runnable {
-    	String server;
+    	private ByzantineRegisterConnection brc;
+    	private int wTS;
+    	private List<List<Object>> ackList;
     	
-		public SendWrite(String server) {
+		public SendWrite(ByzantineRegisterConnection brc, int wTS, List<List<Object>> ackList) { 
 			super();
-			this.server = server;
+			this.brc = brc;
+			this.wTS = wTS;
+			this.ackList = ackList;
 		}
 
 		@Override
 		public void run() {
 			//Execute the request
+			List<Object> res = brc.write();
 			
 			//Add the ack to the acklist
 	    	synchronized (ackList) {
-	    		ackList.put(server, "ACK");
+	    		ackList.add(res);
 	    	}
 		}
     	
@@ -111,10 +111,10 @@ public class Bonrr {
     	rid += 1;
     	readList = new HashMap<String, HashMap<String, String[]>>();
     	//Now for all servers send a read request, this must be done in different threads  
-    	for(String server : serversInfo){
+    	/*for(String server : serversInfo){
     		Thread aux = new Thread(new SendRead(server));
     	    aux.start();
-    	}   
+    	}*/   
     }
     
     /*
@@ -145,11 +145,11 @@ public class Bonrr {
     	//First verify a signature the signature
     	if(verifySignature(signature) ){
     		//readList.put(server);
-    		if(readList.size()> ((numberOfServers + numberOfFaults) / 2)){
+    		/*if(readList.size()> ((numberOfServers + numberOfFaults) / 2)){
     			// v = highstesval(readList) TODO: have a better understanding of this
     			readList = new HashMap<String, HashMap<String, String[]>>();
     			//trigger the write indication
-    		}
+    		}*/
     	}
     }
     
