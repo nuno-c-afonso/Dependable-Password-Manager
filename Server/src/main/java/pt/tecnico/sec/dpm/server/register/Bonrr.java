@@ -78,7 +78,9 @@ public class Bonrr {
     			cont  = (ackList.size() <= (numberOfServers + numberOfFaults) / 2);
     		}
     	}
+    	return;
     }
+    
     /*
      * Class that is going to be execute on the thread to do the requests to the server
      */
@@ -100,17 +102,6 @@ public class Bonrr {
 	    	}
 		}
     	
-    }
-    
-    private void ackWrite(String server, String ack){
-    	//create var if i'm writing bool
-    	//Verify if there is enough acks to proceed with the write
-    	if(ackList.size() > ((numberOfServers + numberOfFaults) / 2)){
-    		//if there is enough acks trigger the write indication
-    		//TODO: Here should have a verification if a write indication have been already done done otherwise more than one indication might be done
-    		//Clear the ackList
-    		ackList = new HashMap<String, String>();
-    	}
     }
 
     /*
