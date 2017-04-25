@@ -1,7 +1,8 @@
 package pt.tecnico.sec.dpm.server.register;
 
-import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
 public interface ByzantineRegisterConnectionFactory {
-	ByzantineRegisterConnection createConnection(KeyStore keystore, String Url);
+	ByzantineRegisterConnection createConnection(PrivateKey privKey, PublicKey pubKey, String Url);
 }
