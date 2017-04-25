@@ -15,10 +15,18 @@ import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
 import pt.tecnico.sec.dpm.client.exceptions.UnregisteredUserException;
+import pt.tecnico.sec.dpm.client.exceptions.WrongNonceException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
+import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
+import pt.tecnico.sec.dpm.server.KeyConversionException_Exception;
 import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
+import pt.tecnico.sec.dpm.server.NoPublicKeyException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
+import pt.tecnico.sec.dpm.server.SessionNotFoundException_Exception;
+import pt.tecnico.sec.dpm.server.SigningException_Exception;
+import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 
 //import pt.tecnico.sec.dpm.client.DpmClient;
 
@@ -87,9 +95,9 @@ public class ClientApplication{
 					case 1:
 					try {
 						client.register_user();
-					} catch (PublicKeyInUseException_Exception e1) {
-						System.out.println(e1.getMessage());
-					} catch (HandlerException e) {
+					} catch (HandlerException | SigningException | KeyConversionException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception | WrongSignatureException
+							| NoPublicKeyException_Exception | WrongNonceException e) {
 						System.out.println(e.getMessage());
 					}
 						break;
@@ -104,7 +112,9 @@ public class ClientApplication{
 						client.save_password(domain.getBytes(), username.getBytes(), password.getBytes());
 					} catch (NullClientArgException | UnregisteredUserException e1) {
 						System.out.println(e1.getMessage());
-					} catch (HandlerException e) {
+					} catch (HandlerException | SigningException | KeyConversionException_Exception
+							| SessionNotFoundException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception | WrongSignatureException e) {
 						System.out.println(e.getMessage());
 					}
 						break;
@@ -116,7 +126,10 @@ public class ClientApplication{
 					try {
 						password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
 						System.out.println("Recovered password: " + password);
-					} catch (NoPasswordException_Exception | NullClientArgException | UnregisteredUserException e) {
+					} catch (NoPasswordException_Exception | NullClientArgException | UnregisteredUserException |
+							SigningException | KeyConversionException_Exception
+							| SessionNotFoundException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception | WrongSignatureException e) {
 						System.out.println(e.getMessage());
 					} catch (HandlerException e) {
 						System.out.println(e.getMessage());
@@ -130,9 +143,6 @@ public class ClientApplication{
 						break;
 				}
 			}
-			
-			
-			
 			
 		} catch (AlreadyInitializedException | NullKeystoreElementException | GivenAliasNotFoundException
 				| WrongPasswordException | NotInitializedException | PublicKeyInvalidSizeException_Exception e) {

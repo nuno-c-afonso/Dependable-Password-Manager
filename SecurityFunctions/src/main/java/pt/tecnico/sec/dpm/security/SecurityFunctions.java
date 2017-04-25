@@ -17,6 +17,8 @@ import pt.tecnico.sec.dpm.security.exceptions.SigningException;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
 
 import java.lang.System;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
 
 
 public class SecurityFunctions  {
@@ -118,4 +120,37 @@ public class SecurityFunctions  {
     	
     	return k;
     }
+    
+    /*
+     * Aux functions
+     */
+	
+	public static byte[] concatByteArrays(byte[]... arrays) {
+		int newSize = 0;
+		int counterSize = 0;
+		
+		for(byte[] el : arrays)
+			newSize += el.length;
+		
+		byte[] result = new byte[newSize];
+		for(byte[] el : arrays) {
+			int elSize = el.length;
+			System.arraycopy(el, 0, result, counterSize, elSize);
+			counterSize += elSize;
+		}
+		
+		return result;
+	}
+	
+	// Some extra methods for type conversion
+	public static int byteArrayToInt(byte[] bytes) {
+	     return new BigInteger(bytes).intValue();
+	}
+	
+	public static byte[] intToByteArray(int n) {
+		int ARRAY_SIZE = 64;
+		ByteBuffer b = ByteBuffer.allocate(ARRAY_SIZE + 1);
+		b.putInt(n);
+		return b.array();
+	}
 }

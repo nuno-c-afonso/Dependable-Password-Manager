@@ -37,17 +37,20 @@ import javax.xml.ws.handler.MessageContext;
 @WebService(endpointInterface = "pt.tecnico.sec.dpm.server.API")
 @HandlerChain(file = "/handler-chain.xml")
 public class APIImpl implements API {  	
+	// Size is given in bytes
+	private static final int MAX_KEY_SIZE = 550;
+	
 	private DPMDB dbMan = null;
 	private String url = null;
 	private PrivateKey privKey = null;
-	private HashMap<byte[], Integer> sessionCounters = null;
+	private HashMap<Integer, Integer> sessionCounters = null;
 	
 	public APIImpl(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
 		if(url == null)
 			throw new NullArgException();
 		
 		dbMan = new DPMDB();
-		sessionCounters = new HashMap<byte[], Integer>();
+		sessionCounters = new HashMap<Integer, Integer>();
 		this.url = url.toLowerCase();
 		this.url = this.url.replace('/', '0');
 		
@@ -58,8 +61,14 @@ public class APIImpl implements API {
 	public byte[] register(byte[] publicKey, byte[] sig) throws PublicKeyInUseException, NullArgException,
 	PublicKeyInvalidSizeException, KeyConversionException, WrongSignatureException, SigningException {		
 		
+		if(publicKey == null || sig == null)
+			throw new NullArgException();
+		
+		if(publicKey.length > MAX_KEY_SIZE)
+			throw new PublicKeyInvalidSizeException();
+		
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
-		SecurityFunctions.checkSignature(pubKey, "register", sig);
+		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("register".getBytes(), publicKey), sig);
 		
 		try {
 			dbMan.register(publicKey);
@@ -68,76 +77,130 @@ public class APIImpl implements API {
 			e.printStackTrace();
 		}
 		
-		return SecurityFunctions.makeDigitalSignature(privKey, concatByteArrays("register".getBytes(), publicKey));
+		return SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("register".getBytes(), publicKey));
 	}
 	
 	@Override
-	public List<byte[]> login(byte[] publicKey, byte[] nonce, byte[] sig) {
+	public List<Object> login(byte[] publicKey, byte[] nonce, byte[] sig) throws SigningException,
+	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException {
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
-		SecurityFunctions.checkSignature(pubKey, concatByteArrays("login".getBytes(), publicKey, nonce), sig);
-		byte[] sessionID = null;
+		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("login".getBytes(), publicKey, nonce), sig);
+		int sessionID = -1;
 		
 		try {
-			
-			// TODO: Insert a new counter in this new session
-			// TODO: Save the counter here (HashMap) or in the DB?
 			sessionID = dbMan.login(publicKey, nonce);
 		} catch (ConnectionClosedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		nonce = intToByteArray(byteArrayToInt(nonce) + 1);		
-		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, concatByteArrays("login".getBytes(), nonce, sessionID));
-		return insertByteArraysOnList(nonce, sessionID, serverSig);
+		sessionCounters.put(sessionID, 0);
+		nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);		
+		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()));
+		List<Object> res = new ArrayList<Object>();
+		res.add(nonce);
+		res.add(sessionID);
+		res.add(serverSig);
+		return res;
 	}
 
+	// FIXME: Use locks for the counters!!!
 	@Override
-	public void put(byte[] publicKey, byte[] domain, byte[] username, byte[] password) throws NoPublicKeyException, NullArgException {
-		setMessageContext();
+	public List<Object> put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
+			throws NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {		
+		
+		if(domain == null || username == null || password == null || sig == null)
+			throw new NullArgException();
+		
+		int matchingCounter = -1;
 		
 		//Start the Algorithm
 		
 		try {
-			dbMan.put(publicKey, domain, username, password);
+			byte[] publicKey = dbMan.pubKeyFromSession(sessionID);
+			
+			matchingCounter = sessionCounters.get(sessionID) + 1;
+			if(counter != matchingCounter)
+				throw new WrongSignatureException();
+			
+			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
+			SecurityFunctions.checkSignature(pubKey,
+					SecurityFunctions.concatByteArrays("put".getBytes(),("" + sessionID).getBytes(), ("" + matchingCounter).getBytes(),
+							domain, username, password, ("" + wTs).getBytes()),
+					sig);
+			
+			// FIXME: Make the needed checks for when updating (byzantine algorithms)!!!
+			dbMan.put(sessionID, counter, domain, username, password, wTs, sig);
 		} catch (ConnectionClosedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return null;
 		}
+		
+		int updateCounter = matchingCounter + 1;
+		sessionCounters.put(sessionID, updateCounter);				
+		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("put".getBytes(),
+				("" + sessionID).getBytes(), ("" + updateCounter).getBytes()));
+		
+		List<Object> res = new ArrayList<Object>();
+		res.add(updateCounter);
+		res.add(serverSig);
+		return res;
 	}
-
+	
+	// FIXME: Use locks for the counters!!!
 	@Override
-	public byte[] get(byte[] publicKey, byte[] domain, byte[] username)
-			throws NoPasswordException, NullArgException, NoPublicKeyException {
+	public List<Object> get(int sessionID, int counter, byte[] domain, byte[] username, byte[] sig)
+			throws NoPasswordException, NullArgException, SessionNotFoundException,
+			KeyConversionException, WrongSignatureException, SigningException {		
 		
-		setMessageContext();
+		if(domain == null || username == null || sig == null)
+			throw new NullArgException();
 		
-		byte[] res = null;
+		List<Object> prevWrite = null;
+		int matchingCounter = -1;
 		
 		try {
-			res = dbMan.get(publicKey, domain, username);
+			byte[] publicKey = dbMan.pubKeyFromSession(sessionID);
+			matchingCounter = sessionCounters.get(sessionID) + 1;
+			
+			if(counter != matchingCounter)
+				throw new WrongSignatureException();
+			
+			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);			
+			SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("get".getBytes(),("" + sessionID).getBytes(),
+					("" + matchingCounter).getBytes(), domain, username), sig);
+			
+			// Returns: [password, w_ts, counter_ws, cl_sig]
+			prevWrite = dbMan.get(publicKey, domain, username);
 		} catch (NoResultException nre) {
 			throw new NoPasswordException();
 		} catch (ConnectionClosedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-		return res;
+				
+		int updateCounter = matchingCounter + 1;
+		sessionCounters.put(sessionID, updateCounter);				
+		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey,
+				SecurityFunctions.concatByteArrays("get".getBytes(),
+				("" + sessionID).getBytes(),
+				("" + updateCounter).getBytes(),
+				(byte[]) prevWrite.get(0),
+				("" + prevWrite.get(1)).getBytes(),
+				("" + prevWrite.get(2)).getBytes(),
+				(byte[]) prevWrite.get(3)));
+		
+		prevWrite.add(0, updateCounter);
+		prevWrite.add(serverSig);
+		return prevWrite;
 	}
 	
 	public void close() {
 		dbMan.close();		
 		privKey = null;
 	}
-	
-	// Needed for handler
-	private void setMessageContext() {		
-		MessageContext messageContext = webServiceContext.getMessageContext();
-		messageContext.put(ServerSignatureHandler.MYNAME, url);
-		messageContext.put(ServerSignatureHandler.PRIVATEKEY, privKey);
-	}
-	
+		
 	private void retrievePrivateKey(char[] keystorePass, char[] keyPass) {
 		// The password is the same as the one used on the clients
 		FileInputStream file = null;
@@ -158,40 +221,8 @@ public class APIImpl implements API {
 		}
 	}
 	
-	// Some extra methods for type conversion
-	private int byteArrayToInt(byte[] bytes) {
-	     return new BigInteger(bytes).intValue();
-	}
-	
-	private byte[] intToByteArray(int n) {
-		int ARRAY_SIZE = 64;
-		ByteBuffer b = ByteBuffer.allocate(ARRAY_SIZE + 1);
-		b.putInt(n);
-		return b.array();
-	}
-	
-	private List<byte[]> insertByteArraysOnList(byte[]... arrays) {
-		List<byte[]> lst = new ArrayList<byte[]>();
-		
-		for(byte[] el : arrays)
-			lst.add(el);
-		return lst;
-	}
-	
-	private byte[] concatByteArrays(byte[]... arrays) {
-		int newSize = 0;
-		int counterSize = 0;
-		
-		for(byte[] el : arrays)
-			newSize += el.length;
-		
-		byte[] result = new byte[newSize];
-		for(byte[] el : arrays) {
-			int elSize = el.length;
-			System.arraycopy(el, 0, result, counterSize, elSize);
-			counterSize += elSize;
-		}
-		
-		return result;
+	// Functions needed for testing
+	public void insertSessionCounter(int session, int counter) {
+		sessionCounters.put(session, counter);
 	}
 }
