@@ -13,6 +13,7 @@ CREATE TABLE sessions(
 	sessionID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	userID INT,
 	nonce BINARY(64),
+	UNIQUE (userID, nonce),
 	FOREIGN KEY (userID)
 		REFERENCES users(id)
 		ON DELETE CASCADE
@@ -20,13 +21,13 @@ CREATE TABLE sessions(
 
 CREATE TABLE passwords(
 	sessionID INT NOT NULL,
-	username CHARACTER(50),
-	domain CHARACTER(100),
-	password CHARACTER(50) NOT NULL,
+	username VARBINARY(50),
+	domain VARBINARY(100),
+	password VARBINARY(50) NOT NULL,
 	counter INT NOT NULL,
 	tmstamp INT NOT NULL,
-	signature BINARY(64),
-	PRIMARY KEY (sessionID,counter,username,domain),
+	signature VARBINARY(512),
+	PRIMARY KEY (sessionID,counter),
 	FOREIGN KEY (sessionID)
 		REFERENCES sessions(sessionID)
 		ON DELETE CASCADE
