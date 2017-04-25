@@ -9,12 +9,18 @@ import mockit.integration.junit4.JMockit;
 import pt.tecnico.sec.dpm.server.exceptions.NullArgException;
 import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInUseException;
 import pt.tecnico.sec.dpm.server.exceptions.PublicKeyInvalidSizeException;
+import pt.tecnico.sec.dpm.security.SecurityFunctions;
+import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
+import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
 import pt.tecnico.sec.dpm.server.db.*;
 
 import static org.junit.Assert.*;
 
+import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -29,12 +35,13 @@ import java.util.Arrays;
  *  If necessary, should invoke "mock" remote servers
  */
 
-@RunWith(JMockit.class)
 public class RegisterTest {
 
     // static members
 	private static byte[] publicKey;
+	private static PrivateKey privKey;
 	private static byte[] exactSizeKey;
+	private static PrivateKey privExactSizeKey;
 	private static byte[] biggerSizeKey;
 	
 	private static APIImpl APIImplTest;
@@ -54,18 +61,22 @@ public class RegisterTest {
     // one-time initialization and clean-up
 
     @BeforeClass
-    public static void oneTimeSetUp() throws NoSuchAlgorithmException {
-    	new MockUp<APIImpl> () {
-    		@Mock
-    		void setMessageContext() { }
-    	};
-    	
-    	APIImplTest = new APIImpl();     
+    public static void oneTimeSetUp() throws NoSuchAlgorithmException {    	
+    	try {
+			APIImplTest = new APIImpl("http://localhost:8080/ws.api/endpoint", "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+		} catch (NullArgException e) {
+			// It will not happen
+			e.printStackTrace();
+		}
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
     	keyGen.initialize(2048);
-    	publicKey = keyGen.genKeyPair().getPublic().getEncoded();
+    	KeyPair kp = keyGen.genKeyPair();
+    	publicKey = kp.getPublic().getEncoded();
+    	privKey = kp.getPrivate();
     	keyGen.initialize(4096);
-    	exactSizeKey = keyGen.genKeyPair().getPublic().getEncoded();
+    	kp = keyGen.genKeyPair();
+    	exactSizeKey = kp.getPublic().getEncoded();
+    	privExactSizeKey = kp.getPrivate();
     	biggerSizeKey = new byte[8192];
     	Arrays.fill(biggerSizeKey, (byte) 1);
     	
@@ -97,7 +108,6 @@ public class RegisterTest {
 
     // members
 
-
     // initialization and clean-up for each test
 
     @Before
@@ -107,14 +117,33 @@ public class RegisterTest {
     @After
     public void tearDown() {
     }
-
+    
+    //TODO: This was copied from APIImpl!!!
+    private byte[] concatByteArrays(byte[]... arrays) {
+		int newSize = 0;
+		int counterSize = 0;
+		
+		for(byte[] el : arrays)
+			newSize += el.length;
+		
+		byte[] result = new byte[newSize];
+		for(byte[] el : arrays) {
+			int elSize = el.length;
+			System.arraycopy(el, 0, result, counterSize, elSize);
+			counterSize += elSize;
+		}
+		
+		return result;
+	}
     
     // tests
     //Verifies if the the Register function is working correctly
     @Test
-    public void correctRegister() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
+    public void correctRegister() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException, SigningException, KeyConversionException, WrongSignatureException {
+    	byte[] sig = SecurityFunctions.makeDigitalSignature(privKey, concatByteArrays("register".getBytes(), publicKey));
+    	
     	//call function to register
-		APIImplTest.register(publicKey);
+		APIImplTest.register(publicKey, sig);
 		
 		String queryGetPubKey = "SELECT publickey "
 	              + "FROM users "
@@ -141,8 +170,10 @@ public class RegisterTest {
     
     //Different sizes Key
     @Test
-    public void exactSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
-		APIImplTest.register(exactSizeKey);
+    public void exactSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException, SigningException, KeyConversionException, WrongSignatureException {
+    	byte[] sig = SecurityFunctions.makeDigitalSignature(privExactSizeKey, concatByteArrays("register".getBytes(), exactSizeKey));
+    	
+    	APIImplTest.register(exactSizeKey, sig);
 		
 		String queryGetPubKey = "SELECT publickey "
 	              + "FROM users "
@@ -169,23 +200,28 @@ public class RegisterTest {
     }
     
     @Test (expected = PublicKeyInvalidSizeException.class)
-    public void biggerSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
-		APIImplTest.register(biggerSizeKey);
+    public void biggerSizeKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException, KeyConversionException, WrongSignatureException, SigningException {
+		APIImplTest.register(biggerSizeKey, "something".getBytes());
     }
     
     @Test (expected = NullArgException.class)
-    public void nullPublicKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException {
-    	APIImplTest.register(null);
+    public void nullPublicKey() throws PublicKeyInUseException, NullArgException, PublicKeyInvalidSizeException, KeyConversionException, WrongSignatureException, SigningException {
+    	APIImplTest.register(null, "something".getBytes());
     }
     
     @Test(expected = PublicKeyInUseException.class)
     public void registerTwicePublicKey() throws PublicKeyInUseException, NullArgException, NoSuchAlgorithmException, 
-    PublicKeyInvalidSizeException {
+    PublicKeyInvalidSizeException, SigningException, KeyConversionException, WrongSignatureException {
     	//Try to register Same user twice
     	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
     	keyGen.initialize(2048);
-    	byte[]pubKey = keyGen.genKeyPair().getPublic().getEncoded();
-		APIImplTest.register(pubKey);
-    	APIImplTest.register(pubKey);    	
+    	KeyPair kp = keyGen.genKeyPair();
+    	byte[]pubKey = kp.getPublic().getEncoded();
+    	PrivateKey privKey = kp.getPrivate();
+    	
+    	byte[] sig = SecurityFunctions.makeDigitalSignature(privKey, concatByteArrays("register".getBytes(), pubKey));
+    	
+		APIImplTest.register(pubKey, sig);
+    	APIImplTest.register(pubKey, sig);    	
     }
 }

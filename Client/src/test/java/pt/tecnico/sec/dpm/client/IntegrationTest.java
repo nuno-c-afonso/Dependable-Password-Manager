@@ -42,11 +42,19 @@ import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
 import pt.tecnico.sec.dpm.client.exceptions.UnregisteredUserException;
+import pt.tecnico.sec.dpm.client.exceptions.WrongNonceException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
+import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
+import pt.tecnico.sec.dpm.server.KeyConversionException_Exception;
 import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
+import pt.tecnico.sec.dpm.server.NoPublicKeyException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException;
 import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
+import pt.tecnico.sec.dpm.server.SessionNotFoundException_Exception;
+import pt.tecnico.sec.dpm.server.SigningException_Exception;
+import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 import sun.security.x509.*;
 
 public class IntegrationTest {
@@ -158,7 +166,7 @@ public class IntegrationTest {
 	 ************/
     @Test
     public void correctRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException { 
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException { 
     	
     	testOut.reset();
     	
@@ -166,9 +174,9 @@ public class IntegrationTest {
     	assertEquals("", testOut.toString());
     }
     
-    @Test(expected=PublicKeyInUseException_Exception.class)
-    public void keyInUseRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException {
+    @Test
+    public void newSessionRegister()
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
     	
     	client.register_user();
     	client.register_user();
@@ -177,7 +185,7 @@ public class IntegrationTest {
     // Needs to create a new client, with a key size bigger than allowed
     @Test(expected=PublicKeyInvalidSizeException_Exception.class)
     public void keyTooBigRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException {
+    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
     	
     	KeyStore keystore = null;
 		KeyStore.PrivateKeyEntry privKeyEntry = null;
@@ -222,7 +230,7 @@ public class IntegrationTest {
     @Test
     public void correctInsertSave()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException {
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	testOut.reset();
     	
@@ -234,7 +242,7 @@ public class IntegrationTest {
     @Test
     public void correctUpdateSave()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException {
+    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	testOut.reset();
     	
@@ -245,14 +253,14 @@ public class IntegrationTest {
     }
     
     @Test(expected=UnregisteredUserException.class)
-    public void unregisteredSave() throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException {    	
+    public void unregisteredSave() throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {    	
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
     }
     
     @Test(expected=NullClientArgException.class)
     public void nullDomainSave()
     		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException {
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	client.register_user();
     	client.save_password(null, USERNAME, ORIGINAL_PASS);
@@ -261,7 +269,7 @@ public class IntegrationTest {
     @Test(expected=NullClientArgException.class)
     public void nullUsernameSave()
     		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException {
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, null, ORIGINAL_PASS);
@@ -270,7 +278,7 @@ public class IntegrationTest {
     @Test(expected=NullClientArgException.class)
     public void nullPassSave()
     		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException {
+    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, null);
@@ -284,7 +292,7 @@ public class IntegrationTest {
     public void correctInsertRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	testOut.reset();
     	
@@ -300,7 +308,7 @@ public class IntegrationTest {
     public void correctUpdateRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	testOut.reset();
     	
@@ -317,7 +325,7 @@ public class IntegrationTest {
     public void unregisteredRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
     	
     	client.retrieve_password(DOMAIN, "noone".getBytes());
     }
@@ -326,7 +334,7 @@ public class IntegrationTest {
     public void noMatchingPassRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
@@ -337,7 +345,7 @@ public class IntegrationTest {
     public void nullDomainRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
@@ -348,7 +356,7 @@ public class IntegrationTest {
     public void nullUsernameRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException {
+    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
