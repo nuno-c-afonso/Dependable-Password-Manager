@@ -12,7 +12,7 @@ import java.lang.System;
 
 public class SecurityFunctions  {
 
-    private static boolean checkSignature(PublicKey publicKey  ,String text,String signedText){
+    private static boolean checkSignature(PublicKey publicKey, String text, String signedText){
     	final byte[] plainBytesText = parseBase64Binary(text);
     	final byte[] plainBytesSignedText = parseBase64Binary(signedText);
     	
@@ -32,7 +32,7 @@ public class SecurityFunctions  {
     }
 
 
-    public static String makeDigitalSignature(PrivateKey privatekey ,String text) throws Exception {
+    public static String makeDigitalSignature(PrivateKey privatekey, String text) throws Exception {
 
     	byte[] plainBytesText;
     	try{
