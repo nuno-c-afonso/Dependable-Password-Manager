@@ -96,6 +96,8 @@ public class APIImpl implements API {
 	public void put(byte[] publicKey, byte[] domain, byte[] username, byte[] password) throws NoPublicKeyException, NullArgException {
 		setMessageContext();
 		
+		//Start the Algorithm
+		
 		try {
 			dbMan.put(publicKey, domain, username, password);
 		} catch (ConnectionClosedException e) {
