@@ -6,6 +6,7 @@ import static javax.xml.bind.DatatypeConverter.printBase64Binary;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.HashMap;
@@ -22,7 +23,7 @@ public class Bonrr {
 	private int val;
 	private byte[] signature;
 	private int wts;
-	private Map<String, String> ackList;
+	private static Map<String, String> ackList;
 	private int rid;
 	private Map<String, HashMap<String,String[]>> readList;
 	private int numberOfServers;
@@ -30,8 +31,9 @@ public class Bonrr {
 	private String[] serversInfo;
 	
 	private PrivateKey myPrivateKey = null;
+	//private PublicKey myPublicKey = null;
     
-    public Bonrr(PrivateKey privateKey) {
+    public Bonrr(PrivateKey privateKey, String[] serversInfo, int numberOfFaults) { //, PublicKey publicKey) {
         //Constructor works as the init of the algorithm
     	ts = 0;
     	wts = 0;
@@ -41,9 +43,10 @@ public class Bonrr {
     	
     	//Gather info about the system 
     	this.myPrivateKey = privateKey; //Server Private Key
-    	serversInfo = null; //Populate the server info
+    	//this.myPublicKey = publicKey; // Server Public Key
+    	this.serversInfo = serversInfo; //Populate the server info
     	numberOfServers = serversInfo.length;
-    	numberOfFaults = 3; //This should be define a priori
+    	this.numberOfFaults = numberOfFaults; //This should be define a priori
     	
     }
     
@@ -52,6 +55,7 @@ public class Bonrr {
      *
      */
     private void write(byte[] publicKey, byte[] domain, byte[] username, byte[] password) {
+    	//TODO: This wts might have to be changed
     	wts += 1; //Incrementing the write timeStamp
     	ackList = new HashMap<String, String>(); //Cleaning the AckList
     	signature = doSignature(publicKey, domain, username, password); //Signature of the register information
@@ -59,7 +63,21 @@ public class Bonrr {
     	for(String server : serversInfo){
     		Thread aux = new Thread(new SendWrite(server));
     	    aux.start();
-    	}    	
+    	}
+    	
+    	boolean cont = true;
+    	while(cont) {
+    		try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		
+    		synchronized(ackList) {
+    			cont  = (ackList.size() <= (numberOfServers + numberOfFaults) / 2);
+    		}
+    	}
     }
     /*
      * Class that is going to be execute on the thread to do the requests to the server
@@ -76,17 +94,16 @@ public class Bonrr {
 		public void run() {
 			//Execute the request
 			
-			//When receive response call deliverWrite
-			deliverWrite(server, "ACK");
-			
+			//Add the ack to the acklist
+	    	synchronized (ackList) {
+	    		ackList.put(server, "ACK");
+	    	}
 		}
     	
     }
     
-    
-    private void deliverWrite(String serverId, String ack){
-    	//Add the ack to the acklist
-    	ackList.put(serverId, ack);
+    private void ackWrite(String server, String ack){
+    	//create var if i'm writing bool
     	//Verify if there is enough acks to proceed with the write
     	if(ackList.size() > ((numberOfServers + numberOfFaults) / 2)){
     		//if there is enough acks trigger the write indication
@@ -95,20 +112,48 @@ public class Bonrr {
     		ackList = new HashMap<String, String>();
     	}
     }
-    
-    
+
     /*
      * Read method that will start the execution of the algorithm for the read request
      */
     private void read() {
     	rid += 1;
     	readList = new HashMap<String, HashMap<String, String[]>>();
-    	//Now for all servers send a read request, this must be done in different threads    	
+    	//Now for all servers send a read request, this must be done in different threads  
+    	for(String server : serversInfo){
+    		Thread aux = new Thread(new SendRead(server));
+    	    aux.start();
+    	}   
     }
     
-    private void deliverRead() {
+    /*
+     * Class that is going to be execute on the thread to do the requests to the server
+     */
+    private class SendRead implements Runnable {
+    	String server;
+    	
+		public SendRead(String server) {
+			super();
+			this.server = server;
+		}
+
+		@Override
+		public void run() {
+			//Execute the request
+			
+			//When receive response call deliverWrite
+			byte[] signature = null;
+			//the server should return a ts' and a v' and a signature
+			//deliverRead(signature);
+			
+		}
+    	
+    }
+    
+    private void deliverRead(String server, byte[] signature, byte[] ts, byte[] value) {
     	//First verify a signature the signature
-    	if(true ){ //TODO: change this to the actual verification
+    	if(verifySignature(signature) ){
+    		//readList.put(server);
     		if(readList.size()> ((numberOfServers + numberOfFaults) / 2)){
     			// v = highstesval(readList) TODO: have a better understanding of this
     			readList = new HashMap<String, HashMap<String, String[]>>();
@@ -152,7 +197,6 @@ public class Bonrr {
     	}
     	
     	//Concatenating the byte array that will be sign
-    	System.arraycopy(myUrl, 0, plainTextBytes, 0, myUrl.length);
     	System.arraycopy(bonrr, 0, plainTextBytes, plainTextBytes.length, bonrr.length);
     	System.arraycopy(myUrl, 0, plainTextBytes, plainTextBytes.length , bonrr.length);
     	System.arraycopy(write, 0, plainTextBytes, plainTextBytes.length , write.length);
@@ -177,11 +221,27 @@ public class Bonrr {
     	return signature;
     }
     
-    private Boolean verifySignature(){
+    private Boolean verifySignature(byte[] signature){
     	return true;
-    }
-    
-    
-    
-    
+    	/*
+    	final byte[] plainBytesText = parseBase64Binary(text);
+    	final byte[] plainBytesSignedText = parseBase64Binary(signedText);
+    	
+
+        try {
+        	Signature sig = Signature.getInstance("SHA256WithRSA");
+        	sig.initVerify(publicKey); // This is the server public
+        	sig.update(plainBytesText);
+            return sig.verify(plainBytesSignedText);
+            
+        } catch (SignatureException se) {
+        	System.out.println("Client Exception verifying certeficate"+se);
+        	se.printStackTrace();
+            return false;
+        } catch (Exception e){ System.out.println("Exception veryfying certeficate"+e);
+        System.out.println("Exception veryfying certeficate"+ e);}
+        return false;
+        */
+        
+    }    
 }
