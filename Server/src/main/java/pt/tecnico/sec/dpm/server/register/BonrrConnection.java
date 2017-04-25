@@ -18,15 +18,18 @@ public class BonrrConnection implements ByzantineRegisterConnection {
 		//BonrrServerService service = new BonrrServerService();
 		//port = service.getBonrrServerPort();		
 	}
-	
+
+
 	@Override
-	public List<Object> write() {
+	public List<Object> write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, int wTS,
+			byte[] cliSig) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+
 	@Override
-	public List<Object> read() {
+	public List<Object> read(byte[] cliPublicKey, byte[] domain, byte[] username) {
 		// TODO Auto-generated method stub
 		return null;
 	}

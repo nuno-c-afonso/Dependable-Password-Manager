@@ -3,13 +3,19 @@ package pt.tecnico.sec.dpm.server.register;
 import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
 import static javax.xml.bind.DatatypeConverter.printBase64Binary;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.UnrecoverableEntryException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,26 +27,30 @@ public class Writer {
 	private int val;
 	private byte[] signature;
 	private int wts;
-	private int rid;
+	private int rid; // this might be the READER ID
 	private Map<String, HashMap<String,String[]>> readList;
 	private int numberOfFaults;
 	private List<ByzantineRegisterConnection> servers;
 	
 	private PrivateKey myPrivateKey = null;
-	//private PublicKey myPublicKey = null;
     
-    public Writer(KeyStore keyStore, List<String> serversUrl, ByzantineConnectionFactory bcf, int numberOfFaults) { //, PublicKey publicKey) {
+    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { //, PublicKey publicKey) {
         //Constructor works as the init of the algorithm
     	wts = 0;
     	readList = new HashMap<String, HashMap<String, String[]>>();
     	
+    	myPrivateKey = retrievePrivateKey(keyStore, "1nsecure".toCharArray(), myUrl);
+    	
     	//Gather info about the system 
-    	//this.myPrivateKey = privateKey; //Server Private Key TODO: Get from KeyStore
-    	//this.myPublicKey = publicKey; // Server Public Key
     	this.numberOfFaults = numberOfFaults; //This should be define a priori
-    	//TODO: Call byzantineConnectionFacotry
+    	servers = new ArrayList<ByzantineRegisterConnection>();
     	for(String server : serversUrl) {
     		//Get Public key from this Server
+    		PublicKey pubKey = retrievePublicKey(keyStore, server);
+    		
+    		ByzantineRegisterConnection brc = bcf.createConnection(myPrivateKey, pubKey, server);
+    		servers.add(brc);
+    		
     	}
     }
     
@@ -49,16 +59,15 @@ public class Writer {
      *
      */
     
-    private void write(byte[] publicKey, byte[] domain, byte[] username, byte[] password) {
-    	//TODO: This wts might have to be changed
+    private void write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) {
     	wts += 1; //Incrementing the write timeStamp
     	List<List<Object>> ackList = new ArrayList<List<Object>>(); //Cleaning the AckList
-    	signature = doSignature(publicKey, domain, username, password); //Signature of the register information
+    	//FIXME: Verify the client signature before initiate the protocol
     	//Now for all Server send them the write information
-    	/*for(String server : serversInfo){
-    		Thread aux = new Thread(new SendWrite()); //Send object of bonrr connection, e wts
+    	for(ByzantineRegisterConnection brc : servers){
+    		Thread aux = new Thread(new SendWrite(brc, wts, ackList, sessionID, cliCounter, domain, username, password, cliSig)); //Send object of bonrr connection, e wts
     	    aux.start();
-    	}*/
+    	}
     	
     	boolean cont = true;
     	while(cont) {
@@ -83,18 +92,31 @@ public class Writer {
     	private ByzantineRegisterConnection brc;
     	private int wTS;
     	private List<List<Object>> ackList;
+    	private int sessionID;
+    	private int cliCounter;
+    	private byte[] domain;
+    	private byte[] username;
+    	private byte[] password;
+    	private byte[] cliSig;
     	
-		public SendWrite(ByzantineRegisterConnection brc, int wTS, List<List<Object>> ackList) { 
-			super();
+		public SendWrite(ByzantineRegisterConnection brc, int wTS, List<List<Object>> ackList,
+				int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) { 
 			this.brc = brc;
 			this.wTS = wTS;
 			this.ackList = ackList;
+			this.sessionID = sessionID;
+			this.cliCounter = cliCounter;
+			this.domain = domain;
+			this.username = username;
+			this.password = password;
+			this.cliSig = cliSig;
 		}
 
 		@Override
 		public void run() {
 			//Execute the request
-			List<Object> res = brc.write();
+			//int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, int wTS, byte[] cliSig
+			List<Object> res = brc.write(sessionID, cliCounter, domain, username, password, wTS,cliSig);
 			
 			//Add the ack to the acklist
 	    	synchronized (ackList) {
@@ -107,56 +129,94 @@ public class Writer {
     /*
      * Read method that will start the execution of the algorithm for the read request
      */
-    private void read() {
+    private void read(PublicKey publicKey, byte[] domain, byte[] username) { 
+    	//FIXME: Verify the signature of the client
     	rid += 1;
     	readList = new HashMap<String, HashMap<String, String[]>>();
     	//Now for all servers send a read request, this must be done in different threads  
-    	/*for(String server : serversInfo){
-    		Thread aux = new Thread(new SendRead(server));
+    	for(ByzantineRegisterConnection brc : servers){
+    		Thread aux = new Thread(new SendRead(brc, publicKey.getEncoded(), domain, username)); //Send object of bonrr connection, e wts
     	    aux.start();
-    	}*/   
+    	}
     }
     
     /*
      * Class that is going to be execute on the thread to do the requests to the server
      */
     private class SendRead implements Runnable {
-    	String server;
+    	private ByzantineRegisterConnection brc;
+    	private byte[] cliPublicKey;
+    	private byte[] domain;
+    	private byte[] username;
     	
-		public SendRead(String server) {
+    	//FIXME: Verify this parameters
+		public SendRead(ByzantineRegisterConnection brc, byte[] cliPublicKey, byte[] domain, byte[] username) {
 			super();
-			this.server = server;
+			this.brc = brc;
+			this.cliPublicKey = cliPublicKey;
+			this.domain = domain;
+			this.username = username;
+			
 		}
 
 		@Override
 		public void run() {
-			//Execute the request
-			
-			//When receive response call deliverWrite
-			byte[] signature = null;
-			//the server should return a ts' and a v' and a signature
-			//deliverRead(signature);
+			//Execute the request	
+			//FIXME: Pass the readList object 
+			List<Object> res = brc.read(cliPublicKey, domain, username);
 			
 		}
     	
-    }
-    
-    private void deliverRead(String server, byte[] signature, byte[] ts, byte[] value) {
-    	//First verify a signature the signature
-    	if(verifySignature(signature) ){
-    		//readList.put(server);
-    		/*if(readList.size()> ((numberOfServers + numberOfFaults) / 2)){
-    			// v = highstesval(readList) TODO: have a better understanding of this
-    			readList = new HashMap<String, HashMap<String, String[]>>();
-    			//trigger the write indication
-    		}*/
-    	}
-    }
-    
+    }    
     
     /*
      * AUX METHODS
      */
+    
+    private void openKeyStore(KeyStore keystore, char[] keyStorePass, String url) {
+    	FileInputStream file = null;
+		
+		try {
+			keystore = KeyStore.getInstance("jceks");
+			file = new FileInputStream("../keys/" + url + "/" + url + ".jks");
+			keystore.load(file, keyStorePass);
+			file.close();
+		}  catch (KeyStoreException | NoSuchAlgorithmException | CertificateException
+				| IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    private PrivateKey retrievePrivateKey(KeyStore keystore, char[] keyPass, String url) {
+		// The password is the same as the one used on the clients
+		PrivateKey priv = null;
+		
+		try {
+			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(keyPass);
+			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(url.toLowerCase().replace('/','0'), protParam);
+		    priv = pke.getPrivateKey();
+		} catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return priv;
+	}
+    
+    private PublicKey retrievePublicKey(KeyStore keystore, String serverUrl) {
+    	X509Certificate cert = null;
+		try {
+			cert = (X509Certificate) keystore.getCertificate(serverUrl.toLowerCase().replace('/','0'));
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return cert.getPublicKey();
+    }
+    
+    
+    
     private byte[] doSignature(byte[] publicKey, byte[] domain, byte[] username, byte[] password) {
     	//Variable need for the signature
     	final String BONRR = "bonrr";
