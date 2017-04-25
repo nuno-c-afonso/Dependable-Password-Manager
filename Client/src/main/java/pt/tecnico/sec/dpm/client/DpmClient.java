@@ -167,10 +167,7 @@ public class DpmClient {
 			ConnectionWasClosedException, HandlerException, SigningException,
 			KeyConversionException_Exception, SessionNotFoundException_Exception,
 			SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
-		
-// TODO: For testing purposes
-//System.out.println("WRITE TIMESTAMP:" + writeTS);
-		
+				
 		if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
 		
@@ -181,6 +178,7 @@ public class DpmClient {
 			throw new NullClientArgException();
 		
 		try {
+			int tmpTS = writeTS + 1;
 			byte[] iv = createIV(domain, username);
 			byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
 			byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
@@ -189,9 +187,9 @@ public class DpmClient {
 			int tmpCounter = counter + 1;
 			byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
 					SecurityFunctions.concatByteArrays("put".getBytes(), ("" + sessionID).getBytes(),
-							("" + tmpCounter).getBytes(), cDomain, cUsername, cPassword, ("" + writeTS).getBytes()));
+							("" + tmpCounter).getBytes(), cDomain, cUsername, cPassword, ("" + tmpTS).getBytes()));
 			
-			List<Object> result = port.put(sessionID, tmpCounter, cDomain, cUsername, cPassword, writeTS, sig);
+			List<Object> result = port.put(sessionID, tmpCounter, cDomain, cUsername, cPassword, tmpTS, sig);
 			
 			sig = (byte[]) result.get(1);
 			tmpCounter++;
@@ -201,8 +199,7 @@ public class DpmClient {
 					sig);
 			
 			counter = tmpCounter;
-			writeTS ++;
-			
+			writeTS = tmpTS;
 		} catch (NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
 		} catch (NullArgException_Exception e) {
@@ -263,7 +260,7 @@ public class DpmClient {
 					sig);
 			
 			retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
-			writeTS = serverTS;
+			writeTS = serverTS;			
 			counter = tmpCounter;			
 		} catch(NoPublicKeyException_Exception e) {
 			throw new UnregisteredUserException();
