@@ -21,6 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
+import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+
 public class Writer {
 	//Variables used during the execution of the algorithm
 	private int ts;
@@ -115,12 +118,19 @@ public class Writer {
 		public void run() {
 			//Execute the request
 			//int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, int wTS, byte[] cliSig
-			List<Object> res = brc.write(sessionID, cliCounter, domain, username, password, wTS,cliSig);
+			List<Object> res;
+			try {
+				res = brc.write(sessionID, cliCounter, domain, username, password, wTS,cliSig);
+				//Add the ack to the acklist
+		    	synchronized (ackList) {
+		    		ackList.add(res);
+		    	}
+			} catch (KeyConversionException | SigningException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
-			//Add the ack to the acklist
-	    	synchronized (ackList) {
-	    		ackList.add(res);
-	    	}
+			
 		}
     	
     }
@@ -170,6 +180,7 @@ public class Writer {
     	private byte[] domain;
     	private byte[] username;
     	private Map<String, List<Object>> readList;
+    	private String serverUrl;
     	
     	//FIXME: Verify this parameters
 		public SendRead(ByzantineRegisterConnection brc, byte[] cliPublicKey, byte[] domain, byte[] username, Map<String, List<Object>> readList) {
@@ -189,7 +200,7 @@ public class Writer {
 			
 			//Add the new values to the readList
 	    	synchronized (readList) {
-	    		readList.put("SERVERIDENTIFICATION", res); //FIXME: for the server identification brc should have a method like brc.getIdentification();
+	    		readList.put(serverUrl, res); //FIXME: for the server identification brc should have a method like brc.getIdentification();
 	    	}			
 		}
     	
