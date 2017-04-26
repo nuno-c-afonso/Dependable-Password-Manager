@@ -83,7 +83,7 @@ public class Writer {
     			cont  = (ackList.size() <= (servers.size() + numberOfFaults) / 2);
     		}
     	}
-    	return; //TODO: What happens if the server nevers receives (n+f)/2 acks? this way it will block here
+    	return; //TODO: Change this return to sen back to the client the server sig
     	
     }
     
@@ -139,7 +139,7 @@ public class Writer {
      * Read method that will start the execution of the algorithm for the read request
      * @return TODO: Change this return to return the password (and a list of the servers signatures???)
      */
-    private void read(PublicKey publicKey, byte[] domain, byte[] username) { 
+    private void read(PublicKey publicKey, byte[] domain, byte[] username, byte[] cliSig) { 
     	//FIXME: Verify the signature of the client
     	rid += 1; // Why is this rid important
     	//Map<>readList = new HashMap<>();
@@ -148,7 +148,7 @@ public class Writer {
     	
     	//Now for all servers send a read request, this must be done in different threads  
     	for(ByzantineRegisterConnection brc : servers){
-    		Thread aux = new Thread(new SendRead(brc, publicKey.getEncoded(), domain, username, readList)); //Send object of bonrr connection, e wts
+    		Thread aux = new Thread(new SendRead(brc, publicKey.getEncoded(), domain, username, readList, cliSig)); //Send object of bonrr connection, e wts
     	    aux.start();
     	}
     	
@@ -179,24 +179,28 @@ public class Writer {
     	private byte[] cliPublicKey;
     	private byte[] domain;
     	private byte[] username;
+    	private byte[] cliSig;
     	private Map<String, List<Object>> readList;
     	private String serverUrl;
     	
     	//FIXME: Verify this parameters
-		public SendRead(ByzantineRegisterConnection brc, byte[] cliPublicKey, byte[] domain, byte[] username, Map<String, List<Object>> readList) {
+		public SendRead(ByzantineRegisterConnection brc, byte[] cliPublicKey, byte[] domain, byte[] username, Map<String, List<Object>> readList, byte[] cliSig) {
 			this.brc = brc;
 			this.cliPublicKey = cliPublicKey;
 			this.domain = domain;
 			this.username = username;
 			this.readList = readList;
+			this.cliSig = cliSig;
 			
 		}
 
 		@Override
 		public void run() {
 			//Execute the request	
-			List<Object> res = brc.read(cliPublicKey, domain, username);
+			List<Object> res = brc.read(cliPublicKey, domain, username, cliSig);
 			//res contains -> serverCounter + 1, password, wTS, serverSig
+			
+			//Verify this signature
 			
 			//Add the new values to the readList
 	    	synchronized (readList) {
@@ -251,85 +255,4 @@ public class Writer {
 		}
     	return cert.getPublicKey();
     }
-    
-    
-    
-    private byte[] doSignature(byte[] publicKey, byte[] domain, byte[] username, byte[] password) {
-    	//Variable need for the signature
-    	final String BONRR = "bonrr";
-    	byte[] bonrr = null;
-    	
-    	byte[] write = null;
-    	final String WRITE = "WRITE";
-    	
-    	byte[] myUrl = null; //Get own URL
-    	byte[]wtsBytes = null;
-    	byte[] plainTextBytes = null;
-    	
-    	//Create the value byte array
-    	byte[] value = new byte[publicKey.length + domain.length + username.length + password.length];
-    	System.arraycopy(publicKey, 0, value, 0, publicKey.length);
-    	System.arraycopy(domain, 0, value, publicKey.length, domain.length); //TODO: Confirm and change the second if it works as shown below
-    	System.arraycopy(username, 0, value, (publicKey.length + domain.length), username.length);
-    	System.arraycopy(password, 0, value, (publicKey.length + domain.length + username.length), password.length);
-    	
-    	//Parsing the text to a byte array
-    	try{
-        	bonrr = parseBase64Binary(BONRR);
-        	write = parseBase64Binary(WRITE);
-        	wtsBytes = parseBase64Binary(""+wts);
-    	}catch(Exception e){
-    		System.out.println("Error converting text to byte array " + e);
-    		e.printStackTrace();
-    		return null;
-    	}
-    	
-    	//Concatenating the byte array that will be sign
-    	System.arraycopy(bonrr, 0, plainTextBytes, plainTextBytes.length, bonrr.length);
-    	System.arraycopy(myUrl, 0, plainTextBytes, plainTextBytes.length , bonrr.length);
-    	System.arraycopy(write, 0, plainTextBytes, plainTextBytes.length , write.length);
-    	System.arraycopy(wtsBytes, 0, plainTextBytes, plainTextBytes.length , wtsBytes.length);
-    	System.arraycopy(value, 0, plainTextBytes, plainTextBytes.length , value.length);
-    	
-    	
-    	//Creating the signature of the register information
-    	Signature sig;
-    	byte[] signature = null;
-		try {
-			sig = Signature.getInstance("SHA256WithRSA");
-			sig.initSign((PrivateKey) myPrivateKey);
-	    	sig.update(plainTextBytes);
-	    	signature = sig.sign();   	
-		} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e ) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		
-    	//Return of the signature
-    	return signature;
-    }
-    
-    private Boolean verifySignature(byte[] signature){
-    	return true;
-    	/*
-    	final byte[] plainBytesText = parseBase64Binary(text);
-    	final byte[] plainBytesSignedText = parseBase64Binary(signedText);
-    	
-
-        try {
-        	Signature sig = Signature.getInstance("SHA256WithRSA");
-        	sig.initVerify(publicKey); // This is the server public
-        	sig.update(plainBytesText);
-            return sig.verify(plainBytesSignedText);
-            
-        } catch (SignatureException se) {
-        	System.out.println("Client Exception verifying certeficate"+se);
-        	se.printStackTrace();
-            return false;
-        } catch (Exception e){ System.out.println("Exception veryfying certeficate"+e);
-        System.out.println("Exception veryfying certeficate"+ e);}
-        return false;
-        */
-        
-    }    
 }

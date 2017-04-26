@@ -31,32 +31,40 @@ public class BonrrConnection implements ByzantineRegisterConnection {
 	@Override
 	public List<Object> write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, int wTS,
 			byte[] cliSig) throws KeyConversionException, SigningException {
-		// TODO Auto-generated method stub
 		serverCounter ++;
 		byte[] serverCounterBytes = SecurityFunctions.intToByteArray(serverCounter);
     	byte[] bonrr = "bonrr".getBytes();
     	byte[] write = "WRITE".getBytes();
-    	byte[] sessionIDBytes = SecurityFunctions.intToByteArray(sessionID);
+    	byte[] sessionIDBytes = ("" + sessionID).getBytes();
     	byte[] cliCounterBytes = SecurityFunctions.intToByteArray(cliCounter);
     	byte[] wTSBytes = SecurityFunctions.intToByteArray(wTS);
-    	byte[] privKeyBytes = SecurityFunctions.keyToByteArray(privKey);
     	
     	
-    	byte[] bytesToSign = SecurityFunctions.concatByteArrays(bonrr, privKeyBytes, write, serverCounterBytes, sessionIDBytes, cliCounterBytes, wTSBytes,
+    	byte[] bytesToSign = SecurityFunctions.concatByteArrays(bonrr, write, serverCounterBytes, sessionIDBytes, cliCounterBytes, wTSBytes,
     			domain, username, password, cliSig);
     	
     	byte[] signedBytes = SecurityFunctions.makeDigitalSignature(privKey, bytesToSign);
     	
-    	port.deliverWrite(serverCounter, sessionID, cliCounter, domain, username, password, wTS, cliSig, signedBytes);
+    	List<Object> result = port.deliverWrite(serverCounter, sessionID, cliCounter, domain, username, password, wTS, cliSig, signedBytes);
     	
-		return null;
+		return result;
 	}
 
 
 	@Override
-	public List<Object> read(byte[] cliPublicKey, byte[] domain, byte[] username) {
-		// TODO Auto-generated method stub
-		// Generate this server signature
-		return null;
+	public List<Object> read(byte[] cliPublicKey, byte[] domain, byte[] username, byte[] cliSig) {
+		serverCounter++;
+		byte[] serverCounterBytes = SecurityFunctions.intToByteArray(serverCounter);
+    	byte[] bonrr = "bonrr".getBytes();
+    	byte[] write = "WRITE".getBytes();
+    	
+    	byte[] bytesToSign = SecurityFunctions.concatByteArrays(bonrr, write, serverCounterBytes, cliPublicKey, domain, username, cliSig);
+		
+		byte[] serverSig = null;
+		
+		List<Object> result = port.deliverRead(serverCounter, cliPublicKey, domain, username, serverSig);
+		
+		return result;
 	}
+
 }
