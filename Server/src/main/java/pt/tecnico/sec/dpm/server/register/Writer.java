@@ -29,7 +29,7 @@ public class Writer {
 	private PrivateKey myPrivateKey = null;
 	//private PublicKey myPublicKey = null;
     
-    public Writer(KeyStore keyStore, List<String> serversUrl, ByzantineConnectionFactory bcf, int numberOfFaults) { //, PublicKey publicKey) {
+    public Writer(KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { //, PublicKey publicKey) {
         //Constructor works as the init of the algorithm
     	wts = 0;
     	readList = new HashMap<String, HashMap<String, String[]>>();
