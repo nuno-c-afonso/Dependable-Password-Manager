@@ -28,7 +28,6 @@ public class Writer {
 	private byte[] signature;
 	private int wts;
 	private int rid; // this might be the READER ID
-	private Map<String, HashMap<String,String[]>> readList;
 	private int numberOfFaults;
 	private List<ByzantineRegisterConnection> servers;
 	
@@ -37,7 +36,6 @@ public class Writer {
     public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { //, PublicKey publicKey) {
         //Constructor works as the init of the algorithm
     	wts = 0;
-    	readList = new HashMap<String, HashMap<String, String[]>>();
     	
     	myPrivateKey = retrievePrivateKey(keyStore, "1nsecure".toCharArray(), myUrl);
     	
@@ -79,10 +77,11 @@ public class Writer {
 			}
     		
     		synchronized(ackList) {
-    			cont  = (ackList.size() <= ( + numberOfFaults) / 2);
+    			cont  = (ackList.size() <= (servers.size() + numberOfFaults) / 2);
     		}
     	}
-    	return;
+    	return; //TODO: What happens if the server nevers receives (n+f)/2 acks? this way it will block here
+    	
     }
     
     /*
@@ -128,16 +127,38 @@ public class Writer {
 
     /*
      * Read method that will start the execution of the algorithm for the read request
+     * @return TODO: Change this return to return the password (and a list of the servers signatures???)
      */
     private void read(PublicKey publicKey, byte[] domain, byte[] username) { 
     	//FIXME: Verify the signature of the client
-    	rid += 1;
-    	readList = new HashMap<String, HashMap<String, String[]>>();
+    	rid += 1; // Why is this rid important
+    	//Map<>readList = new HashMap<>();
+    	Map<String, List<Object>> readList = new HashMap<String, List<Object>>();
+    	
+    	
     	//Now for all servers send a read request, this must be done in different threads  
     	for(ByzantineRegisterConnection brc : servers){
-    		Thread aux = new Thread(new SendRead(brc, publicKey.getEncoded(), domain, username)); //Send object of bonrr connection, e wts
+    		Thread aux = new Thread(new SendRead(brc, publicKey.getEncoded(), domain, username, readList)); //Send object of bonrr connection, e wts
     	    aux.start();
     	}
+    	
+    	boolean cont = true;
+    	while(cont) {
+    		try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		
+    		synchronized(readList) {
+    			cont  = (readList.size() <= (servers.size() + numberOfFaults) / 2);
+    		}
+    	}
+    	
+    	// Update the value to the one from the readList that has the biggest timestamp
+    	readList = new HashMap<String, List<Object>>();
+    	return; // Return the value to send back to the client
     }
     
     /*
@@ -148,23 +169,28 @@ public class Writer {
     	private byte[] cliPublicKey;
     	private byte[] domain;
     	private byte[] username;
+    	private Map<String, List<Object>> readList;
     	
     	//FIXME: Verify this parameters
-		public SendRead(ByzantineRegisterConnection brc, byte[] cliPublicKey, byte[] domain, byte[] username) {
-			super();
+		public SendRead(ByzantineRegisterConnection brc, byte[] cliPublicKey, byte[] domain, byte[] username, Map<String, List<Object>> readList) {
 			this.brc = brc;
 			this.cliPublicKey = cliPublicKey;
 			this.domain = domain;
 			this.username = username;
+			this.readList = readList;
 			
 		}
 
 		@Override
 		public void run() {
 			//Execute the request	
-			//FIXME: Pass the readList object 
 			List<Object> res = brc.read(cliPublicKey, domain, username);
+			//res contains -> serverCounter + 1, password, wTS, serverSig
 			
+			//Add the new values to the readList
+	    	synchronized (readList) {
+	    		readList.put("SERVERIDENTIFICATION", res); //FIXME: for the server identification brc should have a method like brc.getIdentification();
+	    	}			
 		}
     	
     }    
