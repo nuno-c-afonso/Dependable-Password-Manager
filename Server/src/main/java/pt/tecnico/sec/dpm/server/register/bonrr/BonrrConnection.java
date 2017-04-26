@@ -1,4 +1,4 @@
-package pt.tecnico.sec.dpm.server.register;
+package pt.tecnico.sec.dpm.server.register.bonrr;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -7,6 +7,8 @@ import java.util.List;
 import pt.tecnico.sec.dpm.security.SecurityFunctions;
 import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
 import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+import pt.tecnico.sec.dpm.server.register.ByzantineRegister;
+import pt.tecnico.sec.dpm.server.register.ByzantineRegisterConnection;
 
 public class BonrrConnection implements ByzantineRegisterConnection {
 	private PrivateKey privKey;

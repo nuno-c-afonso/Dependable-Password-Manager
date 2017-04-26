@@ -1,6 +1,8 @@
-package pt.tecnico.sec.dpm.server.register;
+package pt.tecnico.sec.dpm.server.register.bonrr;
 
 import java.util.List;
+
+import pt.tecnico.sec.dpm.server.register.ByzantineRegister;
 
 public class BonrrServer implements ByzantineRegister{
 

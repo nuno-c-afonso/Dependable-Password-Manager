@@ -202,9 +202,10 @@ public class Writer {
 			
 			//Verify this signature
 			
+			
 			//Add the new values to the readList
 	    	synchronized (readList) {
-	    		readList.put(serverUrl, res); //FIXME: for the server identification brc should have a method like brc.getIdentification();
+	    		readList.put(serverUrl, res);
 	    	}			
 		}
     	

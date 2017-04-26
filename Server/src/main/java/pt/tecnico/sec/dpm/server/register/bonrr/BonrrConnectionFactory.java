@@ -1,7 +1,10 @@
-package pt.tecnico.sec.dpm.server.register;
+package pt.tecnico.sec.dpm.server.register.bonrr;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
+
+import pt.tecnico.sec.dpm.server.register.ByzantineRegisterConnection;
+import pt.tecnico.sec.dpm.server.register.ByzantineRegisterConnectionFactory;
 
 public class BonrrConnectionFactory implements ByzantineRegisterConnectionFactory{
 
