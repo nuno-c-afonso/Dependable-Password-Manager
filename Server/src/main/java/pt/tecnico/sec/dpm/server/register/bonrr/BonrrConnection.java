@@ -33,12 +33,13 @@ public class BonrrConnection implements ByzantineRegisterConnection {
 	@Override
 	public List<Object> write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, int wTS,
 			byte[] cliSig) throws KeyConversionException, SigningException {
+		//TODO: User tempCounter and only in the end update
 		serverCounter ++;
-		byte[] serverCounterBytes = SecurityFunctions.intToByteArray(serverCounter);
+		byte[] serverCounterBytes = (""+serverCounter).getBytes();
     	byte[] bonrr = "bonrr".getBytes();
     	byte[] write = "WRITE".getBytes();
     	byte[] sessionIDBytes = ("" + sessionID).getBytes();
-    	byte[] cliCounterBytes = SecurityFunctions.intToByteArray(cliCounter);
+    	byte[] cliCounterBytes = ("" + cliCounter).getBytes();
     	byte[] wTSBytes = SecurityFunctions.intToByteArray(wTS);
     	
     	
