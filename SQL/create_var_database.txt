@@ -1,8 +1,7 @@
-/*IF EXISTS (SELECT * FROM sys.databases WHERE name='sec_dpm')*/
-DROP DATABASE IF EXISTS sec_dpm;
+DROP DATABASE IF EXISTS sec_dpm$NUM_SERVER$;
 
-CREATE DATABASE sec_dpm;
-USE sec_dpm;
+CREATE DATABASE sec_dpm$NUM_SERVER$;
+USE sec_dpm$NUM_SERVER$;
 
 CREATE TABLE users(
 id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -35,9 +34,9 @@ CREATE TABLE passwords(
 
 CREATE USER IF NOT EXISTS 'dpm_account'@'localhost' IDENTIFIED BY 'FDvlalaland129&&';
 
-GRANT SELECT,INSERT,UPDATE ON  sec_dpm.users TO 'dpm_account'@'localhost';
-GRANT SELECT,INSERT,UPDATE ON  sec_dpm.passwords TO 'dpm_account'@'localhost';
-GRANT SELECT,INSERT,UPDATE ON  sec_dpm.sessions TO 'dpm_account'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm$NUM_SERVER$.users TO 'dpm_account'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm$NUM_SERVER$.passwords TO 'dpm_account'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm$NUM_SERVER$.sessions TO 'dpm_account'@'localhost';
 
 -- Will only work on tables with SELECT privilege
 GRANT LOCK TABLES ON * TO 'dpm_account'@'localhost';

@@ -41,10 +41,19 @@ if [ $n_faults -lt 0 ]; then
   exit -1
 fi
 
+# Asks for the MySQL's root password, to be reused inside the cycle
+read -s -p "What's the MySQL's root password? " password
+
 i=0
 cmd="client"
 while [ $i -lt $n_servers ]
 do
+  # Creates the different databases
+  sql=$(cat "SQL/create_var_database.txt")
+  sql="${sql//\$NUM_SERVER\$/$i}"
+  echo $sql | mysql -u root -p$password
+
+  # Needed for generating the keystores
   let "tmp_port=$port+$i"
   cmd="$cmd http://$ip:$tmp_port/ws.API/endpoint"
   let "i++"
