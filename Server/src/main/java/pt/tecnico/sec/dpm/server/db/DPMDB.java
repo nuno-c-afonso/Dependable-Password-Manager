@@ -6,17 +6,20 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.Base64;
-
 import pt.tecnico.sec.dpm.server.exceptions.*;
 
 public class DPMDB extends DBManager {
-	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm?useLegacyDatetimeCode=false&serverTimezone=UTC";
+	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm";
+	private static final String DB_OPTIONS = "?useLegacyDatetimeCode=false&serverTimezone=UTC";
 	private static final String USER = "dpm_account";
 	private static final String PASS = "FDvlalaland129&&";
 	
 	public DPMDB() {
-		super(DB_URL, USER, PASS);
+		super(DB_URL + DB_OPTIONS, USER, PASS);
+	}
+	
+	public DPMDB(int index) {
+		super(DB_URL + index + DB_OPTIONS, USER, PASS);
 	}
 	
 	// Registers the users only when pubKey is new

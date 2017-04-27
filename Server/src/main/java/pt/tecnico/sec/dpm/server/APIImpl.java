@@ -26,17 +26,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.annotation.Resource;
 import javax.jws.HandlerChain;
 import javax.jws.WebService;
-import javax.security.auth.DestroyFailedException;
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.WebServiceContext;
-import javax.xml.ws.handler.MessageContext;
 
 @WebService(endpointInterface = "pt.tecnico.sec.dpm.server.API")
 @HandlerChain(file = "/handler-chain.xml")
-public class APIImpl implements API {  	
+public class APIImpl implements API {
 	// Size is given in bytes
 	private static final int MAX_KEY_SIZE = 550;
 	
@@ -45,11 +40,22 @@ public class APIImpl implements API {
 	private PrivateKey privKey = null;
 	private HashMap<Integer, Integer> sessionCounters = null;
 	
+	// For testing purposes
 	public APIImpl(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
-		if(url == null)
+		init(url, keystorePass, keyPass);
+		dbMan = new DPMDB();
+	}
+	
+	// For the byzantine servers
+	public APIImpl(String url, char[] keystorePass, char[] keyPass, int index) throws NullArgException {
+		init(url, keystorePass, keyPass);
+		dbMan = new DPMDB(index);
+	}
+	
+	private void init(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
+		if(url == null || keystorePass == null || keyPass == null)
 			throw new NullArgException();
 		
-		dbMan = new DPMDB();
 		sessionCounters = new HashMap<Integer, Integer>();
 		this.url = url.toLowerCase();
 		this.url = this.url.replace('/', '0');
