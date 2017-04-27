@@ -1,18 +1,12 @@
 package pt.tecnico.sec.dpm.server.register;
 
-import static javax.xml.bind.DatatypeConverter.parseBase64Binary;
-import static javax.xml.bind.DatatypeConverter.printBase64Binary;
-
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Signature;
-import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -21,8 +15,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import pt.tecnico.sec.dpm.security.SecurityFunctions;
 import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
 import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
+import pt.tecnico.sec.dpm.server.exceptions.*;
+
+
 
 public class Writer {
 	//Variables used during the execution of the algorithm
@@ -35,12 +34,17 @@ public class Writer {
 	private List<ByzantineRegisterConnection> servers;
 	
 	private PrivateKey myPrivateKey = null;
+	private PublicKey myPublicKey = null;
     
-    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { //, PublicKey publicKey) {
-        //Constructor works as the init of the algorithm
+    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) throws NullArgException { //, PublicKey publicKey) {
+    	if(myUrl == null || keyStore == null || serversUrl == null || bcf == null)
+    		throw new NullArgException();
+    	 	
+    	//Constructor works as the init of the algorithm
     	wts = 0;
     	
     	myPrivateKey = retrievePrivateKey(keyStore, "1nsecure".toCharArray(), myUrl);
+    	myPublicKey = retrievePublicKey(keyStore, myUrl);
     	
     	//Gather info about the system 
     	this.numberOfFaults = numberOfFaults; //This should be define a priori
@@ -60,7 +64,9 @@ public class Writer {
      *
      */
     
-    private void write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) {
+    private void write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) throws NullArgException {
+    	if(domain == null || username == null || password == null || cliSig == null)
+    		throw new NullArgException();
     	wts += 1; //Incrementing the write timeStamp
     	List<List<Object>> ackList = new ArrayList<List<Object>>(); //Cleaning the AckList
     	//FIXME: Verify the client signature before initiate the protocol
@@ -139,10 +145,10 @@ public class Writer {
      * Read method that will start the execution of the algorithm for the read request
      * @return TODO: Change this return to return the password (and a list of the servers signatures???)
      */
-    private void read(PublicKey publicKey, byte[] domain, byte[] username, byte[] cliSig) { 
+    private void read(PublicKey publicKey, byte[] domain, byte[] username, byte[] cliSig) throws NullArgException { 
     	//FIXME: Verify the signature of the client
-    	rid += 1; // Why is this rid important
-    	//Map<>readList = new HashMap<>();
+    	if(publicKey == null || domain == null || username == null || cliSig == null)
+    		throw new NullArgException();
     	Map<String, List<Object>> readList = new HashMap<String, List<Object>>();
     	
     	
@@ -201,12 +207,38 @@ public class Writer {
 			//res contains -> serverCounter + 1, password, wTS, serverSig
 			
 			//Verify this signature
+			//byte[] bytesToSign = SecurityFunctions.concatByteArrays(bonrr, write, serverCounterBytes, sessionIDBytes, cliCounterBytes, wTSBytes,
+	    	//		domain, username, password, cliSig);
 			
 			
-			//Add the new values to the readList
-	    	synchronized (readList) {
-	    		readList.put(serverUrl, res);
-	    	}			
+			
+			//FIXME: The res index might not be correct check it after the server part is done
+			
+			byte[] bonrr = "bonrr".getBytes();
+	    	byte[] write = "WRITE".getBytes();
+	    	byte[] serverCounterBytes = (byte[]) res.get(0);
+	    	byte[] sessionIDBytes = ("" + res.get(1)).getBytes();
+	    	byte[] cliCounterBytes = (byte[]) res.get(2);
+	    	byte[] wTSBytes = (byte[])res.get(3);
+	    	byte[] passwordBytes = (byte[])res.get(4);
+	    	byte[] cliSigBytes = (byte[])res.get(5);
+	    	byte[] wSig = (byte[])res.get(6);
+	    	
+	    	byte[] bytesToVerify = SecurityFunctions.concatByteArrays(bonrr, write, serverCounterBytes, sessionIDBytes, cliCounterBytes, wTSBytes,
+	    			domain, username, passwordBytes, cliSigBytes);
+			
+	    	try {
+				SecurityFunctions.checkSignature(myPublicKey, bytesToVerify, wSig);
+				//Add the new values to the readList
+				synchronized (readList) {
+		    		readList.put(serverUrl, res);
+		    	}	
+				
+			} catch (WrongSignatureException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return;
+			}			
 		}
     	
     }    
