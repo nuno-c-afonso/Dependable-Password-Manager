@@ -42,7 +42,7 @@ public class ClientApplication{
 			return;
 		}
 		
-		String url = args[0];
+		String url = args[0];		
 		
         try {
         	keystore = KeyStore.getInstance("jceks");

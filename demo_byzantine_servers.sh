@@ -68,7 +68,8 @@ i=0
 while [ $i -lt $n_servers ]
 do
   let "tmp_port=$port+$i"
+  url="http://$ip:$tmp_port/ws.API/endpoint"
   xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "Port:$tmp_port" \
-    -e "cd Server; mvn compile exec:java -Dws.url=http://$ip:$tmp_port/ws.API/endpoint" &
+    -e "cd Server; mvn exec:java -Dws.url=$url -Dexec.args=\"$url $i\"" &
   let "i++"
 done

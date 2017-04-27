@@ -38,5 +38,4 @@ GRANT SELECT,INSERT,UPDATE ON  sec_dpm$NUM_SERVER$.users TO 'dpm_account'@'local
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm$NUM_SERVER$.passwords TO 'dpm_account'@'localhost';
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm$NUM_SERVER$.sessions TO 'dpm_account'@'localhost';
 
--- Will only work on tables with SELECT privilege
 GRANT LOCK TABLES ON * TO 'dpm_account'@'localhost';

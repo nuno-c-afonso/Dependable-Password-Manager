@@ -19,7 +19,7 @@ public class ServerApplication {
 		// Check arguments
 		if (args.length == 0) {
 			System.err.println("Argument missing!");
-			System.err.printf("Usage: java %s wsURL%n", ServerApplication.class.getName());
+			System.err.printf("Usage: java %s wsURL [dbIndex]%n", ServerApplication.class.getName());
 			return;
 		}
 		
@@ -28,10 +28,17 @@ public class ServerApplication {
 		//String url = args[2];
 
 		String url = args[0];
+		int dbIndex = -1;
 		APIImpl service = null;
 		
+		if(args.length > 1)
+			dbIndex = new Integer(args[1]);
+		
 		try {
-			service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+			if(dbIndex == -1)
+				service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+			else
+				service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray(), dbIndex);
 		} catch(NullArgException e) {
 			e.printStackTrace();
 			return;
