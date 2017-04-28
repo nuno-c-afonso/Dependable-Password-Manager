@@ -3,6 +3,7 @@ package pt.tecnico.sec.dpm.client;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.ConnectException;
+import java.net.MalformedURLException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.MessageDigest;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.net.URL;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -49,7 +51,15 @@ public class DpmClient {
 	
 	public DpmClient(String url) {
 		// Creates the stub
-		APIImplService service = new APIImplService();
+		APIImplService service = null;
+		
+		try {
+			service = new APIImplService(new URL(url));
+		} catch (MalformedURLException e) {
+			// It will not happen!
+			e.printStackTrace();
+		}
+		
 		port = service.getAPIImplPort();
 		this.url= url;
 	}
