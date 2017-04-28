@@ -1,4 +1,4 @@
-package pt.tecnico.sec.dpm.server.register.bonrr;
+package pt.tecnico.sec.dpm.client.bonrr;
 
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -6,18 +6,15 @@ import java.util.List;
 
 import pt.tecnico.sec.dpm.security.SecurityFunctions;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
-import pt.tecnico.sec.dpm.server.exceptions.ConnectionClosedException;
-import pt.tecnico.sec.dpm.server.exceptions.NullArgException;
-import pt.tecnico.sec.dpm.server.register.ByzantineRegister;
-import pt.tecnico.sec.dpm.server.db.*;
+import pt.tecnico.sec.dpm.client.register.ByzantineRegister;
 
 public class BonrrServer implements ByzantineRegister{
 	private int counter;
-	private DPMDB dbMan;
+	//private DPMDB dbMan;
 	
 	public BonrrServer() {
 		counter = 0;
-		dbMan = new DPMDB();
+		//dbMan = new DPMDB();
 	}
 	
 	// TODO: Add the URL of the sender!!!

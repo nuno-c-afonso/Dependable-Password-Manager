@@ -1,4 +1,4 @@
-package pt.tecnico.sec.dpm.server.register;
+package pt.tecnico.sec.dpm.client.register;
 
 import java.util.List;
 

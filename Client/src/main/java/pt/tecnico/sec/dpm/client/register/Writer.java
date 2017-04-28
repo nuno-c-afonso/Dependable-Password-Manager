@@ -1,4 +1,4 @@
-package pt.tecnico.sec.dpm.server.register;
+package pt.tecnico.sec.dpm.client.register;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -19,7 +19,6 @@ import pt.tecnico.sec.dpm.security.SecurityFunctions;
 import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
 import pt.tecnico.sec.dpm.security.exceptions.SigningException;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
-import pt.tecnico.sec.dpm.server.exceptions.*;
 
 
 
@@ -36,9 +35,9 @@ public class Writer {
 	private PrivateKey myPrivateKey = null;
 	private PublicKey myPublicKey = null;
     
-    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) throws NullArgException { //, PublicKey publicKey) {
-    	if(myUrl == null || keyStore == null || serversUrl == null || bcf == null)
-    		throw new NullArgException();
+    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { // throws NullArgException { //, PublicKey publicKey) {
+    	/*if(myUrl == null || keyStore == null || serversUrl == null || bcf == null)
+    		throw new NullArgException();*/
     	 	
     	//Constructor works as the init of the algorithm
     	wts = 0;
@@ -64,9 +63,9 @@ public class Writer {
      *
      */
     
-    private void write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) throws NullArgException {
-    	if(domain == null || username == null || password == null || cliSig == null)
-    		throw new NullArgException();
+    private void write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) { //throws NullArgException {
+    	/*if(domain == null || username == null || password == null || cliSig == null)
+    		throw new NullArgException();*/
     	wts += 1; //Incrementing the write timeStamp
     	List<List<Object>> ackList = new ArrayList<List<Object>>(); //Cleaning the AckList
     	//FIXME: Verify the client signature before initiate the protocol
@@ -145,10 +144,10 @@ public class Writer {
      * Read method that will start the execution of the algorithm for the read request
      * @return TODO: Change this return to return the password (and a list of the servers signatures???)
      */
-    private void read(PublicKey publicKey, byte[] domain, byte[] username, byte[] cliSig) throws NullArgException { 
+    private void read(PublicKey publicKey, byte[] domain, byte[] username, byte[] cliSig) { //throws NullArgException { 
     	//FIXME: Verify the signature of the client
-    	if(publicKey == null || domain == null || username == null || cliSig == null)
-    		throw new NullArgException();
+    	/*if(publicKey == null || domain == null || username == null || cliSig == null)
+    		throw new NullArgException();*/
     	Map<String, List<Object>> readList = new HashMap<String, List<Object>>();
     	
     	
