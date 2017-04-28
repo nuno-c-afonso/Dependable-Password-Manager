@@ -89,7 +89,7 @@ public class Writer {
     			cont  = (ackList.size() <= (servers.size() + numberOfFaults) / 2);
     		}
     	}
-    	return; //TODO: Change this return to sen back to the client the server sig
+    	return; //TODO: Change this return to send back to the client the server sig
     	
     }
     
@@ -171,7 +171,7 @@ public class Writer {
     			cont  = (readList.size() <= (servers.size() + numberOfFaults) / 2);
     		}
     	}
-    	
+    	//Iterate over the readList and check which tuple has the highest timestamp and return it to the user
     	// Update the value to the one from the readList that has the biggest timestamp
     	readList = new HashMap<String, List<Object>>();
     	return; // Return the value to send back to the client
@@ -231,7 +231,7 @@ public class Writer {
 				SecurityFunctions.checkSignature(myPublicKey, bytesToVerify, wSig);
 				//Add the new values to the readList
 				synchronized (readList) {
-		    		readList.put(serverUrl, res);
+		    		readList.put(serverUrl, res); //TODO: Change this to have only the necessary information instead of having the full result
 		    	}	
 				
 			} catch (WrongSignatureException e) {
