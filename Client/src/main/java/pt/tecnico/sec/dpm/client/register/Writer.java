@@ -2,60 +2,295 @@ package pt.tecnico.sec.dpm.client.register;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.SecretKey;
+import javax.xml.ws.WebServiceException;
+
+import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
+import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
+import pt.tecnico.sec.dpm.client.exceptions.HandlerException;
+import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.client.exceptions.WrongNonceException;
+import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
 import pt.tecnico.sec.dpm.security.SecurityFunctions;
 import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
 import pt.tecnico.sec.dpm.security.exceptions.SigningException;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
+import pt.tecnico.sec.dpm.server.DuplicatedNonceException_Exception;
+import pt.tecnico.sec.dpm.server.KeyConversionException_Exception;
+import pt.tecnico.sec.dpm.server.NoPublicKeyException_Exception;
+import pt.tecnico.sec.dpm.server.NullArgException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
+import pt.tecnico.sec.dpm.server.SigningException_Exception;
+import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 
 
-
-public class Writer {
+public abstract class Writer {	
 	//Variables used during the execution of the algorithm
-	private int ts;
-	private int val;
-	private byte[] signature;
-	private int wts;
-	private int rid; // this might be the READER ID
-	private int numberOfFaults;
-	private List<ByzantineRegisterConnection> servers;
-	
-	private PrivateKey myPrivateKey = null;
-	private PublicKey myPublicKey = null;
+//	private int ts;
+//	private int val;
+//	private byte[] signature;
+//	private int wts;
+//	private int rid; // this might be the READER ID
+//	private List<ByzantineRegisterConnection> servers;
+//	
+//	private PrivateKey myPrivateKey = null;
+//	private PublicKey myPublicKey = null;
+//    
+//    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { // throws NullArgException { //, PublicKey publicKey) {
+//    	/*if(myUrl == null || keyStore == null || serversUrl == null || bcf == null)
+//    		throw new NullArgException();*/
+//    	 	
+//    	//Constructor works as the init of the algorithm
+//    	wts = 0;
+//    	
+//    	myPrivateKey = retrievePrivateKey(keyStore, "1nsecure".toCharArray(), myUrl);
+//    	myPublicKey = retrievePublicKey(keyStore, myUrl);
+//    	
+//    	//Gather info about the system 
+//    	this.numberOfFaults = numberOfFaults; //This should be define a priori
+//    	servers = new ArrayList<ByzantineRegisterConnection>();
+//    	for(String server : serversUrl) {
+//    		//Get Public key from this Server
+//    		PublicKey pubKey = retrievePublicKey(keyStore, server);
+//    		
+//    		ByzantineRegisterConnection brc = bcf.createConnection(myPrivateKey, pubKey, server);
+//    		servers.add(brc);
+//    		
+//    	}
+//    }
     
-    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { // throws NullArgException { //, PublicKey publicKey) {
-    	/*if(myUrl == null || keyStore == null || serversUrl == null || bcf == null)
-    		throw new NullArgException();*/
-    	 	
-    	//Constructor works as the init of the algorithm
-    	wts = 0;
+	private List<ByzantineRegisterConnection> conns;
+	private final int numberOfFaults;
+	
+	private PrivateKey privateKey = null;
+	private PublicKey publicKey = null;
+	private SecretKey symmetricKey = null;
+	
+	// TODO: Change this sessionID to be created in the client!!!
+	private int sessionID = -1;
+	private int writeTS = 0;
+	
+    public Writer(String[] urls, int numberOfFaults) {
+    	this.numberOfFaults = numberOfFaults;
+    	conns = new ArrayList<ByzantineRegisterConnection>();
+    	for(String s : urls)
+    		conns.add(new ByzantineRegisterConnection(s));
+    }
+    
+ 	// It is assumed that all keys are protected by the same password
+    public void initConns(KeyStore keystore, char[] passwordKeystore, String cliPairName, String symmName, char[] passwordKeys)
+    		throws GivenAliasNotFoundException, WrongPasswordException, AlreadyInitializedException {
+    	    	
+		if(this.privateKey != null && this.publicKey != null && this.symmetricKey != null)
+			throw new AlreadyInitializedException();
+		
+    	try {
+ 			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName))
+ 				throw new GivenAliasNotFoundException();
+ 			
+ 			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(passwordKeys);
+ 			symmetricKey = (SecretKey) keystore.getKey(symmName, passwordKeys);
+ 			
+ 			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(cliPairName, protParam);
+ 		    publicKey = pke.getCertificate().getPublicKey();
+ 		    privateKey = pke.getPrivateKey();
+ 			
+ 			for(ByzantineRegisterConnection brc : conns) {
+ 				String modUrl = brc.getUrl().toLowerCase().replace('/','0');
+ 				if(!keystore.containsAlias(modUrl))
+ 					throw new GivenAliasNotFoundException();
+ 				
+ 				X509Certificate cert = (X509Certificate) keystore.getCertificate(modUrl);
+ 				
+ 				brc.init(privateKey, cert);
+ 			}
+ 		    
+ 		} catch(UnrecoverableEntryException e) {
+ 			System.out.println(e.getMessage());
+ 			System.out.println("erro a abrir chave 1");
+ 			throw new WrongPasswordException();
+ 		} catch(NoSuchAlgorithmException | KeyStoreException e) {
+ 			System.out.println("erro a abrir chave 2");
+ 			e.printStackTrace();
+ 		}
+    }
+    
+    // TODO: Check if all of these exceptions are needed!!!
+    public void register_user() throws NotInitializedException, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException,
+	HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception,
+	WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
     	
-    	myPrivateKey = retrievePrivateKey(keyStore, "1nsecure".toCharArray(), myUrl);
-    	myPublicKey = retrievePublicKey(keyStore, myUrl);
+		if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
+			throw new NotInitializedException();
+		
+		// Creates a new ackList to receive only the current results
+		List<Integer> ackList = new ArrayList<Integer>();
+		
+		try {
+			byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
+					SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()));
+			
+			for(ByzantineRegisterConnection brc : conns) {
+				Thread aux = new Thread(new SendRegister(brc, publicKey, ackList));
+				aux.start();
+			}
+			
+			boolean cont = true;
+	    	while(cont) {
+	    		try {
+					Thread.sleep(1);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    		
+	    		// TODO: Check if we should instead store the result of conns.size() + numberOfFaults -> it is constant even after removing servers!!!
+	    		synchronized(ackList) {
+	    			cont  = (ackList.size() <= (conns.size() + numberOfFaults) / 2);
+	    		}
+	    	}
+			
+	    	////////////////////////////////////////////////////////
+			// TODO: Continue from here!!!
+			////////////////////////////////////////////////////////
+	    	
+			try {				
+				sig = port.register(publicKey.getEncoded(), sig);
+				SecurityFunctions.checkSignature(cert.getPublicKey(),
+						SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()), sig);
+				
+			} catch(PublicKeyInUseException_Exception e) {
+				// Continues execution
+			}
+			
+			// Asks the server for a new valid sessionID
+			boolean cont = true;
+			SecureRandom sr = null;
+			
+			try {
+				sr = SecureRandom.getInstance("SHA1PRNG");
+			} catch(NoSuchAlgorithmException nsae) {
+				// It should not happen!
+				nsae.printStackTrace();
+			}
+			
+			byte[] nonce = new byte[NONCE_SIZE];
+			List<Object> result = null;
+			
+			while(cont) {
+				sr.nextBytes(nonce);
+
+				try {					
+					sig = SecurityFunctions.makeDigitalSignature(privateKey,
+							SecurityFunctions.concatByteArrays("login".getBytes(), publicKey.getEncoded(), nonce));
+					
+					result = port.login(publicKey.getEncoded(), nonce, sig);					
+					cont = false;
+				} catch(DuplicatedNonceException_Exception dne) { /* Continue trying to connect */ }
+			}
+
+			byte[] serverNonce = (byte[]) result.get(0);
+			int sessionID = (int) result.get(1);
+			sig = (byte[]) result.get(2);
+			
+			nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);
+			
+			if(!Arrays.equals(nonce, serverNonce))
+				throw new WrongNonceException();
+			
+			SecurityFunctions.checkSignature(cert.getPublicKey(),
+					SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()), sig);
+			
+			this.sessionID = sessionID;
+			counter = 0;
+			writeTS = 0;
+		} catch (NullArgException_Exception e) {
+			// It should not occur
+			System.out.println(e.getMessage());
+		} catch (WebServiceException e) {
+			checkWebServiceException(e);
+		}
+	}
+    
+    /*
+     * Classes that are going to be executed on the thread to do the requests to the server
+     */
+    private class SendRegister implements Runnable {
+    	private ByzantineRegisterConnection brc;
+    	private PublicKey pubKey;
     	
-    	//Gather info about the system 
-    	this.numberOfFaults = numberOfFaults; //This should be define a priori
-    	servers = new ArrayList<ByzantineRegisterConnection>();
-    	for(String server : serversUrl) {
-    		//Get Public key from this Server
-    		PublicKey pubKey = retrievePublicKey(keyStore, server);
-    		
-    		ByzantineRegisterConnection brc = bcf.createConnection(myPrivateKey, pubKey, server);
-    		servers.add(brc);
-    		
-    	}
+    	// It will store the received wTS
+    	private List<Integer> ackList;
+    	
+		public SendRegister(ByzantineRegisterConnection brc, PublicKey pubKey, List<Integer> ackList) { 
+			this.brc = brc;
+			this.pubKey = pubKey;
+			this.ackList = ackList;
+		}
+
+		@Override
+		public void run() {
+			try {
+				brc.register(pubKey);
+				
+				// Add the ack to the acklist
+		    	synchronized (ackList) {
+		    		ackList.add(1);
+		    	}
+			} catch (KeyConversionException | SigningException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
+		}
+    }
+    
+    private class SendLogin implements Runnable {
+    	private ByzantineRegisterConnection brc;
+    	private int sessionID;
+    	
+    	// It will store the received wTS
+    	private List<Integer> ackList;
+    	
+		public SendLogin(ByzantineRegisterConnection brc, int sessionID, List<Integer> ackList) { 
+			this.brc = brc;
+			this.sessionID = sessionID;
+			this.ackList = ackList;
+		}
+
+		@Override
+		public void run() {
+			try {
+				int wTS = brc.login(sessionID);
+				
+				// Add the ack to the acklist
+		    	synchronized (ackList) {
+		    		ackList.add(wTS);
+		    	}
+			} catch (KeyConversionException | SigningException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
+		}
     }
     
     /*

@@ -14,54 +14,31 @@ import java.security.UnrecoverableEntryException;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.net.URL;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
-import javax.security.auth.DestroyFailedException;
-import javax.xml.ws.BindingProvider;
 import javax.xml.ws.WebServiceException;
 
-import static javax.xml.ws.BindingProvider.ENDPOINT_ADDRESS_PROPERTY;
-
 import pt.tecnico.sec.dpm.client.exceptions.*;
+import pt.tecnico.sec.dpm.client.register.BonrrWriter;
+import pt.tecnico.sec.dpm.client.register.Writer;
 import pt.tecnico.sec.dpm.security.SecurityFunctions;
 import pt.tecnico.sec.dpm.security.exceptions.SigningException;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
+
 // Classes generated from WSDL
 import pt.tecnico.sec.dpm.server.*;
-import ws.handler.SignatureHandler;
 
 public class DpmClient {
-	private final static int NONCE_SIZE = 64;
+	private Writer writer;
 	
-	PublicKey publicKey = null;
-	SecretKey symmetricKey = null;
-	PrivateKey privateKey = null;
-	X509Certificate cert = null;
-	String url;
-	int sessionID = -1;
-	int counter = 0;
-	int writeTS = 0;
-	private API port = null;
-	
-	public DpmClient(String url) {
-		// Creates the stub
-		APIImplService service = null;
+	public DpmClient(String[] urls, int numberOfFaults) {
 		
-		try {
-			service = new APIImplService(new URL(url));
-		} catch (MalformedURLException e) {
-			// It will not happen!
-			e.printStackTrace();
-		}
-		
-		port = service.getAPIImplPort();
-		this.url= url;
+		// TODO: Have a set of writers, not only the regular one!!!
+		writer = new BonrrWriter(urls, numberOfFaults);
 	}
 	
 	// It is assumed that all keys are protected by the same password
@@ -70,105 +47,16 @@ public class DpmClient {
 		throws AlreadyInitializedException, NullKeystoreElementException,
 		GivenAliasNotFoundException, WrongPasswordException {
 		
-		String modUrl = url.toLowerCase().replace('/','0');
-		
-		if(publicKey != null && symmetricKey != null)
-			throw new AlreadyInitializedException();
-		
 		if(keystore == null || passwordKeys == null || passwordKeystore == null || cliPairName==null || symmName == null)
 			throw new NullKeystoreElementException();
 		
-		try {
-			if(!keystore.containsAlias(cliPairName) ||  !keystore.containsAlias(symmName) || !keystore.containsAlias(modUrl))
-				throw new GivenAliasNotFoundException();
-			
-			cert = (X509Certificate) keystore.getCertificate(modUrl);
-			
-			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(passwordKeys);
-			symmetricKey = (SecretKey) keystore.getKey(symmName, passwordKeys);
-			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(cliPairName, protParam);
-		    publicKey = pke.getCertificate().getPublicKey();
-		    privateKey = pke.getPrivateKey();
-		    sessionID = -1;
-		    
-		} catch(UnrecoverableEntryException e) {
-			System.out.println(e.getMessage());
-			System.out.println("erro a abrir chave 1");
-			throw new WrongPasswordException();
-		} catch(NoSuchAlgorithmException | KeyStoreException e) {
-			System.out.println("erro a abrir chave 2");
-			publicKey = null;
-			symmetricKey = null;
-			e.printStackTrace();
-			
-		}
+		writer.initConns(keystore, passwordKeystore, cliPairName, symmName, passwordKeys);
 	}
-	
 	
 	public void register_user() throws NotInitializedException, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException,
 	HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception,
 	WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
-		if(publicKey == null || symmetricKey == null)
-			throw new NotInitializedException();
-		try {
-			byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
-					SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()));
-			try {				
-				sig = port.register(publicKey.getEncoded(), sig);
-				SecurityFunctions.checkSignature(cert.getPublicKey(),
-						SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()), sig);
-				
-			} catch(PublicKeyInUseException_Exception e) {
-				// Continues execution
-			}
-			
-			// Asks the server for a new valid sessionID
-			boolean cont = true;
-			SecureRandom sr = null;
-			
-			try {
-				sr = SecureRandom.getInstance("SHA1PRNG");
-			} catch(NoSuchAlgorithmException nsae) {
-				// It should not happen!
-				nsae.printStackTrace();
-			}
-			
-			byte[] nonce = new byte[NONCE_SIZE];
-			List<Object> result = null;
-			
-			while(cont) {
-				sr.nextBytes(nonce);
-
-				try {					
-					sig = SecurityFunctions.makeDigitalSignature(privateKey,
-							SecurityFunctions.concatByteArrays("login".getBytes(), publicKey.getEncoded(), nonce));
-					
-					result = port.login(publicKey.getEncoded(), nonce, sig);					
-					cont = false;
-				} catch(DuplicatedNonceException_Exception dne) { /* Continue trying to connect */ }
-			}
-
-			byte[] serverNonce = (byte[]) result.get(0);
-			int sessionID = (int) result.get(1);
-			sig = (byte[]) result.get(2);
-			
-			nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);
-			
-			if(!Arrays.equals(nonce, serverNonce))
-				throw new WrongNonceException();
-			
-			SecurityFunctions.checkSignature(cert.getPublicKey(),
-					SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()), sig);
-			
-			this.sessionID = sessionID;
-			counter = 0;
-			writeTS = 0;
-		} catch (NullArgException_Exception e) {
-			// It should not occur
-			System.out.println(e.getMessage());
-		} catch (WebServiceException e) {
-			checkWebServiceException(e);
-		}
+		writer.register_user();
 	}
 	
 	
