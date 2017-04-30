@@ -6,6 +6,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -15,11 +16,14 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.xml.ws.WebServiceException;
 
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
@@ -27,7 +31,9 @@ import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
 import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
 import pt.tecnico.sec.dpm.client.exceptions.HandlerException;
 import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.NullClientArgException;
 import pt.tecnico.sec.dpm.client.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.client.exceptions.UnregisteredUserException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongNonceException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongPasswordException;
 import pt.tecnico.sec.dpm.security.SecurityFunctions;
@@ -78,26 +84,28 @@ public abstract class Writer {
 //    		
 //    	}
 //    }
-    
+	private final static int NONCE_SIZE = 64;
+	
 	private List<ByzantineRegisterConnection> conns;
-	private final int numberOfFaults;
+	private final int numberOfResponses;
 	
 	private PrivateKey privateKey = null;
 	private PublicKey publicKey = null;
 	private SecretKey symmetricKey = null;
 	
 	// TODO: Change this sessionID to be created in the client!!!
-	private int sessionID = -1;
 	private int writeTS = 0;
 	
     public Writer(String[] urls, int numberOfFaults) {
-    	this.numberOfFaults = numberOfFaults;
+    	this.numberOfResponses = (numberOfFaults + urls.length) / 2;
     	conns = new ArrayList<ByzantineRegisterConnection>();
     	for(String s : urls)
     		conns.add(new ByzantineRegisterConnection(s));
     }
     
  	// It is assumed that all keys are protected by the same password
+    
+    // TODO: Create the deviceID and send it to the connection!!!
     public void initConns(KeyStore keystore, char[] passwordKeystore, String cliPairName, String symmName, char[] passwordKeys)
     		throws GivenAliasNotFoundException, WrongPasswordException, AlreadyInitializedException {
     	    	
@@ -147,9 +155,8 @@ public abstract class Writer {
 		List<Integer> ackList = new ArrayList<Integer>();
 		
 		try {
-			byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
-					SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()));
 			
+			// Makes the registration
 			for(ByzantineRegisterConnection brc : conns) {
 				Thread aux = new Thread(new SendRegister(brc, publicKey, ackList));
 				aux.start();
@@ -164,30 +171,21 @@ public abstract class Writer {
 					e.printStackTrace();
 				}
 	    		
-	    		// TODO: Check if we should instead store the result of conns.size() + numberOfFaults -> it is constant even after removing servers!!!
 	    		synchronized(ackList) {
-	    			cont  = (ackList.size() <= (conns.size() + numberOfFaults) / 2);
+	    			cont  = ackList.size() <= numberOfResponses;
 	    		}
 	    	}
+	    				
+			// TODO: This will not work! Check what to do in order to make a login operation with a fixed ssid
+			// TODO: Maybe, the created nonce is the starting value for the counter!!!
+			// TODO: Instead of getting random bytes, get a random integer. However, there my be some overlapping.
+			// TODO: Use the nonce + a counter. This will guarantee a session for each device.
 			
-	    	////////////////////////////////////////////////////////
-			// TODO: Continue from here!!!
-			////////////////////////////////////////////////////////
-	    	
-			try {				
-				sig = port.register(publicKey.getEncoded(), sig);
-				SecurityFunctions.checkSignature(cert.getPublicKey(),
-						SecurityFunctions.concatByteArrays("register".getBytes(), publicKey.getEncoded()), sig);
-				
-			} catch(PublicKeyInUseException_Exception e) {
-				// Continues execution
-			}
-			
-			// Asks the server for a new valid sessionID
-			boolean cont = true;
+	    	// Creates a new list to receive the login results
+	    	ackList = new ArrayList<Integer>();
 			SecureRandom sr = null;
 			
-			try {
+	    	try {
 				sr = SecureRandom.getInstance("SHA1PRNG");
 			} catch(NoSuchAlgorithmException nsae) {
 				// It should not happen!
@@ -196,34 +194,30 @@ public abstract class Writer {
 			
 			byte[] nonce = new byte[NONCE_SIZE];
 			List<Object> result = null;
-			
-			while(cont) {
-				sr.nextBytes(nonce);
-
-				try {					
-					sig = SecurityFunctions.makeDigitalSignature(privateKey,
-							SecurityFunctions.concatByteArrays("login".getBytes(), publicKey.getEncoded(), nonce));
-					
-					result = port.login(publicKey.getEncoded(), nonce, sig);					
-					cont = false;
-				} catch(DuplicatedNonceException_Exception dne) { /* Continue trying to connect */ }
+			sr.nextBytes(nonce);
+				
+			// Makes the log in
+			for(ByzantineRegisterConnection brc : conns) {
+				Thread aux = new Thread(new SendLogin(brc, publicKey, nonce, ackList));
+				aux.start();
 			}
-
-			byte[] serverNonce = (byte[]) result.get(0);
-			int sessionID = (int) result.get(1);
-			sig = (byte[]) result.get(2);
 			
-			nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);
+			cont = true;
+	    	while(cont) {
+	    		try {
+					Thread.sleep(1);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    		
+	    		synchronized(ackList) {
+	    			cont  = ackList.size() <= numberOfResponses;
+	    		}
+	    	}
 			
-			if(!Arrays.equals(nonce, serverNonce))
-				throw new WrongNonceException();
+			writeTS = Collections.max(ackList);
 			
-			SecurityFunctions.checkSignature(cert.getPublicKey(),
-					SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()), sig);
-			
-			this.sessionID = sessionID;
-			counter = 0;
-			writeTS = 0;
 		} catch (NullArgException_Exception e) {
 			// It should not occur
 			System.out.println(e.getMessage());
@@ -266,21 +260,23 @@ public abstract class Writer {
     
     private class SendLogin implements Runnable {
     	private ByzantineRegisterConnection brc;
-    	private int sessionID;
+    	private PublicKey pubKey;
+    	private byte[] nonce;
     	
     	// It will store the received wTS
     	private List<Integer> ackList;
     	
-		public SendLogin(ByzantineRegisterConnection brc, int sessionID, List<Integer> ackList) { 
+		public SendLogin(ByzantineRegisterConnection brc, PublicKey pubKey, byte[] nonce, List<Integer> ackList) { 
 			this.brc = brc;
-			this.sessionID = sessionID;
+			this.pubKey = pubKey;
+			this.nonce = nonce;
 			this.ackList = ackList;
 		}
 
 		@Override
 		public void run() {
 			try {
-				int wTS = brc.login(sessionID);
+				int wTS = brc.login(pubKey, nonce);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
@@ -293,75 +289,176 @@ public abstract class Writer {
 		}
     }
     
-    /*
-     * Write Method that will start the execution of the algorithm for the write request
-     *
-     */
     
-    private void write(int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) { //throws NullArgException {
-    	/*if(domain == null || username == null || password == null || cliSig == null)
-    		throw new NullArgException();*/
-    	wts += 1; //Incrementing the write timeStamp
-    	List<List<Object>> ackList = new ArrayList<List<Object>>(); //Cleaning the AckList
-    	//FIXME: Verify the client signature before initiate the protocol
-    	//Now for all Server send them the write information
-    	for(ByzantineRegisterConnection brc : servers){
-    		Thread aux = new Thread(new SendWrite(brc, wts, ackList, sessionID, cliCounter, domain, username, password, cliSig)); //Send object of bonrr connection, e wts
-    	    aux.start();
-    	}
-    	
-    	boolean cont = true;
-    	while(cont) {
-    		try {
-				Thread.sleep(1);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+    public void put(byte[] domain, byte[] username, byte[] password) {
+    	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
+			throw new NotInitializedException();
+		
+		try {
+			int tmpTS = writeTS + 1;
+			byte[] iv = createIV(domain, username);
+			byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
+			byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
+			byte[] cPassword = cipherWithSymmetric(symmetricKey, password, iv);
+						
+			List<Integer> ackList = new ArrayList<Integer>();
+			
+			// Makes the put
+			for(ByzantineRegisterConnection brc : conns) {
+				Thread aux = new Thread(new SendPut(brc, cDomain, cUsername, cPassword, tmpTS, ackList));
+				aux.start();
 			}
-    		
-    		synchronized(ackList) {
-    			cont  = (ackList.size() <= (servers.size() + numberOfFaults) / 2);
-    		}
-    	}
-    	return; //TODO: Change this return to sen back to the client the server sig
-    	
+			
+			boolean cont = true;
+	    	while(cont) {
+	    		try {
+					Thread.sleep(1);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    		
+	    		synchronized(ackList) {
+	    			cont  = ackList.size() <= numberOfResponses;
+	    		}
+	    	}
+			
+			writeTS = tmpTS;
+		} catch (NoPublicKeyException_Exception e) {
+			throw new UnregisteredUserException();
+		} catch (NullArgException_Exception e) {
+			// It should not occur
+			System.out.println(e.getMessage());
+		} catch (WebServiceException e) {
+			checkWebServiceException(e);
+		}
     }
     
-    /*
-     * Class that is going to be execute on the thread to do the requests to the server
-     */
-    private class SendWrite implements Runnable {
+    private class SendPut implements Runnable {
     	private ByzantineRegisterConnection brc;
+    	private byte[] cDomain;
+    	private byte[] cUsername;
+    	private byte[] cPassword;
     	private int wTS;
-    	private List<List<Object>> ackList;
-    	private int sessionID;
-    	private int cliCounter;
-    	private byte[] domain;
-    	private byte[] username;
-    	private byte[] password;
-    	private byte[] cliSig;
     	
-		public SendWrite(ByzantineRegisterConnection brc, int wTS, List<List<Object>> ackList,
-				int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, byte[] cliSig) { 
+    	// It will store the received wTS
+    	private List<Integer> ackList;
+    	
+		public SendPut(ByzantineRegisterConnection brc, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, List<Integer> ackList) { 
 			this.brc = brc;
+			this.cDomain = cDomain;
+			this.cUsername = cUsername;
+			this.cPassword = cPassword;
 			this.wTS = wTS;
 			this.ackList = ackList;
-			this.sessionID = sessionID;
-			this.cliCounter = cliCounter;
-			this.domain = domain;
-			this.username = username;
-			this.password = password;
-			this.cliSig = cliSig;
 		}
 
 		@Override
 		public void run() {
-			//Execute the request
-			//int sessionID, int cliCounter, byte[] domain, byte[] username, byte[] password, int wTS, byte[] cliSig
-			List<Object> res;
 			try {
-				res = brc.write(sessionID, cliCounter, domain, username, password, wTS,cliSig);
-				//Add the ack to the acklist
+				brc.put(cDomain, cUsername, cPassword, wTS);
+				
+				// Add the ack to the acklist
+		    	synchronized (ackList) {
+		    		ackList.add(1);
+		    	}
+			} catch (KeyConversionException | SigningException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+    }
+    
+    public byte[] get(byte[] domain, byte[] username) throws NotInitializedException {
+    	if(publicKey == null || symmetricKey == null)
+			throw new NotInitializedException();
+    	
+    	byte[] retrivedPassword = null;
+    	
+		try {
+			byte[] iv = createIV(domain, username);
+			byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
+			byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
+			
+			List<List<Object>> ackList = new ArrayList<List<Object>>();
+			
+			// Makes the get
+			for(ByzantineRegisterConnection brc : conns) {
+				Thread aux = new Thread(new SendGet(brc, cDomain, cUsername, ackList));
+				aux.start();
+			}
+			
+			boolean cont = true;
+	    	while(cont) {
+	    		try {
+					Thread.sleep(1);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    		
+	    		synchronized(ackList) {
+	    			cont  = ackList.size() <= numberOfResponses;
+	    		}
+	    	}
+			
+	    	// TODO: If there is a MITM, this operation may not end!!!
+	    	// TODO: Try to contact the problematic response again!!!
+	    	// TODO: Maybe have a global variable that say that it should continue trying!!!
+	    	
+	    	List<Object> newestTS = recoverNewestWrite(ackList);
+			
+	    	retrivedPassword = (byte[]) newestTS.get(0);
+	    	retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
+			writeTS = (int) newestTS.get(1);
+		} catch(NoPublicKeyException_Exception e) {
+			throw new UnregisteredUserException();
+		} catch (NullArgException_Exception e) {
+			// It should not occur
+			System.out.println(e.getMessage());
+		} catch (WebServiceException e) {
+			checkWebServiceException(e);
+		}
+		
+		return retrivedPassword;
+    }
+    
+    private List<Object> recoverNewestWrite(List<List<Object>> ackList) {
+    	List<Object> result = ackList.get(0);
+    	
+    	int nAcks = ackList.size();
+    	for(int i = 1; i < nAcks; i++)
+    		// The second entry is the write TS
+    		if((int) result.get(1) < (int) ackList.get(i).get(1))
+    			result = ackList.get(i);
+    		
+    	return result;
+    }
+    
+    private class SendGet implements Runnable {
+    	private ByzantineRegisterConnection brc;
+    	private byte[] cDomain;
+    	private byte[] cUsername;
+    	
+    	// It will store the received wTS
+    	private List<List<Object>> ackList;
+    	
+		public SendGet(ByzantineRegisterConnection brc, byte[] cDomain, byte[] cUsername, List<List<Object>> ackList) { 
+			this.brc = brc;
+			this.cDomain = cDomain;
+			this.cUsername = cUsername;
+			this.ackList = ackList;
+		}
+
+		@Override
+		public void run() {
+			try {
+				List<Object> res = brc.get(cDomain, cUsername);
+				
+				// TODO: Before appending, check if the write was performed by the user!!! (check the current user's write signature)
+				
+				
+				// Add the ack to the acklist
 		    	synchronized (ackList) {
 		    		ackList.add(res);
 		    	}
@@ -369,12 +466,11 @@ public abstract class Writer {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
-			
 		}
-    	
     }
-
+    
+    // TODO: Check the instructions below!!!
+    
     /*
      * Read method that will start the execution of the algorithm for the read request
      * @return TODO: Change this return to return the password (and a list of the servers signatures???)
@@ -480,46 +576,51 @@ public abstract class Writer {
     /*
      * AUX METHODS
      */
-    
-    private void openKeyStore(KeyStore keystore, char[] keyStorePass, String url) {
-    	FileInputStream file = null;
-		
+        
+    public byte[] cipherWithSymmetric(SecretKey key, byte[] data, byte[] iv){
+		byte[] returnData = null;
 		try {
-			keystore = KeyStore.getInstance("jceks");
-			file = new FileInputStream("../keys/" + url + "/" + url + ".jks");
-			keystore.load(file, keyStorePass);
-			file.close();
-		}  catch (KeyStoreException | NoSuchAlgorithmException | CertificateException
-				| IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    }
-    
-    private PrivateKey retrievePrivateKey(KeyStore keystore, char[] keyPass, String url) {
-		// The password is the same as the one used on the clients
-		PrivateKey priv = null;
-		
+	        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+	        c.init(Cipher.ENCRYPT_MODE, key,new IvParameterSpec(iv));
+	        returnData = c.doFinal(data);
+	    } catch(Exception e) {
+	    	e.printStackTrace();
+	    }
+
+		return returnData;		
+	}
+	
+	public byte[] decipherWithSymmetric(SecretKey key, byte[] ecryptedData,byte[] iv) {
+		byte[] returnData = null;
 		try {
-			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(keyPass);
-			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(url.toLowerCase().replace('/','0'), protParam);
-		    priv = pke.getPrivateKey();
-		} catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return priv;
+	        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+	        c.init(Cipher.DECRYPT_MODE, key,new IvParameterSpec(iv) );
+	        returnData = c.doFinal(ecryptedData);
+	    } catch(Exception e) {
+	    	e.printStackTrace();
+	    }
+
+		return returnData;
 	}
     
-    private PublicKey retrievePublicKey(KeyStore keystore, String serverUrl) {
-    	X509Certificate cert = null;
+    private byte[] createIV(byte[] domain, byte[] username) {		
+		byte[] result = new byte[16];
+		byte[] bytesKey = publicKey.getEncoded();
+		byte[] toHash = new byte[bytesKey.length + domain.length + username.length];
+		
+		System.arraycopy(bytesKey, 0, toHash, 0, bytesKey.length);
+		System.arraycopy(domain, 0, toHash, bytesKey.length, domain.length);
+		System.arraycopy(username, 0, toHash, bytesKey.length + domain.length, username.length);
+		
 		try {
-			cert = (X509Certificate) keystore.getCertificate(serverUrl.toLowerCase().replace('/','0'));
-		} catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] hash = md.digest(toHash);
+			System.arraycopy(hash, 0, result, 0, 16);
+		} catch (NoSuchAlgorithmException e) {
+			// It should not happen
 			e.printStackTrace();
 		}
-    	return cert.getPublicKey();
-    }
+		
+		return result;
+	}
 }
