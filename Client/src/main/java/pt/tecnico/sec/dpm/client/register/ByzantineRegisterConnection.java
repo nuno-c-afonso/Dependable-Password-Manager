@@ -2,8 +2,10 @@ package pt.tecnico.sec.dpm.client.register;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +24,8 @@ import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
 import pt.tecnico.sec.dpm.server.*;
 
 public class ByzantineRegisterConnection {
+	private final static int NONCE_SIZE = 64;
+	
 	private PrivateKey privateKey = null;
 	private X509Certificate cert = null;
 	private String url;
@@ -73,99 +77,114 @@ public class ByzantineRegisterConnection {
 		}
 	}
 	
-	public int login(PublicKey pubKey, byte[] deviceID, byte[] nonce) throws SigningException {
+	public int login(PublicKey pubKey, byte[] deviceID) throws SigningException {
 		int wTS = -1;
-		List<Object> result;
+		byte[] sig = null;
 		
-		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
-				SecurityFunctions.concatByteArrays("login".getBytes(), pubKey.getEncoded(), nonce));
+		SecureRandom sr = null;
 		
-		result = port.login(pubKey.getEncoded(), deviceID, nonce, sig);
+    	try {
+			sr = SecureRandom.getInstance("SHA1PRNG");
+		} catch(NoSuchAlgorithmException nsae) {
+			// It should not happen!
+			nsae.printStackTrace();
+		}
+		
+		byte[] nonce = new byte[NONCE_SIZE];
+		boolean cont = true;
+		
+		while(cont) {
+			try {
+				sig = SecurityFunctions.makeDigitalSignature(privateKey,
+						SecurityFunctions.concatByteArrays("login".getBytes(), pubKey.getEncoded(), deviceID, nonce));
+				
+				sig = port.login(pubKey.getEncoded(), deviceID, nonce, sig);
+				
+				cont = false;
+			} catch(DuplicatedNonceException_Exception e) {
+				// Try again.
+			}
+		}
 		
 		// TODO: Extract the remaining of the information, to properly verify the signature
-		byte[] serverNonce = (byte[]) result.get(1);
-		sig = (byte[]) result.get(2);
+		// TODO: Get the current wTS and the proof of it
 		
-		nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);
-		
-		if(!Arrays.equals(nonce, serverNonce))
-			throw new WrongNonceException();
-		
-		// TODO: It will be expected a counter with 0, not an incremented nonce!!!
 		SecurityFunctions.checkSignature(cert.getPublicKey(),
-				SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()), sig);
+				SecurityFunctions.concatByteArrays("login".getBytes(), deviceID, nonce, ("1").getBytes()), sig);
 
-		counter = 0;
+		counter = 1;
 		
 		// TODO: Only make this assignment after checking the right signature + that the last right information is correct!!!
-		wTS = (int) result.get(0);
+		//		wTS = (int) result.get(0);
 		
 		return wTS;
 	}
 	
-	public void put(byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS) throws UnregisteredUserException,
+	public void put(byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS) throws UnregisteredUserException,
 	SigningException, KeyConversionException_Exception, NoPublicKeyException_Exception, NullArgException_Exception,
 	SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
 		
-		if(sessionID < 0 || nonce == null)
+		if(nonce == null)
 			throw new UnregisteredUserException();
-		
-		// TODO: The freshness should be guaranteed by the combination of the nonce + counter!!!
 		
 		int tmpCounter = counter + 1;
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
-				SecurityFunctions.concatByteArrays("put".getBytes(), ("" + sessionID).getBytes(),
-						("" + tmpCounter).getBytes(), cDomain, cUsername, cPassword, ("" + wTS).getBytes()));
+				SecurityFunctions.concatByteArrays("put".getBytes(),
+						deviceID,
+						nonce,
+						("" + tmpCounter).getBytes(),
+						cDomain, cUsername, cPassword, ("" + wTS).getBytes()));
 		
-		List<Object> result = port.put(sessionID, tmpCounter, cDomain, cUsername, cPassword, wTS, sig);
+		sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, sig);
 		
-		sig = (byte[]) result.get(1);
 		tmpCounter++;
-		
 		SecurityFunctions.checkSignature(cert.getPublicKey(),
-				SecurityFunctions.concatByteArrays("put".getBytes(), ("" + sessionID).getBytes(), ("" + tmpCounter).getBytes()),
-				sig);
+				SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes()), sig);
 		
 		counter = tmpCounter;
 	}
 	
-	public List<Object> get(byte[] domain, byte[] username) throws UnregisteredUserException, SigningException,
+	public List<Object> get(byte[] deviceID, byte[] domain, byte[] username) throws UnregisteredUserException, SigningException,
 	KeyConversionException_Exception, NoPasswordException_Exception, NoPublicKeyException_Exception,
 	NullArgException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
-	
-		if(sessionID < 0 || nonce == null)
+		
+		// TODO: Check what are the attribute references and if they have null values (here and every other function)
+		
+		if(nonce == null)
 			throw new UnregisteredUserException();
 		
 		int tmpCounter = counter + 1;
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
-				SecurityFunctions.concatByteArrays("get".getBytes(), ("" + sessionID).getBytes(),
-						("" + tmpCounter).getBytes(), domain, username));
+				SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes(), domain, username));
 		
-		List<Object> result = port.get(sessionID, tmpCounter, domain, username, sig);
+		List<Object> result = port.get(deviceID, nonce, domain, username, sig);
 		
 		// Parsing the server result
-		int serverCounter = (int) result.get(0);
-		byte[] retrivedPassword = (byte[]) result.get(1);
-		int serverTS = (int) result.get(2);
-		int writeCounter = (int) result.get(3);
-		byte[] clientSig = (byte[]) result.get(4);
-		sig = (byte[]) result.get(5);
+		byte[] retrivedPassword = (byte[]) result.get(0);
+		int wTS = (int) result.get(1);
+		byte[] deviceIDWr = (byte[]) result.get(2);
+		byte[] nonceWr = (byte[]) result.get(3);
+		int counterWr = (int) result.get(4);
+		byte[] clientSig = (byte[]) result.get(5);
+		sig = (byte[]) result.get(6);
 		tmpCounter ++;
 		
 		// TODO: Check if need to do the additional verifications here!!!
 		
 		SecurityFunctions.checkSignature(cert.getPublicKey(),
-				SecurityFunctions.concatByteArrays("get".getBytes(), ("" + sessionID).getBytes(),
-						("" + tmpCounter).getBytes(), retrivedPassword, ("" + serverTS).getBytes(),
-						("" + writeCounter).getBytes(), clientSig),
+				SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
+						("" + tmpCounter).getBytes(), retrivedPassword, ("" + wTS).getBytes(),
+						("" + counterWr).getBytes(), clientSig),
 				sig);
 		
 		counter = tmpCounter;
 		
 		result = new ArrayList<Object>();
 		result.add(retrivedPassword);
-		result.add(serverTS);
-		result.add(writeCounter);
+		result.add(wTS);
+		result.add(deviceIDWr);
+		result.add(nonceWr);
+		result.add(counterWr);
 		result.add(clientSig);
 		
 		return result;

@@ -46,17 +46,17 @@ import pt.tecnico.sec.dpm.security.exceptions.SigningException;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
 import pt.tecnico.sec.dpm.server.DuplicatedNonceException_Exception;
 import pt.tecnico.sec.dpm.server.KeyConversionException_Exception;
+import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
 import pt.tecnico.sec.dpm.server.NoPublicKeyException_Exception;
 import pt.tecnico.sec.dpm.server.NullArgException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
+import pt.tecnico.sec.dpm.server.SessionNotFoundException_Exception;
 import pt.tecnico.sec.dpm.server.SigningException_Exception;
 import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 
 
-public abstract class Writer {
-	private final static int NONCE_SIZE = 64;
-	
+public abstract class Writer {	
 	private List<ByzantineRegisterConnection> conns;
 	private final int numberOfResponses;
 	
@@ -124,77 +124,52 @@ public abstract class Writer {
 		
 		// Creates a new ackList to receive only the current results
 		List<Integer> ackList = new ArrayList<Integer>();
-		
-		try {
 			
-			// Makes the registration
-			for(ByzantineRegisterConnection brc : conns) {
-				Thread aux = new Thread(new SendRegister(brc, publicKey, ackList));
-				aux.start();
-			}
-			
-			boolean cont = true;
-	    	while(cont) {
-	    		try {
-					Thread.sleep(1);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-	    		
-	    		synchronized(ackList) {
-	    			cont  = ackList.size() <= numberOfResponses;
-	    		}
-	    	}
-	    				
-			// TODO: This will not work! Check what to do in order to make a login operation with a fixed ssid
-			// TODO: Maybe, the created nonce is the starting value for the counter!!!
-			// TODO: Instead of getting random bytes, get a random integer. However, there my be some overlapping.
-			// TODO: Use the nonce + a counter. This will guarantee a session for each device.
-			
-	    	// Creates a new list to receive the login results
-	    	ackList = new ArrayList<Integer>();
-			SecureRandom sr = null;
-			
-	    	try {
-				sr = SecureRandom.getInstance("SHA1PRNG");
-			} catch(NoSuchAlgorithmException nsae) {
-				// It should not happen!
-				nsae.printStackTrace();
-			}
-			
-			byte[] nonce = new byte[NONCE_SIZE];
-			List<Object> result = null;
-			sr.nextBytes(nonce);
-				
-			// Makes the log in
-			for(ByzantineRegisterConnection brc : conns) {
-				Thread aux = new Thread(new SendLogin(brc, publicKey, deviceID, nonce, ackList));
-				aux.start();
-			}
-			
-			cont = true;
-	    	while(cont) {
-	    		try {
-					Thread.sleep(1);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-	    		
-	    		synchronized(ackList) {
-	    			cont  = ackList.size() <= numberOfResponses;
-	    		}
-	    	}
-			
-			writeTS = Collections.max(ackList);
-			
-		} catch (NullArgException_Exception e) {
-			// It should not occur
-			System.out.println(e.getMessage());
-		} catch (WebServiceException e) {
-			checkWebServiceException(e);
+		// Makes the registration
+		for(ByzantineRegisterConnection brc : conns) {
+			Thread aux = new Thread(new SendRegister(brc, publicKey, ackList));
+			aux.start();
 		}
+		
+		boolean cont = true;
+    	while(cont) {
+    		try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		
+    		synchronized(ackList) {
+    			cont  = ackList.size() <= numberOfResponses;
+    		}
+    	}
+		
+    	// Creates a new list to receive the login results
+    	ackList = new ArrayList<Integer>();
+		List<Object> result = null;
+		
+		// Makes the log in
+		for(ByzantineRegisterConnection brc : conns) {
+			Thread aux = new Thread(new SendLogin(brc, publicKey, deviceID, ackList));
+			aux.start();
+		}
+		
+		cont = true;
+    	while(cont) {
+    		try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		
+    		synchronized(ackList) {
+    			cont  = ackList.size() <= numberOfResponses;
+    		}
+    	}
+		
+		writeTS = Collections.max(ackList);
 	}
     
     /*
@@ -222,7 +197,10 @@ public abstract class Writer {
 		    	synchronized (ackList) {
 		    		ackList.add(1);
 		    	}
-			} catch (KeyConversionException | SigningException e) {
+			} catch (SigningException | WrongSignatureException | KeyConversionException_Exception |
+					NullArgException_Exception | PublicKeyInvalidSizeException_Exception | SigningException_Exception
+					| WrongSignatureException_Exception e) {
+				
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}			
@@ -233,29 +211,27 @@ public abstract class Writer {
     	private ByzantineRegisterConnection brc;
     	private PublicKey pubKey;
     	private byte[] deviceID;
-    	private byte[] nonce;
     	
     	// It will store the received wTS
     	private List<Integer> ackList;
     	
-		public SendLogin(ByzantineRegisterConnection brc, PublicKey pubKey, byte[] deviceID, byte[] nonce, List<Integer> ackList) { 
+		public SendLogin(ByzantineRegisterConnection brc, PublicKey pubKey, byte[] deviceID, List<Integer> ackList) { 
 			this.brc = brc;
 			this.pubKey = pubKey;
 			this.deviceID = deviceID;
-			this.nonce = nonce;
 			this.ackList = ackList;
 		}
 
 		@Override
 		public void run() {
 			try {
-				int wTS = brc.login(pubKey, deviceID, nonce);
+				int wTS = brc.login(pubKey, deviceID);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
 		    		ackList.add(wTS);
 		    	}
-			} catch (KeyConversionException | SigningException e) {
+			} catch (SigningException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}			
@@ -263,48 +239,39 @@ public abstract class Writer {
     }
     
     
-    public void put(byte[] domain, byte[] username, byte[] password) {
+    public void put(byte[] domain, byte[] username, byte[] password) throws NotInitializedException {
     	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
 			throw new NotInitializedException();
 		
-		try {
-			int tmpTS = writeTS + 1;
-			byte[] iv = createIV(domain, username);
-			byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
-			byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
-			byte[] cPassword = cipherWithSymmetric(symmetricKey, password, iv);
-						
-			List<Integer> ackList = new ArrayList<Integer>();
-			
-			// Makes the put
-			for(ByzantineRegisterConnection brc : conns) {
-				Thread aux = new Thread(new SendPut(brc, deviceID, cDomain, cUsername, cPassword, tmpTS, ackList));
-				aux.start();
-			}
-			
-			boolean cont = true;
-	    	while(cont) {
-	    		try {
-					Thread.sleep(1);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-	    		
-	    		synchronized(ackList) {
-	    			cont  = ackList.size() <= numberOfResponses;
-	    		}
-	    	}
-			
-			writeTS = tmpTS;
-		} catch (NoPublicKeyException_Exception e) {
-			throw new UnregisteredUserException();
-		} catch (NullArgException_Exception e) {
-			// It should not occur
-			System.out.println(e.getMessage());
-		} catch (WebServiceException e) {
-			checkWebServiceException(e);
+		int tmpTS = writeTS + 1;
+		byte[] iv = createIV(domain, username);
+		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
+		byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
+		byte[] cPassword = cipherWithSymmetric(symmetricKey, password, iv);
+					
+		List<Integer> ackList = new ArrayList<Integer>();
+		
+		// Makes the put
+		for(ByzantineRegisterConnection brc : conns) {
+			Thread aux = new Thread(new SendPut(brc, deviceID, cDomain, cUsername, cPassword, tmpTS, ackList));
+			aux.start();
 		}
+		
+		boolean cont = true;
+    	while(cont) {
+    		try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		
+    		synchronized(ackList) {
+    			cont  = ackList.size() <= numberOfResponses;
+    		}
+    	}
+		
+		writeTS = tmpTS;
     }
     
     private class SendPut implements Runnable {
@@ -327,7 +294,9 @@ public abstract class Writer {
 			this.wTS = wTS;
 			this.ackList = ackList;
 		}
-
+		
+		// TODO: Check the exceptions in a better way!!!
+		
 		@Override
 		public void run() {
 			try {
@@ -337,10 +306,45 @@ public abstract class Writer {
 		    	synchronized (ackList) {
 		    		ackList.add(1);
 		    	}
-			} catch (KeyConversionException | SigningException e) {
+			} catch (SigningException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoPublicKeyException_Exception e) {
+				//throw new UnregisteredUserException();
+				
+				// TODO: Check this case!!!
+				
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				
+			} catch (NullArgException_Exception e) {
+				// It should not occur
+				System.out.println(e.getMessage());
+			} catch (UnregisteredUserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (KeyConversionException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SessionNotFoundException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SigningException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (WrongSignatureException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (WrongSignatureException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
+			
+			/*catch (WebServiceException e) {
+			checkWebServiceException(e);
+		}*/
+			
 		}
     }
     
@@ -350,53 +354,46 @@ public abstract class Writer {
     	
     	byte[] retrivedPassword = null;
     	
-		try {
-			byte[] iv = createIV(domain, username);
-			byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
-			byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
-			
-			List<List<Object>> ackList = new ArrayList<List<Object>>();
-			
-			// Makes the get
-			for(ByzantineRegisterConnection brc : conns) {
-				Thread aux = new Thread(new SendGet(brc, deviceID, cDomain, cUsername, ackList));
-				aux.start();
-			}
-			
-			boolean cont = true;
-	    	while(cont) {
-	    		try {
-					Thread.sleep(1);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-	    		
-	    		synchronized(ackList) {
-	    			cont  = ackList.size() <= numberOfResponses;
-	    		}
-	    	}
-			
-	    	// TODO: If there is a MITM, this operation may not end!!!
-	    	// TODO: Try to contact the problematic response again!!!
-	    	// TODO: Maybe have a global variable that say that it should continue trying!!!
-	    	
-	    	List<Object> newestTS = recoverNewestWrite(ackList);
-			
-	    	retrivedPassword = (byte[]) newestTS.get(0);
-	    	retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
-			writeTS = (int) newestTS.get(1);
-		} catch(NoPublicKeyException_Exception e) {
-			throw new UnregisteredUserException();
-		} catch (NullArgException_Exception e) {
-			// It should not occur
-			System.out.println(e.getMessage());
-		} catch (WebServiceException e) {
-			checkWebServiceException(e);
+		byte[] iv = createIV(domain, username);
+		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
+		byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
+		
+		List<List<Object>> ackList = new ArrayList<List<Object>>();
+		
+		// Makes the get
+		for(ByzantineRegisterConnection brc : conns) {
+			Thread aux = new Thread(new SendGet(brc, deviceID, cDomain, cUsername, ackList));
+			aux.start();
 		}
+		
+		boolean cont = true;
+    	while(cont) {
+    		try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		
+    		synchronized(ackList) {
+    			cont  = ackList.size() <= numberOfResponses;
+    		}
+    	}
+		
+    	// TODO: If there is a MITM, this operation may not end!!!
+    	// TODO: Try to contact the problematic response again!!!
+    	// TODO: Maybe have a global variable that say that it should continue trying!!!
+    	
+    	List<Object> newestTS = recoverNewestWrite(ackList);
+		
+    	retrivedPassword = (byte[]) newestTS.get(0);
+    	retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
+		writeTS = (int) newestTS.get(1);
 		
 		return retrivedPassword;
     }
+    
+    // TODO: Check the expections in a better way!!!
     
     private class SendGet implements Runnable {
     	private ByzantineRegisterConnection brc;
@@ -420,23 +417,27 @@ public abstract class Writer {
 			try {
 				List<Object> res = brc.get(deviceID, cDomain, cUsername);
 				
+				
 				// TODO: This signature check is wrong and should be updated!!! 
 				
 				byte[] retrivedPassword = (byte[]) res.get(0);
-				int serverTS = (int) res.get(1);
-				int writeCounter = (int) res.get(2);
-				byte[] clientSig = (byte[]) res.get(3);
+				int wTS = (int) res.get(1);
+				byte[] deviceIDWr = (byte[]) res.get(2);
+				byte[] nonceWr = (byte[]) res.get(3);				
+				int writeCounter = (int) res.get(4);
+				byte[] clientSig = (byte[]) res.get(5);
 				
 				byte[] expectedSig = SecurityFunctions.concatByteArrays(
 						"put".getBytes(),
-						("" + sessionID).getBytes(),
+						deviceIDWr,
+						nonceWr,
+						("" + writeCounter).getBytes(),
 						cDomain,
 						cUsername,
 						retrivedPassword,
-						("" + serverTS).getBytes(),
-						("" + writeCounter).getBytes());
+						("" + wTS).getBytes());
 				
-				SecurityFunctions.checkSignature(publicKey, expectedSig, clientSig);
+				SecurityFunctions.checkSignature(publicKey, expectedSig, clientSig);				
 				
 				res = new ArrayList<Object>();
 				res.add(retrivedPassword);
@@ -447,6 +448,30 @@ public abstract class Writer {
 		    		ackList.add(res);
 		    	}
 			} catch (SigningException | WrongSignatureException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnregisteredUserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (KeyConversionException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoPasswordException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoPublicKeyException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NullArgException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SessionNotFoundException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SigningException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (WrongSignatureException_Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
