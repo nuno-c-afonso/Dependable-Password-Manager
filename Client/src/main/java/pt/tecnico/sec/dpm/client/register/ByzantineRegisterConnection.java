@@ -27,7 +27,6 @@ public class ByzantineRegisterConnection {
 	private String url;
 	private API port = null;
 	
-	private int sessionID = -1;
 	private byte[] nonce = null;
 	private int counter = 0;
 	
@@ -74,15 +73,14 @@ public class ByzantineRegisterConnection {
 		}
 	}
 	
-	public int login(PublicKey pubKey, byte[] nonce) throws SigningException {
+	public int login(PublicKey pubKey, byte[] deviceID, byte[] nonce) throws SigningException {
 		int wTS = -1;
 		List<Object> result;
 		
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
 				SecurityFunctions.concatByteArrays("login".getBytes(), pubKey.getEncoded(), nonce));
 		
-		// TODO: Change this thing to support the client to create the nonce!!!
-		result = port.login(pubKey.getEncoded(), sessionID, nonce, sig);
+		result = port.login(pubKey.getEncoded(), deviceID, nonce, sig);
 		
 		// TODO: Extract the remaining of the information, to properly verify the signature
 		byte[] serverNonce = (byte[]) result.get(1);
@@ -104,8 +102,6 @@ public class ByzantineRegisterConnection {
 		
 		return wTS;
 	}
-	
-	// TODO: The operations below can only be made when the nonce is known!!!
 	
 	public void put(byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS) throws UnregisteredUserException,
 	SigningException, KeyConversionException_Exception, NoPublicKeyException_Exception, NullArgException_Exception,

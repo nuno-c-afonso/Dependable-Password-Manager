@@ -2,8 +2,12 @@ package pt.tecnico.sec.dpm.client.register;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.MessageDigest;
@@ -50,40 +54,7 @@ import pt.tecnico.sec.dpm.server.SigningException_Exception;
 import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 
 
-public abstract class Writer {	
-	//Variables used during the execution of the algorithm
-//	private int ts;
-//	private int val;
-//	private byte[] signature;
-//	private int wts;
-//	private int rid; // this might be the READER ID
-//	private List<ByzantineRegisterConnection> servers;
-//	
-//	private PrivateKey myPrivateKey = null;
-//	private PublicKey myPublicKey = null;
-//    
-//    public Writer(String myUrl, KeyStore keyStore, List<String> serversUrl, ByzantineRegisterConnectionFactory bcf, int numberOfFaults) { // throws NullArgException { //, PublicKey publicKey) {
-//    	/*if(myUrl == null || keyStore == null || serversUrl == null || bcf == null)
-//    		throw new NullArgException();*/
-//    	 	
-//    	//Constructor works as the init of the algorithm
-//    	wts = 0;
-//    	
-//    	myPrivateKey = retrievePrivateKey(keyStore, "1nsecure".toCharArray(), myUrl);
-//    	myPublicKey = retrievePublicKey(keyStore, myUrl);
-//    	
-//    	//Gather info about the system 
-//    	this.numberOfFaults = numberOfFaults; //This should be define a priori
-//    	servers = new ArrayList<ByzantineRegisterConnection>();
-//    	for(String server : serversUrl) {
-//    		//Get Public key from this Server
-//    		PublicKey pubKey = retrievePublicKey(keyStore, server);
-//    		
-//    		ByzantineRegisterConnection brc = bcf.createConnection(myPrivateKey, pubKey, server);
-//    		servers.add(brc);
-//    		
-//    	}
-//    }
+public abstract class Writer {
 	private final static int NONCE_SIZE = 64;
 	
 	private List<ByzantineRegisterConnection> conns;
@@ -93,11 +64,8 @@ public abstract class Writer {
 	private PublicKey publicKey = null;
 	private SecretKey symmetricKey = null;
 	
-	// TODO: Change this sessionID to be created in the client!!!
 	private int writeTS = 0;
-	
-	// TODO: Check if we store it here or if it is sent by the connection
-	private int sessionID = -1;
+	private byte[] deviceID = null;
 	
     public Writer(String[] urls, int numberOfFaults) {
     	this.numberOfResponses = (numberOfFaults + urls.length) / 2;
@@ -125,7 +93,8 @@ public abstract class Writer {
  			KeyStore.PrivateKeyEntry pke = (KeyStore.PrivateKeyEntry) keystore.getEntry(cliPairName, protParam);
  		    publicKey = pke.getCertificate().getPublicKey();
  		    privateKey = pke.getPrivateKey();
- 			
+ 		    deviceID = createDeviceID();
+ 		    
  			for(ByzantineRegisterConnection brc : conns) {
  				String modUrl = brc.getUrl().toLowerCase().replace('/','0');
  				if(!keystore.containsAlias(modUrl))
@@ -146,7 +115,6 @@ public abstract class Writer {
  		}
     }
     
-    // TODO: Check if all of these exceptions are needed!!!
     public void register_user() throws NotInitializedException, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException,
 	HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception,
 	WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
@@ -201,7 +169,7 @@ public abstract class Writer {
 				
 			// Makes the log in
 			for(ByzantineRegisterConnection brc : conns) {
-				Thread aux = new Thread(new SendLogin(brc, publicKey, nonce, ackList));
+				Thread aux = new Thread(new SendLogin(brc, publicKey, deviceID, nonce, ackList));
 				aux.start();
 			}
 			
@@ -264,14 +232,16 @@ public abstract class Writer {
     private class SendLogin implements Runnable {
     	private ByzantineRegisterConnection brc;
     	private PublicKey pubKey;
+    	private byte[] deviceID;
     	private byte[] nonce;
     	
     	// It will store the received wTS
     	private List<Integer> ackList;
     	
-		public SendLogin(ByzantineRegisterConnection brc, PublicKey pubKey, byte[] nonce, List<Integer> ackList) { 
+		public SendLogin(ByzantineRegisterConnection brc, PublicKey pubKey, byte[] deviceID, byte[] nonce, List<Integer> ackList) { 
 			this.brc = brc;
 			this.pubKey = pubKey;
+			this.deviceID = deviceID;
 			this.nonce = nonce;
 			this.ackList = ackList;
 		}
@@ -279,7 +249,7 @@ public abstract class Writer {
 		@Override
 		public void run() {
 			try {
-				int wTS = brc.login(pubKey, nonce);
+				int wTS = brc.login(pubKey, deviceID, nonce);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
@@ -308,7 +278,7 @@ public abstract class Writer {
 			
 			// Makes the put
 			for(ByzantineRegisterConnection brc : conns) {
-				Thread aux = new Thread(new SendPut(brc, cDomain, cUsername, cPassword, tmpTS, ackList));
+				Thread aux = new Thread(new SendPut(brc, deviceID, cDomain, cUsername, cPassword, tmpTS, ackList));
 				aux.start();
 			}
 			
@@ -339,6 +309,7 @@ public abstract class Writer {
     
     private class SendPut implements Runnable {
     	private ByzantineRegisterConnection brc;
+    	private byte[] deviceID;
     	private byte[] cDomain;
     	private byte[] cUsername;
     	private byte[] cPassword;
@@ -347,8 +318,9 @@ public abstract class Writer {
     	// It will store the received wTS
     	private List<Integer> ackList;
     	
-		public SendPut(ByzantineRegisterConnection brc, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, List<Integer> ackList) { 
+		public SendPut(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, List<Integer> ackList) { 
 			this.brc = brc;
+			this.deviceID = deviceID;
 			this.cDomain = cDomain;
 			this.cUsername = cUsername;
 			this.cPassword = cPassword;
@@ -359,7 +331,7 @@ public abstract class Writer {
 		@Override
 		public void run() {
 			try {
-				brc.put(cDomain, cUsername, cPassword, wTS);
+				brc.put(deviceID, cDomain, cUsername, cPassword, wTS);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
@@ -387,7 +359,7 @@ public abstract class Writer {
 			
 			// Makes the get
 			for(ByzantineRegisterConnection brc : conns) {
-				Thread aux = new Thread(new SendGet(brc, cDomain, cUsername, ackList));
+				Thread aux = new Thread(new SendGet(brc, deviceID, cDomain, cUsername, ackList));
 				aux.start();
 			}
 			
@@ -428,14 +400,16 @@ public abstract class Writer {
     
     private class SendGet implements Runnable {
     	private ByzantineRegisterConnection brc;
+    	private byte[] deviceID;
     	private byte[] cDomain;
     	private byte[] cUsername;
     	
     	// It will store the received wTS
     	private List<List<Object>> ackList;
     	
-		public SendGet(ByzantineRegisterConnection brc, byte[] cDomain, byte[] cUsername, List<List<Object>> ackList) { 
+		public SendGet(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, List<List<Object>> ackList) { 
 			this.brc = brc;
+			this.deviceID = deviceID;
 			this.cDomain = cDomain;
 			this.cUsername = cUsername;
 			this.ackList = ackList;
@@ -444,7 +418,9 @@ public abstract class Writer {
 		@Override
 		public void run() {
 			try {
-				List<Object> res = brc.get(cDomain, cUsername);
+				List<Object> res = brc.get(deviceID, cDomain, cUsername);
+				
+				// TODO: This signature check is wrong and should be updated!!! 
 				
 				byte[] retrivedPassword = (byte[]) res.get(0);
 				int serverTS = (int) res.get(1);
@@ -527,6 +503,40 @@ public abstract class Writer {
 		
 		return result;
 	}
+    
+    private byte[] createDeviceID() {		
+		byte[] result = null;
+		byte[] bytesKey = publicKey.getEncoded();
+		byte[] bytesMAC = getDeviceMAC();
+		byte[] toHash = new byte[bytesKey.length + bytesMAC.length];
+		
+		System.arraycopy(bytesKey, 0, toHash, 0, bytesKey.length);
+		System.arraycopy(bytesMAC, 0, toHash, bytesKey.length, bytesMAC.length);
+		
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			result = md.digest(toHash);
+		} catch (NoSuchAlgorithmException e) {
+			// It should not happen
+			e.printStackTrace();
+		}
+		
+		return result;
+	}
+    
+    private byte[] getDeviceMAC() {
+    	byte[] mac = null;
+    	
+    	try {
+    		InetAddress ip = InetAddress.getLocalHost();
+    		NetworkInterface network = NetworkInterface.getByInetAddress(ip);
+    		mac = network.getHardwareAddress();
+    	} catch (UnknownHostException | SocketException e) {
+    		e.printStackTrace();
+    	}
+    	
+    	return mac;
+    }
     
     private List<Object> recoverNewestWrite(List<List<Object>> ackList) {
     	List<Object> result = ackList.get(0);
