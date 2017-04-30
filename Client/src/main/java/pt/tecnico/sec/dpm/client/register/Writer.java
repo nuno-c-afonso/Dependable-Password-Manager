@@ -96,6 +96,9 @@ public abstract class Writer {
 	// TODO: Change this sessionID to be created in the client!!!
 	private int writeTS = 0;
 	
+	// TODO: Check if we store it here or if it is sent by the connection
+	private int sessionID = -1;
+	
     public Writer(String[] urls, int numberOfFaults) {
     	this.numberOfResponses = (numberOfFaults + urls.length) / 2;
     	conns = new ArrayList<ByzantineRegisterConnection>();
@@ -423,18 +426,6 @@ public abstract class Writer {
 		return retrivedPassword;
     }
     
-    private List<Object> recoverNewestWrite(List<List<Object>> ackList) {
-    	List<Object> result = ackList.get(0);
-    	
-    	int nAcks = ackList.size();
-    	for(int i = 1; i < nAcks; i++)
-    		// The second entry is the write TS
-    		if((int) result.get(1) < (int) ackList.get(i).get(1))
-    			result = ackList.get(i);
-    		
-    	return result;
-    }
-    
     private class SendGet implements Runnable {
     	private ByzantineRegisterConnection brc;
     	private byte[] cDomain;
@@ -455,123 +446,36 @@ public abstract class Writer {
 			try {
 				List<Object> res = brc.get(cDomain, cUsername);
 				
-				// TODO: Before appending, check if the write was performed by the user!!! (check the current user's write signature)
+				byte[] retrivedPassword = (byte[]) res.get(0);
+				int serverTS = (int) res.get(1);
+				int writeCounter = (int) res.get(2);
+				byte[] clientSig = (byte[]) res.get(3);
 				
+				byte[] expectedSig = SecurityFunctions.concatByteArrays(
+						"put".getBytes(),
+						("" + sessionID).getBytes(),
+						cDomain,
+						cUsername,
+						retrivedPassword,
+						("" + serverTS).getBytes(),
+						("" + writeCounter).getBytes());
+				
+				SecurityFunctions.checkSignature(publicKey, expectedSig, clientSig);
+				
+				res = new ArrayList<Object>();
+				res.add(retrivedPassword);
+				res.add(writeCounter);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
 		    		ackList.add(res);
 		    	}
-			} catch (KeyConversionException | SigningException e) {
+			} catch (SigningException | WrongSignatureException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-    }
-    
-    // TODO: Check the instructions below!!!
-    
-    /*
-     * Read method that will start the execution of the algorithm for the read request
-     * @return TODO: Change this return to return the password (and a list of the servers signatures???)
-     */
-    private void read(PublicKey publicKey, byte[] domain, byte[] username, byte[] cliSig) { //throws NullArgException { 
-    	//FIXME: Verify the signature of the client
-    	/*if(publicKey == null || domain == null || username == null || cliSig == null)
-    		throw new NullArgException();*/
-    	Map<String, List<Object>> readList = new HashMap<String, List<Object>>();
-    	
-    	
-    	//Now for all servers send a read request, this must be done in different threads  
-    	for(ByzantineRegisterConnection brc : servers){
-    		Thread aux = new Thread(new SendRead(brc, publicKey.getEncoded(), domain, username, readList, cliSig)); //Send object of bonrr connection, e wts
-    	    aux.start();
-    	}
-    	
-    	boolean cont = true;
-    	while(cont) {
-    		try {
-				Thread.sleep(1);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    		
-    		synchronized(readList) {
-    			cont  = (readList.size() <= (servers.size() + numberOfFaults) / 2);
-    		}
-    	}
-    	
-    	// Update the value to the one from the readList that has the biggest timestamp
-    	readList = new HashMap<String, List<Object>>();
-    	return; // Return the value to send back to the client
-    }
-    
-    /*
-     * Class that is going to be execute on the thread to do the requests to the server
-     */
-    private class SendRead implements Runnable {
-    	private ByzantineRegisterConnection brc;
-    	private byte[] cliPublicKey;
-    	private byte[] domain;
-    	private byte[] username;
-    	private byte[] cliSig;
-    	private Map<String, List<Object>> readList;
-    	private String serverUrl;
-    	
-    	//FIXME: Verify this parameters
-		public SendRead(ByzantineRegisterConnection brc, byte[] cliPublicKey, byte[] domain, byte[] username, Map<String, List<Object>> readList, byte[] cliSig) {
-			this.brc = brc;
-			this.cliPublicKey = cliPublicKey;
-			this.domain = domain;
-			this.username = username;
-			this.readList = readList;
-			this.cliSig = cliSig;
-			
-		}
-
-		@Override
-		public void run() {
-			//Execute the request	
-			List<Object> res = brc.read(cliPublicKey, domain, username, cliSig);
-			//res contains -> serverCounter + 1, password, wTS, serverSig
-			
-			//Verify this signature
-			//byte[] bytesToSign = SecurityFunctions.concatByteArrays(bonrr, write, serverCounterBytes, sessionIDBytes, cliCounterBytes, wTSBytes,
-	    	//		domain, username, password, cliSig);
-			
-			
-			
-			//FIXME: The res index might not be correct check it after the server part is done
-			
-			byte[] bonrr = "bonrr".getBytes();
-	    	byte[] write = "WRITE".getBytes();
-	    	byte[] serverCounterBytes = (byte[]) res.get(0);
-	    	byte[] sessionIDBytes = ("" + res.get(1)).getBytes();
-	    	byte[] cliCounterBytes = (byte[]) res.get(2);
-	    	byte[] wTSBytes = (byte[])res.get(3);
-	    	byte[] passwordBytes = (byte[])res.get(4);
-	    	byte[] cliSigBytes = (byte[])res.get(5);
-	    	byte[] wSig = (byte[])res.get(6);
-	    	
-	    	byte[] bytesToVerify = SecurityFunctions.concatByteArrays(bonrr, write, serverCounterBytes, sessionIDBytes, cliCounterBytes, wTSBytes,
-	    			domain, username, passwordBytes, cliSigBytes);
-			
-	    	try {
-				SecurityFunctions.checkSignature(myPublicKey, bytesToVerify, wSig);
-				//Add the new values to the readList
-				synchronized (readList) {
-		    		readList.put(serverUrl, res);
-		    	}	
-				
-			} catch (WrongSignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				return;
-			}			
-		}
-    	
-    }    
+    } 
     
     /*
      * AUX METHODS
@@ -623,4 +527,16 @@ public abstract class Writer {
 		
 		return result;
 	}
+    
+    private List<Object> recoverNewestWrite(List<List<Object>> ackList) {
+    	List<Object> result = ackList.get(0);
+    	
+    	int nAcks = ackList.size();
+    	for(int i = 1; i < nAcks; i++)
+    		// The second entry is the write TS
+    		if((int) result.get(1) < (int) ackList.get(i).get(1))
+    			result = ackList.get(i);
+    		
+    	return result;
+    }
 }
