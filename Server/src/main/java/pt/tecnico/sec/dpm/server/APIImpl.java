@@ -132,6 +132,9 @@ public class APIImpl implements API {
 		try {
 			byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
 			
+			if(sessionCounters.get(deviceID) == null || !sessionCounters.get(deviceID).containsKey(nonce))
+				throw new SessionNotFoundException();
+			
 			// Checks message signature
 			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
@@ -175,8 +178,11 @@ public class APIImpl implements API {
 		
 		try {
 			byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
-			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;
 			
+			if(sessionCounters.get(deviceID) == null || !sessionCounters.get(deviceID).containsKey(nonce))
+				throw new SessionNotFoundException();
+			
+			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);			
 			SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
 					("" + matchingCounter).getBytes(), domain, username), sig);
@@ -234,6 +240,6 @@ public class APIImpl implements API {
 	// Functions needed for testing
 	public void insertSessionCounter(byte[] deviceID, byte[] nonce, int counter) {
 		sessionCounters.put(deviceID, new HashMap<byte[], Integer>());
-		sessionCounters.get(deviceID).put(nonce, 1);
+		sessionCounters.get(deviceID).put(nonce, counter);
 	}
 }

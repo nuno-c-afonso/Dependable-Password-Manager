@@ -95,7 +95,7 @@ public class RegisterTest {
 			e.printStackTrace();
 		}
     }
-/*
+
     @AfterClass
     public static void oneTimeTearDown() {
     	try {
@@ -223,5 +223,5 @@ public class RegisterTest {
     	
 		APIImplTest.register(pubKey, sig);
     	APIImplTest.register(pubKey, sig);    	
-    }*/
+    }
 }

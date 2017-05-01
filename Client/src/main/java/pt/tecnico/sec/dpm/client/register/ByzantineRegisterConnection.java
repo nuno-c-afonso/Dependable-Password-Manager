@@ -94,6 +94,8 @@ public class ByzantineRegisterConnection {
 		boolean cont = true;
 		
 		while(cont) {
+			sr.nextBytes(nonce);
+			
 			try {
 				sig = SecurityFunctions.makeDigitalSignature(privateKey,
 						SecurityFunctions.concatByteArrays("login".getBytes(), pubKey.getEncoded(), deviceID, nonce));

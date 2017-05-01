@@ -18,6 +18,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -35,9 +36,12 @@ public class PutTest {
 
     // static members
 	private static byte[] publicKey;
+	private static byte[] deviceId = new byte[32];
+	private static byte[] nonce = new byte[64];
+	
 	private static PrivateKey client = null;
-	private static int sessionId;
 	private static int userId;
+	private static int deviceIdInt;
 	final private byte[] USERNAME = "SECUSER".getBytes();
 	final private byte[] PASSWORD = "SECPASSWORD".getBytes();
 	final private byte[] DOMAIN = "SECDOMAIN.com".getBytes();
@@ -94,7 +98,7 @@ public class PutTest {
 			e.printStackTrace();
 		}
     }
-/*
+
     // initialization and clean-up for each test
     @Before
     public void setUp() throws NoSuchAlgorithmException, SQLException {        
@@ -106,20 +110,33 @@ public class PutTest {
         client = keys.getPrivate();
         
         String queryInsertUser = "INSERT INTO users (publickey) "
-        		+ "VALUES (?)";
+	               + "VALUES (?)";
 
-        String queryInsertSession = "INSERT INTO sessions (userID, nonce) "
-        		+ "VALUES (?, ?)";
+        String queryInsertDevice = "INSERT INTO devices(deviceID, userID) "
+	                 + "VALUES (?,?)";
 
-        String queryGetSessionId = "SELECT sessionID "
-        		+ "FROM sessions "
-        		+ "WHERE userID = ?";
+        String queryInsertSession = "INSERT INTO sessions (deviceID, nonce) "
+	                  + "VALUES (?, ?)";
 
-        String queryGetUserId = "SELECT id "
-        		+ "FROM users "
-        		+ "WHERE publickey = ?";
+        String queryGetDeviceID = "SELECT id FROM devices WHERE deviceID = ?";
+    	
+    	String queryGetUserId = "SELECT id "
+    						  + "FROM users "
+    						  + "WHERE publickey = ?";
     	
     	PreparedStatement p = null;
+    	
+    	SecureRandom sr = null;
+		
+    	try {
+			sr = SecureRandom.getInstance("SHA1PRNG");
+		} catch(NoSuchAlgorithmException nsae) {
+			// It should not happen!
+			nsae.printStackTrace();
+		}
+    	
+    	sr.nextBytes(nonce);
+    	sr.nextBytes(deviceId);
     	
 		//Insert User
 		p = conn.prepareStatement(queryInsertUser);
@@ -134,21 +151,27 @@ public class PutTest {
     	rs.next();
     	userId = rs.getInt("id");
     	
-    	//Insert Session
-    	p = conn.prepareStatement(queryInsertSession);
-    	p.setInt(1, userId);
-    	p.setBytes(2, ("" + 0).getBytes());
+    	//Insert Device
+    	p = conn.prepareStatement(queryInsertDevice);
+    	p.setBytes(1, deviceId);
+    	p.setInt(2, userId);
     	p.execute();
     	
-    	//Get Session ID
-    	p = conn.prepareStatement(queryGetSessionId);
-    	p.setInt(1, userId);
+    	//Get device ID
+    	p = conn.prepareStatement(queryGetDeviceID);
+    	p.setBytes(1, deviceId);
     	p.execute();
     	rs = p.getResultSet();
     	rs.next();
-    	sessionId = rs.getInt("sessionID");
+    	deviceIdInt = rs.getInt(1);
     	
-    	APIImplTest.insertSessionCounter(sessionId, 0);
+    	//Insert Session
+    	p = conn.prepareStatement(queryInsertSession);
+    	p.setInt(1, deviceIdInt);
+    	p.setBytes(2, nonce);
+    	p.execute();
+    	
+    	APIImplTest.insertSessionCounter(deviceId, nonce, 1);
     }
 
     @After
@@ -177,16 +200,18 @@ public class PutTest {
     //Verifies if the the Put function is working correctly
     @Test
     public void correctPut() throws NoPublicKeyException, SQLException, NullArgException, SigningException, SessionNotFoundException, KeyConversionException, WrongSignatureException {
+    	byte[] bdSig = SecurityFunctions.makeDigitalSignature(client,
+    			concatByteArrays(deviceId, DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes()));
+    	
     	byte[] sig = SecurityFunctions.makeDigitalSignature(client,
-    			concatByteArrays("put".getBytes(), ("" + sessionId).getBytes(), ("" + 1).getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes()));
+    			concatByteArrays("put".getBytes(), deviceId, nonce, ("2").getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes(), bdSig));
     	
     	//call Put
-    	APIImplTest.put(sessionId, 1, DOMAIN, USERNAME, PASSWORD, 0, sig);
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, sig);
     	
     	String queryGetPassword = "SELECT password "
 	              + "FROM passwords "
-	              + "WHERE sessionID = ?"
-	              + " AND counter = 1"
+	              + "WHERE deviceID = ?"
 	              + " AND username = ?"
 	              + " AND domain = ?"
 	              + " AND tmstamp = 0"
@@ -197,12 +222,12 @@ public class PutTest {
     	byte[] actualPassword = null;
     	PreparedStatement p;
 		p = conn.prepareStatement(queryGetPassword);
-		p.setInt(1, sessionId);
+		p.setInt(1, deviceIdInt);
     	p.setBytes(2, USERNAME);
     	p.setBytes(3, DOMAIN);
-    	p.setBytes(4, sig);
+    	p.setBytes(4, bdSig);
     	ResultSet rs = p.executeQuery();
-    	if(rs.next())actualPassword = rs.getBytes("password");	
+    	if(rs.next())actualPassword = rs.getBytes("password");
 		assertArrayEquals(PASSWORD, actualPassword);
     }
     
@@ -211,31 +236,27 @@ public class PutTest {
     	PreparedStatement p;
     	final byte[] NEWPASS = "NEWPASS".getBytes();
     	byte[] actualPassword = null;
+    	byte[] bdSig = SecurityFunctions.makeDigitalSignature(client,
+    			concatByteArrays(deviceId, DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes()));
+    	
     	byte[] sig = SecurityFunctions.makeDigitalSignature(client,
-    			concatByteArrays("put".getBytes(), ("" + sessionId).getBytes(), ("" + 1).getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes()));
+    			concatByteArrays("put".getBytes(), deviceId, nonce, ("2").getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes(), bdSig));
     	
     	//Insert Password
-    	APIImplTest.put(sessionId, 1, DOMAIN, USERNAME, PASSWORD, 0, sig);
-//    	String queryInsertPassword = "INSERT INTO passwords (sessionID, counter, domain, username, password) "
-//                + "VALUES (?,?,?,?)";
-//    	
-//    	p = conn.prepareStatement(queryInsertPassword);
-//    	p.setInt(1, userId);
-//    	p.setBytes(2, DOMAIN);
-//    	p.setBytes(3, USERNAME);
-//    	p.setBytes(4, PASSWORD);
-//    	p.execute();
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, sig);
     	
     	//Update Password
-    	sig = SecurityFunctions.makeDigitalSignature(client,
-    			concatByteArrays("put".getBytes(), ("" + sessionId).getBytes(), ("" + 3).getBytes(), DOMAIN, USERNAME, NEWPASS, ("" + 1).getBytes()));
+    	bdSig = SecurityFunctions.makeDigitalSignature(client,
+    			concatByteArrays(deviceId, DOMAIN, USERNAME, NEWPASS, ("" + 1).getBytes()));
     	
-    	APIImplTest.put(sessionId, 3, DOMAIN, USERNAME, NEWPASS, 1, sig);
+    	sig = SecurityFunctions.makeDigitalSignature(client,
+    			concatByteArrays("put".getBytes(), deviceId, nonce, ("4").getBytes(), DOMAIN, USERNAME, NEWPASS, ("" + 1).getBytes(), bdSig));
+    	
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, NEWPASS, 1, bdSig, sig);
     	
     	String queryGetPassword = "SELECT password "
 	              + "FROM passwords "
-	              + "WHERE sessionID = ?"
-	              + " AND counter = 3"
+	              + "WHERE deviceID = ?"
 	              + " AND username = ?"
 	              + " AND domain = ?"
 	              + " AND tmstamp = 1"
@@ -243,40 +264,43 @@ public class PutTest {
     	
     	//Get Password
 		p = conn.prepareStatement(queryGetPassword);
-		p.setInt(1, sessionId);
+		p.setInt(1, deviceIdInt);
     	p.setBytes(2, USERNAME);
     	p.setBytes(3, DOMAIN);
-    	p.setBytes(4, sig);
+    	p.setBytes(4, bdSig);
     	ResultSet rs = p.executeQuery();
-    	if(rs.next())actualPassword = rs.getBytes("password");	
+    	if(rs.next())actualPassword = rs.getBytes("password");
 		assertArrayEquals(NEWPASS, actualPassword);
     }
     
     //The session is not in the database
     @Test(expected = SessionNotFoundException.class)
     public void wrongSession() throws NoSuchAlgorithmException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
-    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
-        byte[] wrongPubKey = keyGen.genKeyPair().getPublic().getEncoded();
+//    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+//        keyGen.initialize(2048);
+//        byte[] wrongPubKey = keyGen.genKeyPair().getPublic().getEncoded();
+                
+        byte[] bdSig = SecurityFunctions.makeDigitalSignature(client,
+    			concatByteArrays(deviceId, DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes()));
         
         byte[] sig = SecurityFunctions.makeDigitalSignature(client,
-    			concatByteArrays("put".getBytes(), "-1".getBytes(), ("" + 1).getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes()));
+    			concatByteArrays("put".getBytes(), deviceId, nonce, ("2").getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes(), bdSig));
         
-    	APIImplTest.put(-1,1,DOMAIN, USERNAME, PASSWORD,0,sig);
+    	APIImplTest.put("0".getBytes(), nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, sig);
     }
     
     @Test(expected = NullArgException.class)
     public void nullDomain() throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
-    	APIImplTest.put(sessionId, 1, null, USERNAME, PASSWORD, 0, "something".getBytes());
+    	APIImplTest.put(deviceId, nonce, null, USERNAME, PASSWORD, 0, "something".getBytes(), "something".getBytes());
     }
     
     @Test(expected = NullArgException.class)
     public void nullUsername() throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
-    	APIImplTest.put(sessionId, 1, DOMAIN, null, PASSWORD, 0, "something".getBytes());
+    	APIImplTest.put(deviceId, nonce, DOMAIN, null, PASSWORD, 0, "something".getBytes(), "something".getBytes());
     }
     
     @Test(expected = NullArgException.class)
     public void nullPassword() throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
-    	APIImplTest.put(sessionId, 1, DOMAIN, USERNAME, null, 0, "something".getBytes());
-    }*/
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, null, 0, "something".getBytes(), "something".getBytes());
+    }
 }

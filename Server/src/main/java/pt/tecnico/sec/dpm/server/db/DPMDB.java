@@ -131,7 +131,7 @@ public class DPMDB extends DBManager {
 	
 	// Gets the user's public key for a specific function
 	public byte[] pubKeyFromDeviceID(byte[] deviceID) throws SessionNotFoundException, ConnectionClosedException {
-		String q = "SELECT U.publickey FROM users as U, devices AS D WHERE D.deviceID = ? AND S.userID = U.id";
+		String q = "SELECT U.publickey FROM users as U, devices AS D WHERE D.deviceID = ? AND D.userID = U.id";
 		byte[] result = null;
 		
 		try {
@@ -154,9 +154,9 @@ public class DPMDB extends DBManager {
 	public void put(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTS, byte[] sig)
 	throws ConnectionClosedException {		
 		String in = "INSERT INTO passwords(deviceID, domain, username, password, tmstamp, signature) "
-				  + "VALUES (?, ?, ?, ?, ?, ?)";
+				  + "VALUES ((SELECT devices.id FROM devices WHERE devices.deviceID = ?), ?, ?, ?, ?, ?)";
 				
-		lock("passwords", "WRITE");
+		lock("passwords", "WRITE", "devices", "READ");
 
 		try {
 			PreparedStatement p = getConnection().prepareStatement(in);
@@ -181,21 +181,21 @@ public class DPMDB extends DBManager {
 			NoResultException {
 		
 		final int RES_LEN = 4; 
-		String q = "SELECT P.password, P.tmstamp, P.deviceID, P.signature "
+		String q = "SELECT P.password, P.tmstamp, D.deviceID, P.signature "
 				     + "FROM users AS U, devices AS D, passwords AS P "
-				     + "WHERE U.publickey = ? AND U.id = D.userID AND D.deviceID = P.deviceID "
+				     + "WHERE U.publickey = ? AND U.id = D.userID AND D.id = P.deviceID "
 				     	+ "AND P.domain = ? AND P.username = ? "
 				     + "HAVING P.tmstamp >= ALL("
 				     	+ "SELECT PW.tmstamp "
 				     	+ "FROM users AS US, devices AS DS, passwords AS PW "
-				     	+ "WHERE US.publickey = ? AND US.id = DS.userID AND DS.deviceID = PW.deviceID "
+				     	+ "WHERE US.publickey = ? AND US.id = DS.userID AND DS.id = PW.deviceID "
 				     		+ "AND PW.domain = ? AND PW.username = ?)";
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username, pubKey, domain, username);
 		List<Object> res = null;
 		
 		try {
-			PreparedStatement p = createStatement(q, lst);
+			PreparedStatement p = createStatement(q, lst);			
 			ResultSet returned = select(p);
 			
 			res = new ArrayList<Object>();
