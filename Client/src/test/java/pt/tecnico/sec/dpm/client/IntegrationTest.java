@@ -11,29 +11,19 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.UnrecoverableEntryException;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.Enumeration;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import mockit.Mock;
-import mockit.MockUp;
-import mockit.integration.junit4.JMockit;
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
 import pt.tecnico.sec.dpm.client.exceptions.GivenAliasNotFoundException;
@@ -50,7 +40,6 @@ import pt.tecnico.sec.dpm.server.KeyConversionException_Exception;
 import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
 import pt.tecnico.sec.dpm.server.NoPublicKeyException_Exception;
 import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
-import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException;
 import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
 import pt.tecnico.sec.dpm.server.SessionNotFoundException_Exception;
 import pt.tecnico.sec.dpm.server.SigningException_Exception;

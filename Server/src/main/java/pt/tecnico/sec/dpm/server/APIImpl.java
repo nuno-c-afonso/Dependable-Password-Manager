@@ -90,7 +90,7 @@ public class APIImpl implements API {
 	public byte[] login(byte[] publicKey, byte[] deviceID, byte[] nonce, byte[] sig) throws SigningException,
 	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException {
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
-		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("login".getBytes(), publicKey, nonce), sig);
+		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("login".getBytes(), publicKey, deviceID, nonce), sig);
 		
 		try {
 			dbMan.login(publicKey, deviceID, nonce);
@@ -132,8 +132,10 @@ public class APIImpl implements API {
 		try {
 			byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
 			
-			if(sessionCounters.get(deviceID) == null || !sessionCounters.get(deviceID).containsKey(nonce))
+			if(sessionCounters.get(deviceID) == null || !sessionCounters.get(deviceID).containsKey(nonce)) {
+				System.out.println("There was no counter for the given session!");
 				throw new SessionNotFoundException();
+			}
 			
 			// Checks message signature
 			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;

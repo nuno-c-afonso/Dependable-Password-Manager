@@ -88,7 +88,7 @@ public class DPMDB extends DBManager {
 			try {
 				p = getConnection().prepareStatement(q_rec);
 				p.setInt(1, userid);
-				p.setBytes(2, nonce);
+				p.setBytes(2, deviceID);
 				ResultSet rs = select(p);
 				id = rs.getInt(1);
 			} catch (NoResultException e) {

@@ -90,7 +90,7 @@ public class ByzantineRegisterConnection {
 			nsae.printStackTrace();
 		}
 		
-		byte[] nonce = new byte[NONCE_SIZE];
+		nonce = new byte[NONCE_SIZE];
 		boolean cont = true;
 		
 		while(cont) {
