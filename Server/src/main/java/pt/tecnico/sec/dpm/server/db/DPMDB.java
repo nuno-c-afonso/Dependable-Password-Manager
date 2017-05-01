@@ -51,18 +51,22 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Creates new sessions for registered users
-	public int login(byte[] pubKey, byte[] nonce) throws ConnectionClosedException, NullArgException,
+
+	// TODO: Return the last put operation made that specific user!!!
+	public int login(byte[] pubKey, byte[] deviceID, byte[] nonce) throws ConnectionClosedException, NullArgException,
 	NoPublicKeyException, DuplicatedNonceException {
-		String q = "INSERT INTO sessions (userID, nonce) VALUES (?,?)";
-		String q_rec = "SELECT sessionID FROM sessions WHERE userID = ? AND nonce = ?";
-		int userid = -1;
-		int sessionid = -1;
+		String q = "INSERT INTO devices (userID, deviceID) VALUES (?,?)";
+		String q_rec = "SELECT id FROM devices WHERE userID = ? AND deviceID = ?";
+		String q_nonce = "INSERT INTO sessions (deviceID, nonce) VALUES (?,?)";
 		
-		if(pubKey == null || nonce == null)
+		int userid;
+		int id = -1;
+		
+		if(pubKey == null || deviceID == null || nonce == null)
 			throw new NullArgException();
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
-		lock("users", "READ", "sessions", "WRITE");
+		lock("users", "READ", "sessions", "WRITE", "devices", "WRITE");
 		try {
 			userid = existsUser(lst);
 		} catch (NoPublicKeyException pkiue) {
@@ -78,29 +82,35 @@ public class DPMDB extends DBManager {
 		try {
 			PreparedStatement p = getConnection().prepareStatement(q);
 			p.setInt(1, userid);
-			p.setBytes(2, nonce);
-			if(update(p) == -1) {
-				unlock();
-				throw new DuplicatedNonceException();
-			}
+			p.setBytes(2, deviceID);
+			update(p);
 			
 			try {
 				p = getConnection().prepareStatement(q_rec);
 				p.setInt(1, userid);
 				p.setBytes(2, nonce);
 				ResultSet rs = select(p);
-				sessionid = rs.getInt(1);
+				id = rs.getInt(1);
 			} catch (NoResultException e) {
 				// It will not happen!
 				e.printStackTrace();
 			}
+			
+			p = getConnection().prepareStatement(q_nonce);
+			p.setInt(1, id);
+			p.setBytes(2, nonce);
+			if(update(p) == -1)
+				throw new DuplicatedNonceException();
+			
 		} catch(SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		unlock();
-		return sessionid;
+		
+		// TODO: Return something usefull, like the last put!!!
+		return -1;
 	}
 	
 	// Checks if a user is already registered
@@ -120,13 +130,13 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Gets the user's public key for a specific function
-	public byte[] pubKeyFromSession(int session) throws SessionNotFoundException, ConnectionClosedException{
-		String q = "SELECT U.publickey FROM users as U, sessions AS S WHERE S.sessionID = ? AND S.userID = U.id";
+	public byte[] pubKeyFromDeviceID(byte[] deviceID) throws SessionNotFoundException, ConnectionClosedException {
+		String q = "SELECT U.publickey FROM users as U, devices AS D WHERE D.deviceID = ? AND S.userID = U.id";
 		byte[] result = null;
 		
 		try {
 			PreparedStatement p = getConnection().prepareStatement(q);
-			p.setInt(1, session);
+			p.setBytes(1, deviceID);
 			ResultSet rs = select(p);
 			result = rs.getBytes(1);
 		} catch (NoResultException e) {
@@ -141,22 +151,21 @@ public class DPMDB extends DBManager {
 	
 	// Inserts/updates a password in the DB
 	// FIXME: Check if the records already exists && only apply the transformation iff wTS > prevWTS!!!
-	public void put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTS, byte[] sig)
+	public void put(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTS, byte[] sig)
 	throws ConnectionClosedException {		
-		String in = "INSERT INTO passwords(sessionID, counter, domain, username, password, tmstamp, signature) "
-				  + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+		String in = "INSERT INTO passwords(deviceID, domain, username, password, tmstamp, signature) "
+				  + "VALUES (?, ?, ?, ?, ?, ?)";
 				
 		lock("passwords", "WRITE");
 
 		try {
 			PreparedStatement p = getConnection().prepareStatement(in);
-			p.setInt(1, sessionID);
-			p.setInt(2, counter);
-			p.setBytes(3, domain);
-			p.setBytes(4, username);
-			p.setBytes(5, password);
-			p.setInt(6, wTS);
-			p.setBytes(7, sig);
+			p.setBytes(1, deviceID);
+			p.setBytes(2, domain);
+			p.setBytes(3, username);
+			p.setBytes(4, password);
+			p.setInt(5, wTS);
+			p.setBytes(6, sig);
 			
 			update(p);
 		} catch (SQLException e) {
@@ -172,14 +181,14 @@ public class DPMDB extends DBManager {
 			NoResultException {
 		
 		final int RES_LEN = 4; 
-		String q = "SELECT P.password, P.tmstamp, P.counter, P.signature "
-				     + "FROM users AS U, sessions AS S, passwords AS P "
-				     + "WHERE U.publickey = ? AND U.id = S.userID AND S.sessionID = P.sessionID "
+		String q = "SELECT P.password, P.tmstamp, P.deviceID, P.signature "
+				     + "FROM users AS U, devices AS D, passwords AS P "
+				     + "WHERE U.publickey = ? AND U.id = D.userID AND D.deviceID = P.deviceID "
 				     	+ "AND P.domain = ? AND P.username = ? "
 				     + "HAVING P.tmstamp >= ALL("
 				     	+ "SELECT PW.tmstamp "
-				     	+ "FROM users AS US, sessions AS SS, passwords AS PW "
-				     	+ "WHERE US.publickey = ? AND US.id = SS.userID AND SS.sessionID = PW.sessionID "
+				     	+ "FROM users AS US, devices AS DS, passwords AS PW "
+				     	+ "WHERE US.publickey = ? AND US.id = DS.userID AND DS.deviceID = PW.deviceID "
 				     		+ "AND PW.domain = ? AND PW.username = ?)";
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username, pubKey, domain, username);

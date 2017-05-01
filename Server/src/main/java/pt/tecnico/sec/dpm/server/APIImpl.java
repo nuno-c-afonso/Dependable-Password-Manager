@@ -38,7 +38,7 @@ public class APIImpl implements API {
 	private DPMDB dbMan = null;
 	private String url = null;
 	private PrivateKey privKey = null;
-	private HashMap<Integer, Integer> sessionCounters = null;
+	private HashMap<byte[], HashMap<byte[], Integer>> sessionCounters = null;
 	
 	// For testing purposes
 	public APIImpl(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
@@ -56,7 +56,7 @@ public class APIImpl implements API {
 		if(url == null || keystorePass == null || keyPass == null)
 			throw new NullArgException();
 		
-		sessionCounters = new HashMap<Integer, Integer>();
+		sessionCounters = new HashMap<byte[], HashMap<byte[], Integer>>();
 		this.url = url.toLowerCase();
 		this.url = this.url.replace('/', '0');
 		
@@ -87,35 +87,42 @@ public class APIImpl implements API {
 	}
 	
 	@Override
-	public List<Object> login(byte[] publicKey, byte[] nonce, byte[] sig) throws SigningException,
+	public byte[] login(byte[] publicKey, byte[] deviceID, byte[] nonce, byte[] sig) throws SigningException,
 	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException {
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
 		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("login".getBytes(), publicKey, nonce), sig);
-		int sessionID = -1;
 		
 		try {
-			sessionID = dbMan.login(publicKey, nonce);
+			dbMan.login(publicKey, deviceID, nonce);
 		} catch (ConnectionClosedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		sessionCounters.put(sessionID, 0);
-		nonce = SecurityFunctions.intToByteArray(SecurityFunctions.byteArrayToInt(nonce) + 1);		
-		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("login".getBytes(), nonce, ("" + sessionID).getBytes()));
-		List<Object> res = new ArrayList<Object>();
-		res.add(nonce);
-		res.add(sessionID);
-		res.add(serverSig);
-		return res;
+		if(!sessionCounters.containsKey(deviceID))
+			sessionCounters.put(deviceID, new HashMap<byte[], Integer>());
+		
+		sessionCounters.get(deviceID).put(nonce, 1);
+		
+		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, 
+				SecurityFunctions.concatByteArrays("login".getBytes(), deviceID, nonce, ("1").getBytes()));
+		
+		// FIXME: Send the last put!!
+//		List<Object> res = new ArrayList<Object>();
+//		res.add(nonce);
+//		res.add(sessionID);
+//		res.add(serverSig);
+//		return res;
+		
+		return serverSig;
 	}
 
 	// FIXME: Use locks for the counters!!!
 	@Override
-	public List<Object> put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
+	public byte[] put(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig, byte[] sig)
 			throws NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {		
 		
-		if(domain == null || username == null || password == null || sig == null)
+		if(deviceID == null || nonce == null || domain == null || username == null || password == null || bdSig == null || sig == null)
 			throw new NullArgException();
 		
 		int matchingCounter = -1;
@@ -123,20 +130,23 @@ public class APIImpl implements API {
 		//Start the Algorithm
 		
 		try {
-			byte[] publicKey = dbMan.pubKeyFromSession(sessionID);
+			byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
 			
-			matchingCounter = sessionCounters.get(sessionID) + 1;
-			if(counter != matchingCounter)
-				throw new WrongSignatureException();
-			
+			// Checks message signature
+			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
 			SecurityFunctions.checkSignature(pubKey,
-					SecurityFunctions.concatByteArrays("put".getBytes(),("" + sessionID).getBytes(), ("" + matchingCounter).getBytes(),
-							domain, username, password, ("" + wTs).getBytes()),
+					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + matchingCounter).getBytes(),
+							domain, username, password, ("" + wTs).getBytes(), bdSig),
 					sig);
 			
+			// Checks the DB signature
+			SecurityFunctions.checkSignature(pubKey,
+					SecurityFunctions.concatByteArrays(deviceID, domain, username, password, ("" + wTs).getBytes()),
+					bdSig);
+			
 			// FIXME: Make the needed checks for when updating (byzantine algorithms)!!!
-			dbMan.put(sessionID, counter, domain, username, password, wTs, sig);
+			dbMan.put(deviceID, domain, username, password, wTs, bdSig);
 		} catch (ConnectionClosedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -144,40 +154,34 @@ public class APIImpl implements API {
 		}
 		
 		int updateCounter = matchingCounter + 1;
-		sessionCounters.put(sessionID, updateCounter);				
+		sessionCounters.get(deviceID).put(nonce, updateCounter);				
 		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("put".getBytes(),
-				("" + sessionID).getBytes(), ("" + updateCounter).getBytes()));
-		
-		List<Object> res = new ArrayList<Object>();
-		res.add(updateCounter);
-		res.add(serverSig);
-		return res;
+				deviceID, nonce, ("" + updateCounter).getBytes()));
+
+		return serverSig;
 	}
 	
 	// FIXME: Use locks for the counters!!!
 	@Override
-	public List<Object> get(int sessionID, int counter, byte[] domain, byte[] username, byte[] sig)
+	public List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] sig)
 			throws NoPasswordException, NullArgException, SessionNotFoundException,
 			KeyConversionException, WrongSignatureException, SigningException {		
 		
-		if(domain == null || username == null || sig == null)
+		if(deviceID == null || nonce == null || domain == null || username == null || sig == null)
 			throw new NullArgException();
 		
 		List<Object> prevWrite = null;
 		int matchingCounter = -1;
 		
 		try {
-			byte[] publicKey = dbMan.pubKeyFromSession(sessionID);
-			matchingCounter = sessionCounters.get(sessionID) + 1;
-			
-			if(counter != matchingCounter)
-				throw new WrongSignatureException();
+			byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
+			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;
 			
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);			
-			SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("get".getBytes(),("" + sessionID).getBytes(),
+			SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
 					("" + matchingCounter).getBytes(), domain, username), sig);
 			
-			// Returns: [password, w_ts, counter_ws, cl_sig]
+			// Returns: [password, w_ts, device_id, cl_sig]
 			prevWrite = dbMan.get(publicKey, domain, username);
 		} catch (NoResultException nre) {
 			throw new NoPasswordException();
@@ -187,17 +191,17 @@ public class APIImpl implements API {
 		}
 				
 		int updateCounter = matchingCounter + 1;
-		sessionCounters.put(sessionID, updateCounter);				
+		sessionCounters.get(deviceID).put(nonce, updateCounter);	
 		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey,
 				SecurityFunctions.concatByteArrays("get".getBytes(),
-				("" + sessionID).getBytes(),
+				deviceID,
+				nonce,
 				("" + updateCounter).getBytes(),
 				(byte[]) prevWrite.get(0),
 				("" + prevWrite.get(1)).getBytes(),
-				("" + prevWrite.get(2)).getBytes(),
+				(byte[]) prevWrite.get(2),
 				(byte[]) prevWrite.get(3)));
 		
-		prevWrite.add(0, updateCounter);
 		prevWrite.add(serverSig);
 		return prevWrite;
 	}
@@ -228,7 +232,8 @@ public class APIImpl implements API {
 	}
 	
 	// Functions needed for testing
-	public void insertSessionCounter(int session, int counter) {
-		sessionCounters.put(session, counter);
+	public void insertSessionCounter(byte[] deviceID, byte[] nonce, int counter) {
+		sessionCounters.put(deviceID, new HashMap<byte[], Integer>());
+		sessionCounters.get(deviceID).put(nonce, 1);
 	}
 }

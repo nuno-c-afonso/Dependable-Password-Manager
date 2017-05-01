@@ -248,12 +248,20 @@ public abstract class Writer {
 		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
 		byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
 		byte[] cPassword = cipherWithSymmetric(symmetricKey, password, iv);
-					
+		byte[] bdSig = null;
+		
+		try {
+			bdSig = SecurityFunctions.makeDigitalSignature(privateKey, SecurityFunctions.concatByteArrays(deviceID, cDomain, cUsername, cPassword, ("" + tmpTS).getBytes()));
+		} catch (SigningException e1) {
+			// It should not happen!
+			e1.printStackTrace();
+		}
+		
 		List<Integer> ackList = new ArrayList<Integer>();
 		
 		// Makes the put
 		for(ByzantineRegisterConnection brc : conns) {
-			Thread aux = new Thread(new SendPut(brc, deviceID, cDomain, cUsername, cPassword, tmpTS, ackList));
+			Thread aux = new Thread(new SendPut(brc, deviceID, cDomain, cUsername, cPassword, tmpTS, bdSig, ackList));
 			aux.start();
 		}
 		
@@ -281,17 +289,19 @@ public abstract class Writer {
     	private byte[] cUsername;
     	private byte[] cPassword;
     	private int wTS;
+    	private byte[] bdSig;
     	
     	// It will store the received wTS
     	private List<Integer> ackList;
     	
-		public SendPut(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, List<Integer> ackList) { 
+		public SendPut(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig, List<Integer> ackList) { 
 			this.brc = brc;
 			this.deviceID = deviceID;
 			this.cDomain = cDomain;
 			this.cUsername = cUsername;
 			this.cPassword = cPassword;
 			this.wTS = wTS;
+			this.bdSig = bdSig;
 			this.ackList = ackList;
 		}
 		
@@ -300,7 +310,7 @@ public abstract class Writer {
 		@Override
 		public void run() {
 			try {
-				brc.put(deviceID, cDomain, cUsername, cPassword, wTS);
+				brc.put(deviceID, cDomain, cUsername, cPassword, wTS, bdSig);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
@@ -420,18 +430,19 @@ public abstract class Writer {
 				
 				// TODO: This signature check is wrong and should be updated!!! 
 				
+//				result = new ArrayList<Object>();
+//				result.add(retrivedPassword);
+//				result.add(wTS);
+//				result.add(deviceIDWr);
+//				result.add(clientSig);
+				
 				byte[] retrivedPassword = (byte[]) res.get(0);
 				int wTS = (int) res.get(1);
 				byte[] deviceIDWr = (byte[]) res.get(2);
-				byte[] nonceWr = (byte[]) res.get(3);				
-				int writeCounter = (int) res.get(4);
-				byte[] clientSig = (byte[]) res.get(5);
+				byte[] clientSig = (byte[]) res.get(3);
 				
 				byte[] expectedSig = SecurityFunctions.concatByteArrays(
-						"put".getBytes(),
 						deviceIDWr,
-						nonceWr,
-						("" + writeCounter).getBytes(),
 						cDomain,
 						cUsername,
 						retrivedPassword,
@@ -441,7 +452,7 @@ public abstract class Writer {
 				
 				res = new ArrayList<Object>();
 				res.add(retrivedPassword);
-				res.add(writeCounter);
+				res.add(wTS);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {

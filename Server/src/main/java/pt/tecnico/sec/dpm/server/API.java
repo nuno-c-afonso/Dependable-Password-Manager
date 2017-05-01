@@ -18,16 +18,18 @@ public interface API {
 	byte[] register(byte[] publicKey, byte[] sig) throws PublicKeyInUseException, NullArgException,
 	PublicKeyInvalidSizeException, KeyConversionException, WrongSignatureException, SigningException;
 	
-	// The return will have: nonce + 1, sessionID, sig
-	List<Object> login(byte[] publicKey, byte[] nonce, byte[] sig) throws SigningException,
+	// The return will have: byte[] with {"login" || deviceID || nonce || 1}SPriv
+	// TODO: Add the corresponding last get!!!
+	byte[] login(byte[] publicKey, byte[] deviceID, byte[] nonce, byte[] sig) throws SigningException,
 	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException;
 	
-	// The return will have: (int) counter + 1, (byte[]) sig
-	List<Object> put(int sessionID, int counter, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
+	// The return will have: byte[] with {"put" || deviceID || nonce || counter + 1}SPriv
+	byte[] put(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig, byte[] sig)
 			throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException;
 	
-	// The return will have: (int) counter + 1, (byte[]) password, (int) wTS, (int) wrCounter, (byte[]) clientSig, (byte[]) serverSig
-	List<Object> get(int sessionID, int counter, byte[] domain, byte[] username, byte[] sig)
+	// The return will have: password, w_ts, deviceID_wr, XXX,
+	// {"get" || deviceID || nonce || counter + 1 || password || w_ts || deviceID_wr, XXX}SPriv
+	List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] sig)
 			throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException, KeyConversionException,
 			WrongSignatureException, SigningException;
 }

@@ -94,7 +94,7 @@ public class PutTest {
 			e.printStackTrace();
 		}
     }
-
+/*
     // initialization and clean-up for each test
     @Before
     public void setUp() throws NoSuchAlgorithmException, SQLException {        
@@ -278,5 +278,5 @@ public class PutTest {
     @Test(expected = NullArgException.class)
     public void nullPassword() throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
     	APIImplTest.put(sessionId, 1, DOMAIN, USERNAME, null, 0, "something".getBytes());
-    }
+    }*/
 }

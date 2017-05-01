@@ -42,7 +42,9 @@ public class GetTest {
     // static members
 	//User information
 	private static byte[] publicKey;
-	private static int sessionId;
+	final private static byte[] DEVICE_ID = new byte[32];
+	final private static byte[] NONCE = new byte[64];
+	
 	private static int userId;
 	private static PrivateKey client = null;
 	final private byte[] USERNAME = "SECUSER".getBytes();
@@ -104,7 +106,7 @@ public class GetTest {
     }
 
     // initialization and clean-up for each test
-
+/*
     @Before
     public void setUp() throws NoSuchAlgorithmException, SigningException{
     	
@@ -261,5 +263,5 @@ public class GetTest {
     public void badlySigned () throws NoPasswordException, NullArgException, NoPublicKeyException, SigningException, SessionNotFoundException, KeyConversionException, WrongSignatureException {    	
     	APIImplTest.get(sessionId, 1, DOMAIN, USERNAME, "fake".getBytes());
     }
-    
+*/
 }

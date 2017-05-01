@@ -120,7 +120,7 @@ public class ByzantineRegisterConnection {
 		return wTS;
 	}
 	
-	public void put(byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS) throws UnregisteredUserException,
+	public void put(byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig) throws UnregisteredUserException,
 	SigningException, KeyConversionException_Exception, NoPublicKeyException_Exception, NullArgException_Exception,
 	SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
 		
@@ -133,9 +133,9 @@ public class ByzantineRegisterConnection {
 						deviceID,
 						nonce,
 						("" + tmpCounter).getBytes(),
-						cDomain, cUsername, cPassword, ("" + wTS).getBytes()));
+						cDomain, cUsername, cPassword, ("" + wTS).getBytes(), bdSig));
 		
-		sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, sig);
+		sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, bdSig, sig);
 		
 		tmpCounter++;
 		SecurityFunctions.checkSignature(cert.getPublicKey(),
@@ -152,7 +152,7 @@ public class ByzantineRegisterConnection {
 		
 		if(nonce == null)
 			throw new UnregisteredUserException();
-		
+				
 		int tmpCounter = counter + 1;
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
 				SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes(), domain, username));
@@ -163,18 +163,15 @@ public class ByzantineRegisterConnection {
 		byte[] retrivedPassword = (byte[]) result.get(0);
 		int wTS = (int) result.get(1);
 		byte[] deviceIDWr = (byte[]) result.get(2);
-		byte[] nonceWr = (byte[]) result.get(3);
-		int counterWr = (int) result.get(4);
-		byte[] clientSig = (byte[]) result.get(5);
-		sig = (byte[]) result.get(6);
+		byte[] clientSig = (byte[]) result.get(3);
+		sig = (byte[]) result.get(4);
 		tmpCounter ++;
 		
 		// TODO: Check if need to do the additional verifications here!!!
 		
 		SecurityFunctions.checkSignature(cert.getPublicKey(),
 				SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
-						("" + tmpCounter).getBytes(), retrivedPassword, ("" + wTS).getBytes(),
-						("" + counterWr).getBytes(), clientSig),
+						("" + tmpCounter).getBytes(), retrivedPassword, ("" + wTS).getBytes(), deviceIDWr, clientSig),
 				sig);
 		
 		counter = tmpCounter;
@@ -183,8 +180,6 @@ public class ByzantineRegisterConnection {
 		result.add(retrivedPassword);
 		result.add(wTS);
 		result.add(deviceIDWr);
-		result.add(nonceWr);
-		result.add(counterWr);
 		result.add(clientSig);
 		
 		return result;
