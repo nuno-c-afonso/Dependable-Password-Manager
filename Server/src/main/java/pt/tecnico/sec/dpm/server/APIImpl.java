@@ -23,6 +23,8 @@ import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
@@ -38,7 +40,7 @@ public class APIImpl implements API {
 	private DPMDB dbMan = null;
 	private String url = null;
 	private PrivateKey privKey = null;
-	private HashMap<byte[], HashMap<byte[], Integer>> sessionCounters = null;
+	private HashMap<String, HashMap<String, Integer>> sessionCounters = null;
 	
 	// For testing purposes
 	public APIImpl(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
@@ -56,7 +58,7 @@ public class APIImpl implements API {
 		if(url == null || keystorePass == null || keyPass == null)
 			throw new NullArgException();
 		
-		sessionCounters = new HashMap<byte[], HashMap<byte[], Integer>>();
+		sessionCounters = new HashMap<String, HashMap<String, Integer>>();
 		this.url = url.toLowerCase();
 		this.url = this.url.replace('/', '0');
 		
@@ -89,6 +91,10 @@ public class APIImpl implements API {
 	@Override
 	public byte[] login(byte[] publicKey, byte[] deviceID, byte[] nonce, byte[] sig) throws SigningException,
 	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException {
+		
+		if(publicKey == null || deviceID == null || nonce == null || sig == null)
+			throw new NullArgException();
+		
 		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
 		SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("login".getBytes(), publicKey, deviceID, nonce), sig);
 		
@@ -99,20 +105,15 @@ public class APIImpl implements API {
 			e.printStackTrace();
 		}
 		
-		if(!sessionCounters.containsKey(deviceID))
-			sessionCounters.put(deviceID, new HashMap<byte[], Integer>());
+		String deviceIDStr = Base64.getEncoder().encodeToString(deviceID);
+		String nonceStr = Base64.getEncoder().encodeToString(nonce);
+		if(!sessionCounters.containsKey(deviceIDStr))
+			sessionCounters.put(deviceIDStr, new HashMap<String, Integer>());
 		
-		sessionCounters.get(deviceID).put(nonce, 1);
+		sessionCounters.get(deviceIDStr).put(nonceStr, 1);
 		
 		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, 
 				SecurityFunctions.concatByteArrays("login".getBytes(), deviceID, nonce, ("1").getBytes()));
-		
-		// FIXME: Send the last put!!
-//		List<Object> res = new ArrayList<Object>();
-//		res.add(nonce);
-//		res.add(sessionID);
-//		res.add(serverSig);
-//		return res;
 		
 		return serverSig;
 	}
@@ -125,19 +126,24 @@ public class APIImpl implements API {
 			throw new NullArgException();
 		
 		int matchingCounter = -1;
+		String deviceIDStr = null;
+		String nonceStr = null;
 		
 		//Start the Algorithm
 		
 		try {
 			byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
 			
-			if(sessionCounters.get(deviceID) == null || !sessionCounters.get(deviceID).containsKey(nonce)) {
+			deviceIDStr = Base64.getEncoder().encodeToString(deviceID);
+			nonceStr = Base64.getEncoder().encodeToString(nonce);
+			
+			if(sessionCounters.get(deviceIDStr) == null || !sessionCounters.get(deviceIDStr).containsKey(nonceStr)) {
 				System.out.println("There was no counter for the given session!");
 				throw new SessionNotFoundException();
 			}
 			
 			// Checks message signature
-			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;
+			matchingCounter = sessionCounters.get(deviceIDStr).get(nonceStr) + 1;
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
 			SecurityFunctions.checkSignature(pubKey,
 					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + matchingCounter).getBytes(),
@@ -158,7 +164,7 @@ public class APIImpl implements API {
 		}
 		
 		int updateCounter = matchingCounter + 1;
-		sessionCounters.get(deviceID).put(nonce, updateCounter);				
+		sessionCounters.get(deviceIDStr).put(nonceStr, updateCounter);				
 		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey, SecurityFunctions.concatByteArrays("put".getBytes(),
 				deviceID, nonce, ("" + updateCounter).getBytes()));
 
@@ -176,14 +182,19 @@ public class APIImpl implements API {
 		
 		List<Object> prevWrite = null;
 		int matchingCounter = -1;
+		String deviceIDStr = null;
+		String nonceStr = null;
 		
 		try {
 			byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
 			
-			if(sessionCounters.get(deviceID) == null || !sessionCounters.get(deviceID).containsKey(nonce))
+			deviceIDStr = Base64.getEncoder().encodeToString(deviceID);
+			nonceStr = Base64.getEncoder().encodeToString(nonce);
+			
+			if(sessionCounters.get(deviceIDStr) == null || !sessionCounters.get(deviceIDStr).containsKey(nonceStr))
 				throw new SessionNotFoundException();
 			
-			matchingCounter = sessionCounters.get(deviceID).get(nonce) + 1;
+			matchingCounter = sessionCounters.get(deviceIDStr).get(nonceStr) + 1;
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);			
 			SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
 					("" + matchingCounter).getBytes(), domain, username), sig);
@@ -198,7 +209,7 @@ public class APIImpl implements API {
 		}
 				
 		int updateCounter = matchingCounter + 1;
-		sessionCounters.get(deviceID).put(nonce, updateCounter);	
+		sessionCounters.get(deviceIDStr).put(nonceStr, updateCounter);	
 		byte[] serverSig = SecurityFunctions.makeDigitalSignature(privKey,
 				SecurityFunctions.concatByteArrays("get".getBytes(),
 				deviceID,
@@ -240,7 +251,10 @@ public class APIImpl implements API {
 	
 	// Functions needed for testing
 	public void insertSessionCounter(byte[] deviceID, byte[] nonce, int counter) {
-		sessionCounters.put(deviceID, new HashMap<byte[], Integer>());
-		sessionCounters.get(deviceID).put(nonce, counter);
+		String deviceIDStr = Base64.getEncoder().encodeToString(deviceID);
+		String nonceStr = Base64.getEncoder().encodeToString(nonce);
+		
+		sessionCounters.put(deviceIDStr, new HashMap<String, Integer>());
+		sessionCounters.get(deviceIDStr).put(nonceStr, counter);
 	}
 }

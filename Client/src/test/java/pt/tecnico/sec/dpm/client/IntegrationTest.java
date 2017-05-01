@@ -220,22 +220,17 @@ public class IntegrationTest {
     /********
 	 * SAVE *
 	 ********/
-/*    @Test
-    public void correctInsertSave()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
-    	
+    @Test
+    public void correctInsertSave() throws Exception {
     	testOut.reset();
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
     	assertEquals("", testOut.toString());
     }
-    
+
     @Test
-    public void correctUpdateSave()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void correctUpdateSave() throws Exception {
     	
     	testOut.reset();
     	
@@ -246,32 +241,26 @@ public class IntegrationTest {
     }
     
     @Test(expected=UnregisteredUserException.class)
-    public void unregisteredSave() throws NotInitializedException, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {    	
+    public void unregisteredSave() throws Exception {    	
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
     }
     
     @Test(expected=NullClientArgException.class)
-    public void nullDomainSave()
-    		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void nullDomainSave() throws Exception {
     	
     	client.register_user();
     	client.save_password(null, USERNAME, ORIGINAL_PASS);
     }
     
     @Test(expected=NullClientArgException.class)
-    public void nullUsernameSave()
-    		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void nullUsernameSave() throws Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, null, ORIGINAL_PASS);
     }
     
     @Test(expected=NullClientArgException.class)
-    public void nullPassSave()
-    		throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-    		PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void nullPassSave() throws Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, null);
@@ -281,12 +270,8 @@ public class IntegrationTest {
     /************
 	 * RETRIEVE *
 	 ************/
-/*    @Test
-    public void correctInsertRetrieve()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
-    	
+    @Test
+    public void correctInsertRetrieve() throws Exception {
     	testOut.reset();
     	
     	client.register_user();
@@ -298,10 +283,7 @@ public class IntegrationTest {
     }
     
     @Test
-    public void correctUpdateRetrieve()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void correctUpdateRetrieve() throws Exception {
     	
     	testOut.reset();
     	
@@ -315,19 +297,13 @@ public class IntegrationTest {
     }
     
     @Test(expected=UnregisteredUserException.class)
-    public void unregisteredRetrieve()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
+    public void unregisteredRetrieve() throws Exception {
     	
     	client.retrieve_password(DOMAIN, "noone".getBytes());
     }
     
     @Test(expected=NoPasswordException_Exception.class)
-    public void noMatchingPassRetrieve()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void noMatchingPassRetrieve() throws Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
@@ -335,10 +311,7 @@ public class IntegrationTest {
     }
     
     @Test(expected=NullClientArgException.class)
-    public void nullDomainRetrieve()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void nullDomainRetrieve() throws Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
@@ -346,16 +319,12 @@ public class IntegrationTest {
     }
     
     @Test(expected=NullClientArgException.class)
-    public void nullUsernameRetrieve()
-    		throws NotInitializedException, PublicKeyInUseException_Exception,
-    		PublicKeyInvalidSizeException_Exception, NullClientArgException,
-    		UnregisteredUserException, NoPasswordException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
+    public void nullUsernameRetrieve() throws Exception {
     	
     	client.register_user();
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
     	client.retrieve_password(DOMAIN, null);
     }
-    */
     
     // Given by the faculty
     private X509Certificate[] generateCertificate(KeyPair pair) throws Exception {

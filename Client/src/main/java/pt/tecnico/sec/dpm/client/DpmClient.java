@@ -57,11 +57,7 @@ public class DpmClient {
 		writer.register_user();
 	}
 	
-	public void save_password(byte[] domain, byte[] username, byte[] password)
-			throws NotInitializedException, NullClientArgException, UnregisteredUserException,
-			ConnectionWasClosedException, HandlerException, SigningException,
-			KeyConversionException_Exception, SessionNotFoundException_Exception,
-			SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
+	public void save_password(byte[] domain, byte[] username, byte[] password) throws Exception {
 		
 		if(domain == null || username == null || password == null)
 			throw new NullClientArgException();
@@ -69,11 +65,7 @@ public class DpmClient {
 		writer.put(domain, username, password);
 	}
 	
-	public byte[] retrieve_password(byte[] domain, byte[] username)
-			throws NotInitializedException, NoPasswordException_Exception, NullClientArgException,
-			UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException,
-			KeyConversionException_Exception, SessionNotFoundException_Exception, SigningException_Exception,
-			WrongSignatureException_Exception, WrongSignatureException {
+	public byte[] retrieve_password(byte[] domain, byte[] username) throws Exception {
 		
 		if(domain == null || username == null)
 			throw new NullClientArgException();

@@ -133,7 +133,7 @@ public abstract class Writer {
 		}
 		
 		boolean cont = true;
-    	while(cont) {
+    	while(cont) {	    		
     		try {
 				Thread.sleep(1);
 			} catch (InterruptedException e) {
@@ -150,7 +150,7 @@ public abstract class Writer {
     			cont  = ackList.size() <= numberOfResponses;
     		}
     	}
-		
+    	
     	// Creates a new list to receive the login results
     	ackList = new ArrayList<Integer>();
 		List<Object> result = null;
@@ -248,7 +248,7 @@ public abstract class Writer {
     }
     
     
-    public void put(byte[] domain, byte[] username, byte[] password) throws NotInitializedException {
+    public void put(byte[] domain, byte[] username, byte[] password) throws Exception {
     	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
 			throw new NotInitializedException();
 		
@@ -267,10 +267,11 @@ public abstract class Writer {
 		}
 		
 		List<Integer> ackList = new ArrayList<Integer>();
+		List<Exception> exceptionsList = new ArrayList<Exception>();
 		
 		// Makes the put
 		for(ByzantineRegisterConnection brc : conns) {
-			Thread aux = new Thread(new SendPut(brc, deviceID, cDomain, cUsername, cPassword, tmpTS, bdSig, ackList));
+			Thread aux = new Thread(new SendPut(brc, deviceID, cDomain, cUsername, cPassword, tmpTS, bdSig, ackList, exceptionsList));
 			aux.start();
 		}
 		
@@ -282,6 +283,11 @@ public abstract class Writer {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+    		
+    		synchronized(exceptionsList) {
+    			if(exceptionsList.size() > numberOfResponses)
+    				rethrowException(exceptionsList);
+    		}
     		
     		synchronized(ackList) {
     			cont  = ackList.size() <= numberOfResponses;
@@ -302,8 +308,9 @@ public abstract class Writer {
     	
     	// It will store the received wTS
     	private List<Integer> ackList;
+    	private List<Exception> exceptionsList;
     	
-		public SendPut(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig, List<Integer> ackList) { 
+		public SendPut(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig, List<Integer> ackList, List<Exception> exceptionsList) { 
 			this.brc = brc;
 			this.deviceID = deviceID;
 			this.cDomain = cDomain;
@@ -312,12 +319,12 @@ public abstract class Writer {
 			this.wTS = wTS;
 			this.bdSig = bdSig;
 			this.ackList = ackList;
+			this.exceptionsList = exceptionsList;
 		}
-		
-		// TODO: Check the exceptions in a better way!!!
 		
 		@Override
 		public void run() {
+			
 			try {
 				brc.put(deviceID, cDomain, cUsername, cPassword, wTS, bdSig);
 				
@@ -325,49 +332,19 @@ public abstract class Writer {
 		    	synchronized (ackList) {
 		    		ackList.add(1);
 		    	}
-			} catch (SigningException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NoPublicKeyException_Exception e) {
-				//throw new UnregisteredUserException();
+			} catch (UnregisteredUserException | SigningException | KeyConversionException_Exception
+					| NoPublicKeyException_Exception | NullArgException_Exception
+					| SessionNotFoundException_Exception | SigningException_Exception
+					| WrongSignatureException_Exception | WrongSignatureException e) {
 				
-				// TODO: Check this case!!!
-				
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				
-			} catch (NullArgException_Exception e) {
-				// It should not occur
-				System.out.println(e.getMessage());
-			} catch (UnregisteredUserException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (KeyConversionException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SessionNotFoundException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SigningException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (WrongSignatureException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (WrongSignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			
-			/*catch (WebServiceException e) {
-			checkWebServiceException(e);
-		}*/
-			
+				synchronized (exceptionsList) {
+					exceptionsList.add(e);
+				}
+			}			
 		}
     }
     
-    public byte[] get(byte[] domain, byte[] username) throws NotInitializedException {
+    public byte[] get(byte[] domain, byte[] username) throws Exception {
     	if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
     	
@@ -378,10 +355,11 @@ public abstract class Writer {
 		byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
 		
 		List<List<Object>> ackList = new ArrayList<List<Object>>();
+		List<Exception> exceptionsList = new ArrayList<Exception>();
 		
 		// Makes the get
 		for(ByzantineRegisterConnection brc : conns) {
-			Thread aux = new Thread(new SendGet(brc, deviceID, cDomain, cUsername, ackList));
+			Thread aux = new Thread(new SendGet(brc, deviceID, cDomain, cUsername, ackList, exceptionsList));
 			aux.start();
 		}
 		
@@ -393,6 +371,11 @@ public abstract class Writer {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+    		
+    		synchronized(exceptionsList) {
+    			if(exceptionsList.size() > numberOfResponses)
+    				rethrowException(exceptionsList);
+    		}
     		
     		synchronized(ackList) {
     			cont  = ackList.size() <= numberOfResponses;
@@ -422,29 +405,22 @@ public abstract class Writer {
     	
     	// It will store the received wTS
     	private List<List<Object>> ackList;
+    	private List<Exception> exceptionsList;
     	
-		public SendGet(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, List<List<Object>> ackList) { 
+		public SendGet(ByzantineRegisterConnection brc, byte[] deviceID, byte[] cDomain, byte[] cUsername, List<List<Object>> ackList, List<Exception> exceptionsList) { 
 			this.brc = brc;
 			this.deviceID = deviceID;
 			this.cDomain = cDomain;
 			this.cUsername = cUsername;
 			this.ackList = ackList;
+			this.exceptionsList = exceptionsList;
 		}
 
 		@Override
 		public void run() {
 			try {
 				List<Object> res = brc.get(deviceID, cDomain, cUsername);
-				
-				
-				// TODO: This signature check is wrong and should be updated!!! 
-				
-//				result = new ArrayList<Object>();
-//				result.add(retrivedPassword);
-//				result.add(wTS);
-//				result.add(deviceIDWr);
-//				result.add(clientSig);
-				
+								
 				byte[] retrivedPassword = (byte[]) res.get(0);
 				int wTS = (int) res.get(1);
 				byte[] deviceIDWr = (byte[]) res.get(2);
@@ -457,7 +433,7 @@ public abstract class Writer {
 						retrivedPassword,
 						("" + wTS).getBytes());
 				
-				SecurityFunctions.checkSignature(publicKey, expectedSig, clientSig);				
+				SecurityFunctions.checkSignature(publicKey, expectedSig, clientSig);
 				
 				res = new ArrayList<Object>();
 				res.add(retrivedPassword);
@@ -467,34 +443,14 @@ public abstract class Writer {
 		    	synchronized (ackList) {
 		    		ackList.add(res);
 		    	}
-			} catch (SigningException | WrongSignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (UnregisteredUserException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (KeyConversionException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NoPasswordException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NoPublicKeyException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NullArgException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SessionNotFoundException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SigningException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (WrongSignatureException_Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			}	catch (UnregisteredUserException | SigningException | KeyConversionException_Exception
+						| NoPasswordException_Exception | NoPublicKeyException_Exception | NullArgException_Exception
+						| SessionNotFoundException_Exception | SigningException_Exception
+						| WrongSignatureException_Exception | WrongSignatureException e) {
+				synchronized (exceptionsList) {
+					exceptionsList.add(e);
+				}
+			}		    
 		}
     }
     
