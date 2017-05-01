@@ -161,27 +161,22 @@ public class IntegrationTest {
 	 * REGISTER *
 	 ************/
     @Test
-    public void correctRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException { 
-    	
+    public void correctRegister() throws Exception { 
     	testOut.reset();
     	
     	client.register_user();
     	assertEquals("", testOut.toString());
     }
-    
+ 
     @Test
-    public void newSessionRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
-    	
+    public void newSessionRegister() throws Exception {
     	client.register_user();
     	client.register_user();
     }
     
     // Needs to create a new client, with a key size bigger than allowed
     @Test(expected=PublicKeyInvalidSizeException_Exception.class)
-    public void keyTooBigRegister()
-    		throws NotInitializedException, PublicKeyInUseException_Exception, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
+    public void keyTooBigRegister() throws Exception {
     	
     	KeyStore keystore = null;
 		KeyStore.PrivateKeyEntry privKeyEntry = null;
@@ -225,7 +220,7 @@ public class IntegrationTest {
     /********
 	 * SAVE *
 	 ********/
-    @Test
+/*    @Test
     public void correctInsertSave()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException, UnregisteredUserException, ConnectionWasClosedException, HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException, SessionNotFoundException_Exception {
@@ -286,7 +281,7 @@ public class IntegrationTest {
     /************
 	 * RETRIEVE *
 	 ************/
-    @Test
+/*    @Test
     public void correctInsertRetrieve()
     		throws NotInitializedException, PublicKeyInUseException_Exception,
     		PublicKeyInvalidSizeException_Exception, NullClientArgException,
@@ -360,7 +355,7 @@ public class IntegrationTest {
     	client.save_password(DOMAIN, USERNAME, ORIGINAL_PASS);
     	client.retrieve_password(DOMAIN, null);
     }
-    
+    */
     
     // Given by the faculty
     private X509Certificate[] generateCertificate(KeyPair pair) throws Exception {

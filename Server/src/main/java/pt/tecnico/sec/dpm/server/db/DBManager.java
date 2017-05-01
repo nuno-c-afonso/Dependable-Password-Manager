@@ -63,7 +63,9 @@ public class DBManager {
 			status = p.executeUpdate();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// e.printStackTrace();
+			
+			System.out.println("Duplicate entry on DB!");
 		}
 		
 		return status;

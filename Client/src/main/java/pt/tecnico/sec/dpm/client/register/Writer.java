@@ -24,8 +24,10 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -77,8 +79,6 @@ public abstract class Writer {
     }
     
  	// It is assumed that all keys are protected by the same password
-    
-    // TODO: Create the deviceID and send it to the connection!!!
     public void initConns(KeyStore keystore, char[] passwordKeystore, String cliPairName, String symmName, char[] passwordKeys)
     		throws GivenAliasNotFoundException, WrongPasswordException, AlreadyInitializedException {
     	    	
@@ -117,19 +117,18 @@ public abstract class Writer {
  		}
     }
     
-    public void register_user() throws NotInitializedException, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException,
-	HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception,
-	WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
+    public void register_user() throws Exception {
     	
 		if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
 			throw new NotInitializedException();
 		
 		// Creates a new ackList to receive only the current results
 		List<Integer> ackList = new ArrayList<Integer>();
+		List<Exception> exceptionsList = new ArrayList<Exception>();
 			
 		// Makes the registration
 		for(ByzantineRegisterConnection brc : conns) {
-			Thread aux = new Thread(new SendRegister(brc, publicKey, ackList));
+			Thread aux = new Thread(new SendRegister(brc, publicKey, ackList, exceptionsList));
 			aux.start();
 		}
 		
@@ -141,6 +140,11 @@ public abstract class Writer {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+    		
+    		synchronized(exceptionsList) {
+    			if(exceptionsList.size() > numberOfResponses)
+    				rethrowException(exceptionsList);
+    		}
     		
     		synchronized(ackList) {
     			cont  = ackList.size() <= numberOfResponses;
@@ -183,11 +187,13 @@ public abstract class Writer {
     	
     	// It will store the received wTS
     	private List<Integer> ackList;
+    	private List<Exception> exceptionsList;
     	
-		public SendRegister(ByzantineRegisterConnection brc, PublicKey pubKey, List<Integer> ackList) { 
+		public SendRegister(ByzantineRegisterConnection brc, PublicKey pubKey, List<Integer> ackList, List<Exception> exceptionsList) { 
 			this.brc = brc;
 			this.pubKey = pubKey;
 			this.ackList = ackList;
+			this.exceptionsList = exceptionsList;
 		}
 
 		@Override
@@ -203,8 +209,9 @@ public abstract class Writer {
 					NullArgException_Exception | PublicKeyInvalidSizeException_Exception | SigningException_Exception
 					| WrongSignatureException_Exception e) {
 				
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				synchronized (exceptionsList) {
+		    		exceptionsList.add(e);
+		    	}
 			}			
 		}
     }
@@ -600,5 +607,46 @@ public abstract class Writer {
     			result = ackList.get(i);
     		
     	return result;
+    }
+    
+    private void rethrowException(List<Exception> list) throws Exception {
+    	HashMap<String, ExceptionWrapper> map = new HashMap<String, ExceptionWrapper>();
+    	
+    	for(Exception e : list) {
+    		String name = e.getClass().getName();
+    		
+    		if(!map.containsKey(name))
+    			map.put(name, new ExceptionWrapper(e));
+    		else
+    			map.get(name).incFreq();
+    	}
+    	
+    	Iterator<Entry<String, ExceptionWrapper>> it = map.entrySet().iterator();
+    	ExceptionWrapper ew = it.next().getValue();
+        while (it.hasNext()) {
+        	ExceptionWrapper n = it.next().getValue();
+        	if(ew.getFreq() < n.getFreq())
+        		ew = n;
+        }
+        
+        ew.rethrow();
+    }
+    
+    private class ExceptionWrapper {
+    	private Exception exc;
+    	private int freq;
+    	
+    	public ExceptionWrapper(Exception exc) {
+    		this.exc = exc;
+    		this.freq = 0;
+    	}
+    	
+    	public void incFreq() { freq++; }
+    	
+    	public int getFreq() { return freq; }
+    	
+    	public String getExceptionName() { return exc.getClass().getName(); }
+    	
+    	public void rethrow() throws Exception { throw exc; }
     }
 }

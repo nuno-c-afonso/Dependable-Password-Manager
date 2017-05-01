@@ -117,7 +117,6 @@ public class APIImpl implements API {
 		return serverSig;
 	}
 
-	// FIXME: Use locks for the counters!!!
 	@Override
 	public byte[] put(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig, byte[] sig)
 			throws NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {		

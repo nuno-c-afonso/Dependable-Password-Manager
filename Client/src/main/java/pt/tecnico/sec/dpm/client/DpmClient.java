@@ -53,9 +53,7 @@ public class DpmClient {
 		writer.initConns(keystore, passwordKeystore, cliPairName, symmName, passwordKeys);
 	}
 	
-	public void register_user() throws NotInitializedException, PublicKeyInvalidSizeException_Exception, ConnectionWasClosedException,
-	HandlerException, SigningException, KeyConversionException_Exception, SigningException_Exception,
-	WrongSignatureException_Exception, WrongSignatureException, NoPublicKeyException_Exception, WrongNonceException {
+	public void register_user() throws Exception {
 		writer.register_user();
 	}
 	

@@ -33,7 +33,7 @@ import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 
 
 public class ClientApplication{
-	public static void main(String[] args){
+	public static void main(String[] args) throws Exception{
 		KeyStore keystore = null;
 		
 		// Check arguments
