@@ -60,7 +60,7 @@ import sun.security.x509.*;
 public class IntegrationTest {
 	public static DpmClient client = null;
 	public static SecretKey symmKey = null;
-	public static X509Certificate cert = null;
+	public static X509Certificate cert[] = new X509Certificate[4];
 	public static final char[] KEYSTORE_PASS = "ins3cur3".toCharArray();
 	public static final char[] KEYS_PASS = "1nsecure".toCharArray();
 	public static final String MY_NAME = "client";
@@ -69,7 +69,10 @@ public class IntegrationTest {
 	public static final byte[] USERNAME = "username".getBytes();
 	public static final byte[] ORIGINAL_PASS = "pass".getBytes();
 	public static final byte[] CHANGED_PASS = "pass2".getBytes();
-	public static final String SERVER_ADDR = "http://localhost:8080/ws.API/endpoint";
+	public static final String[] SERVER_ADDRS = {"http://localhost:8080/ws.API/endpoint",
+    		"http://localhost:8081/ws.API/endpoint",
+    		"http://localhost:8082/ws.API/endpoint",
+    		"http://localhost:8083/ws.API/endpoint"};
 	
 	// To capture the library output
 	private final PrintStream standard = System.out;
@@ -102,7 +105,9 @@ public class IntegrationTest {
         
 		try {
 			symmKey =  (SecretKey) keystore.getKey("secretkey", "1nsecure".toCharArray());
-			cert = (X509Certificate) keystore.getCertificate(SERVER_ADDR.toLowerCase().replace('/', '0'));
+			
+			for(int i = 0; i < SERVER_ADDRS.length; i++)
+				cert[i] = (X509Certificate) keystore.getCertificate(SERVER_ADDRS[i].toLowerCase().replace('/', '0'));
 		} catch (KeyStoreException e1) {e1.printStackTrace();
 		} catch (UnrecoverableKeyException e) { e.printStackTrace();
 		} catch (NoSuchAlgorithmException e) { e.printStackTrace();}
@@ -125,13 +130,15 @@ public class IntegrationTest {
 	    	KeyPair pair = keyGen.generateKeyPair();
 			privKeyEntry = new KeyStore.PrivateKeyEntry(pair.getPrivate(), generateCertificate(pair));
 			keystore.setEntry(MY_NAME, privKeyEntry, protParam);
-			keystore.setEntry(SERVER_ADDR.toLowerCase().replace('/', '0'), new KeyStore.TrustedCertificateEntry(cert), null);
+			
+			for(int i = 0; i < SERVER_ADDRS.length; i++)
+				keystore.setEntry(SERVER_ADDRS[i].toLowerCase().replace('/', '0'), new KeyStore.TrustedCertificateEntry(cert[i]), null);
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		
-    	client = new DpmClient(SERVER_ADDR);
+    	client = new DpmClient(SERVER_ADDRS, 1);
     	
     	try {
 			client.init(keystore, KEYSTORE_PASS, MY_NAME, SYMM_NAME, KEYS_PASS);
@@ -195,7 +202,9 @@ public class IntegrationTest {
 			keystore.load(null, null);
 			KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(KEYS_PASS);
 			keystore.setEntry(SYMM_NAME, new KeyStore.SecretKeyEntry(symmKey), protParam);
-			keystore.setEntry(SERVER_ADDR.toLowerCase().replace('/', '0'), new KeyStore.TrustedCertificateEntry(cert), null);
+			
+			for(int i = 0; i < SERVER_ADDRS.length; i++)
+				keystore.setEntry(SERVER_ADDRS[i].toLowerCase().replace('/', '0'), new KeyStore.TrustedCertificateEntry(cert[i]), null);
 			
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 	    	
@@ -210,7 +219,7 @@ public class IntegrationTest {
 			e1.printStackTrace();
 		}
 		
-    	client = new DpmClient(SERVER_ADDR);
+    	client = new DpmClient(SERVER_ADDRS, 1);
     	
     	try {
 			client.init(keystore, KEYSTORE_PASS, MY_NAME, SYMM_NAME, KEYS_PASS);

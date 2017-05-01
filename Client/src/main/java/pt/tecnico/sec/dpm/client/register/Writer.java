@@ -20,7 +20,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -487,7 +489,18 @@ public abstract class Writer {
 				e.printStackTrace();
 			}
 		}
-    } 
+    }
+    
+    public void close() throws NotInitializedException {
+    	if(publicKey == null || symmetricKey == null)
+			throw new NotInitializedException();
+		
+		symmetricKey = null;					
+		privateKey = null;
+		publicKey = null;
+		writeTS = 0;
+		deviceID = null;
+    }
     
     /*
      * AUX METHODS
@@ -565,8 +578,11 @@ public abstract class Writer {
     	
     	try {
     		InetAddress ip = InetAddress.getLocalHost();
-    		NetworkInterface network = NetworkInterface.getByInetAddress(ip);
-    		mac = network.getHardwareAddress();
+    		
+    		Enumeration<NetworkInterface> eni = NetworkInterface.getNetworkInterfaces();
+    		while(eni.hasMoreElements() && mac == null)
+    			mac = eni.nextElement().getHardwareAddress();
+    		
     	} catch (UnknownHostException | SocketException e) {
     		e.printStackTrace();
     	}

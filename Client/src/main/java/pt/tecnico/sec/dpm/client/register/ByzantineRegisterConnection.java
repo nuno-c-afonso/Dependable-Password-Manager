@@ -102,21 +102,39 @@ public class ByzantineRegisterConnection {
 				
 				sig = port.login(pubKey.getEncoded(), deviceID, nonce, sig);
 				
+				// TODO: Extract the remaining of the information, to properly verify the signature
+				// TODO: Get the current wTS and the proof of it
+				
+				SecurityFunctions.checkSignature(cert.getPublicKey(),
+						SecurityFunctions.concatByteArrays("login".getBytes(), deviceID, nonce, ("1").getBytes()), sig);
+				
 				cont = false;
 			} catch(DuplicatedNonceException_Exception e) {
 				// Try again.
+			} catch (KeyConversionException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoPublicKeyException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NullArgException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SigningException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (WrongSignatureException_Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (WrongSignatureException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
-		
-		// TODO: Extract the remaining of the information, to properly verify the signature
-		// TODO: Get the current wTS and the proof of it
-		
-		SecurityFunctions.checkSignature(cert.getPublicKey(),
-				SecurityFunctions.concatByteArrays("login".getBytes(), deviceID, nonce, ("1").getBytes()), sig);
 
 		counter = 1;
 		
-		// TODO: Only make this assignment after checking the right signature + that the last right information is correct!!!
+		// TODO: Only make this assignment after checking the right signature + that the last write information is correct!!!
 		//		wTS = (int) result.get(0);
 		
 		return wTS;

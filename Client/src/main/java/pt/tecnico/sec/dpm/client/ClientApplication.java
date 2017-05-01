@@ -4,6 +4,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
@@ -36,13 +37,15 @@ public class ClientApplication{
 		KeyStore keystore = null;
 		
 		// Check arguments
-		if (args.length == 0) {
+		if (args.length < 2) {
 			System.err.println("Argument missing!");
-			System.err.printf("Usage: java %s wsURL%n", ClientApplication.class.getName());
+			System.err.printf("Usage: java %s wsURL wsURL ... wsURL nrFaults%n", ClientApplication.class.getName());
 			return;
 		}
 		
-		String url = args[0];		
+		int argsSize = args.length;
+		int nFaults = Integer.parseInt(args[argsSize - 1]);
+		String urls[] = Arrays.copyOfRange(args, 0, argsSize - 1);
 		
         try {
         	keystore = KeyStore.getInstance("jceks");
@@ -66,7 +69,7 @@ public class ClientApplication{
 	        }
 	    }		
 		
-		DpmClient client = new DpmClient(url);
+		DpmClient client = new DpmClient(urls, nFaults);
 		Scanner scanner = new Scanner(System.in);
 		
 		try {

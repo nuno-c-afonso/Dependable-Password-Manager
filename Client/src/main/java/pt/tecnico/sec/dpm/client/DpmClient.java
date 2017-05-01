@@ -83,17 +83,9 @@ public class DpmClient {
 		return writer.get(domain, username);
 	}
 	
-	/* TODO: Move this to the Writer
 	public void close() throws NotInitializedException {
-		if(publicKey == null || symmetricKey == null)
-			throw new NotInitializedException();
-		
-		symmetricKey = null;					
-		privateKey = null;
-		publicKey = null;
-
+		writer.close();
 	}
-	*/
 	
 	// To see what to do when getting a WebServiceException
 	private void checkWebServiceException(WebServiceException e) throws ConnectionWasClosedException, HandlerException {

@@ -140,10 +140,12 @@ public class CloseTest {
 
     @Before
     public void setUp() {
-    	client = new DpmClient("http://localhost:8080/ws.API/endpoint");
-    	client.symmetricKey = symmetricKey;
-    	client.publicKey = publicKey;
-    	client.privateKey = privateKey;
+    	String[] urls = {"http://localhost:8080/ws.API/endpoint",
+        		"http://localhost:8081/ws.API/endpoint",
+        		"http://localhost:8082/ws.API/endpoint",
+        		"http://localhost:8083/ws.API/endpoint"};
+    	
+    	client = new DpmClient(urls, 1);
     }
 
     @After
@@ -155,14 +157,13 @@ public class CloseTest {
 
     @Test
     public void CorrectExecution() throws NotInitializedException, AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(), "client", "secretKey", "1nsecure".toCharArray());
     	client.close();
-        assertNull(client.symmetricKey);
-        assertNull(client.publicKey);
-        assertNull(client.privateKey);
     }
     
     @Test(expected = NotInitializedException.class)
-    public void NotInitialized() throws NotInitializedException {
+    public void NotInitialized() throws NotInitializedException, AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
+    	client.init(keystore, "ins3cur3".toCharArray(), "client", "secretKey", "1nsecure".toCharArray());
     	client.close();
     	client.close();
     }

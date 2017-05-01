@@ -157,7 +157,12 @@ public class InitTest {
 
     @Before
     public void setUp() {
-    	client = new DpmClient("http://localhost:8080/ws.API/endpoint");
+    	String[] urls = {"http://localhost:8080/ws.API/endpoint",
+        		"http://localhost:8081/ws.API/endpoint",
+        		"http://localhost:8082/ws.API/endpoint",
+        		"http://localhost:8083/ws.API/endpoint"};
+    	
+    	client = new DpmClient(urls, 1);
     }
 
     @After
@@ -171,16 +176,6 @@ public class InitTest {
     @Test
     public void CorrectExecution() throws AlreadyInitializedException, NullKeystoreElementException, GivenAliasNotFoundException, WrongPasswordException {
     	client.init(keystore, "ins3cur3".toCharArray(),"client", "secretkey", "1nsecure".toCharArray());
-    	
-    		
-    	assertNotNull(client.privateKey);
-    	assertNotNull(client.publicKey);
-    	assertNotNull(client.symmetricKey);
-    	
-    	assertArrayEquals(privateKey.getEncoded(), client.privateKey.getEncoded());
-    	assertArrayEquals(publicKey.getEncoded(), client.publicKey.getEncoded());
-    	assertArrayEquals(symmetricKey.getEncoded(), client.symmetricKey.getEncoded());
-
     }
     
     @Test(expected = AlreadyInitializedException.class)
