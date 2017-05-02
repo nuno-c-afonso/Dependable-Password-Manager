@@ -155,8 +155,7 @@ public class APIImpl implements API {
 					SecurityFunctions.concatByteArrays(deviceID, domain, username, password, ("" + wTs).getBytes()),
 					bdSig);
 			
-			// FIXME: Make the needed checks for when updating (byzantine algorithms)!!!
-			dbMan.put(deviceID, domain, username, password, wTs, bdSig);
+			dbMan.put(pubKey.getEncoded(), deviceID, domain, username, password, wTs, bdSig);
 		} catch (ConnectionClosedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

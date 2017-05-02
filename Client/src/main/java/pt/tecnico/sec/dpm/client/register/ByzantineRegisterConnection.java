@@ -77,8 +77,7 @@ public class ByzantineRegisterConnection {
 		}
 	}
 	
-	public int login(PublicKey pubKey, byte[] deviceID) throws SigningException {
-		int wTS = -1;
+	public void login(PublicKey pubKey, byte[] deviceID) throws SigningException {
 		byte[] sig = null;
 		
 		SecureRandom sr = null;
@@ -101,9 +100,6 @@ public class ByzantineRegisterConnection {
 						SecurityFunctions.concatByteArrays("login".getBytes(), pubKey.getEncoded(), deviceID, nonce));
 				
 				sig = port.login(pubKey.getEncoded(), deviceID, nonce, sig);
-				
-				// TODO: Extract the remaining of the information, to properly verify the signature
-				// TODO: Get the current wTS and the proof of it
 				
 				SecurityFunctions.checkSignature(cert.getPublicKey(),
 						SecurityFunctions.concatByteArrays("login".getBytes(), deviceID, nonce, ("1").getBytes()), sig);
@@ -133,11 +129,6 @@ public class ByzantineRegisterConnection {
 		}
 
 		counter = 1;
-		
-		// TODO: Only make this assignment after checking the right signature + that the last write information is correct!!!
-		//		wTS = (int) result.get(0);
-		
-		return wTS;
 	}
 	
 	public void put(byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig) throws UnregisteredUserException,

@@ -62,7 +62,7 @@ import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 
 public abstract class Writer {	
 	private List<ByzantineRegisterConnection> conns;
-	private final int numberOfResponses;
+	private final float numberOfResponses;
 	
 	private PrivateKey privateKey = null;
 	private PublicKey publicKey = null;
@@ -234,11 +234,11 @@ public abstract class Writer {
 		@Override
 		public void run() {
 			try {
-				int wTS = brc.login(pubKey, deviceID);
+				brc.login(pubKey, deviceID);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
-		    		ackList.add(wTS);
+		    		ackList.add(1);
 		    	}
 			} catch (SigningException e) {
 				// TODO Auto-generated catch block
@@ -394,8 +394,6 @@ public abstract class Writer {
 		
 		return retrivedPassword;
     }
-    
-    // TODO: Check the expections in a better way!!!
     
     private class SendGet implements Runnable {
     	private ByzantineRegisterConnection brc;

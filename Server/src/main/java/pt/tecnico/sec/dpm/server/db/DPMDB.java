@@ -51,15 +51,13 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Creates new sessions for registered users
-
-	// TODO: Return the last put operation made that specific user!!!
-	public int login(byte[] pubKey, byte[] deviceID, byte[] nonce) throws ConnectionClosedException, NullArgException,
+	public void login(byte[] pubKey, byte[] deviceID, byte[] nonce) throws ConnectionClosedException, NullArgException,
 	NoPublicKeyException, DuplicatedNonceException {
 		String q = "INSERT INTO devices (userID, deviceID) VALUES (?,?)";
 		String q_rec = "SELECT id FROM devices WHERE userID = ? AND deviceID = ?";
 		String q_nonce = "INSERT INTO sessions (deviceID, nonce) VALUES (?,?)";
 		
-		int userid;
+		int userid = -1;
 		int id = -1;
 		
 		if(pubKey == null || deviceID == null || nonce == null)
@@ -76,7 +74,6 @@ public class DPMDB extends DBManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			unlock();
-			return -1;
 		}
 		
 		try {
@@ -108,9 +105,6 @@ public class DPMDB extends DBManager {
 		}
 		
 		unlock();
-		
-		// TODO: Return something usefull, like the last put!!!
-		return -1;
 	}
 	
 	// Checks if a user is already registered
@@ -150,24 +144,43 @@ public class DPMDB extends DBManager {
 	}
 	
 	// Inserts/updates a password in the DB
-	// FIXME: Check if the records already exists && only apply the transformation iff wTS > prevWTS!!!
-	public void put(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTS, byte[] sig)
+	public void put(byte[] pubKey, byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTS, byte[] sig)
 	throws ConnectionClosedException {		
 		String in = "INSERT INTO passwords(deviceID, domain, username, password, tmstamp, signature) "
 				  + "VALUES ((SELECT devices.id FROM devices WHERE devices.deviceID = ?), ?, ?, ?, ?, ?)";
-				
-		lock("passwords", "WRITE", "devices", "READ");
+		
+		String check = "SELECT passwords.tmstamp, devices.deviceID "
+			     + "FROM users, devices, passwords "
+			     + "WHERE users.publickey = ? AND users.id = devices.userID AND devices.id = passwords.deviceID "
+			     	+ "AND passwords.domain = ? AND passwords.username = ? "
+			     + "HAVING passwords.tmstamp > ? OR (passwords.tmstamp = ? AND devices.deviceID > ?)";
+		
+		lock("passwords", "WRITE", "devices", "READ", "users", "READ");
 
 		try {
-			PreparedStatement p = getConnection().prepareStatement(in);
-			p.setBytes(1, deviceID);
-			p.setBytes(2, domain);
-			p.setBytes(3, username);
-			p.setBytes(4, password);
-			p.setInt(5, wTS);
-			p.setBytes(6, sig);
+			PreparedStatement p;
 			
-			update(p);
+			try {
+				p = getConnection().prepareStatement(check);
+				p.setBytes(1, pubKey);
+				p.setBytes(2, domain);
+				p.setBytes(3, username);
+				p.setInt(4, wTS);
+				p.setInt(5, wTS);
+				p.setBytes(6, deviceID);
+				
+				select(p);
+			} catch (NoResultException e) {
+				p = getConnection().prepareStatement(in);
+				p.setBytes(1, deviceID);
+				p.setBytes(2, domain);
+				p.setBytes(3, username);
+				p.setBytes(4, password);
+				p.setInt(5, wTS);
+				p.setBytes(6, sig);
+				
+				update(p);
+			}			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
