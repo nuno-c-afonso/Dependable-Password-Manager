@@ -23,6 +23,8 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.xml.ws.WebServiceException;
 
 import pt.tecnico.sec.dpm.client.exceptions.*;
+import pt.tecnico.sec.dpm.client.register.BnnarWriter;
+import pt.tecnico.sec.dpm.client.register.BonarWriter;
 import pt.tecnico.sec.dpm.client.register.BonrrWriter;
 import pt.tecnico.sec.dpm.client.register.Writer;
 import pt.tecnico.sec.dpm.security.SecurityFunctions;
@@ -36,9 +38,7 @@ public class DpmClient {
 	private Writer writer;
 	
 	public DpmClient(String[] urls, int numberOfFaults) {
-		
-		// TODO: Have a set of writers, not only the regular one!!!
-		writer = new BonrrWriter(urls, numberOfFaults);
+		writer = new BnnarWriter(urls, numberOfFaults);
 	}
 	
 	// It is assumed that all keys are protected by the same password

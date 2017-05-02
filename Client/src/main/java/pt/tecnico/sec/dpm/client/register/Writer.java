@@ -62,7 +62,7 @@ import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
 
 public abstract class Writer {	
 	private List<ByzantineRegisterConnection> conns;
-	private final int numberOfResponses;
+	private final float numberOfResponses;
 	
 	private PrivateKey privateKey = null;
 	private PublicKey publicKey = null;
@@ -234,11 +234,11 @@ public abstract class Writer {
 		@Override
 		public void run() {
 			try {
-				int wTS = brc.login(pubKey, deviceID);
+				brc.login(pubKey, deviceID);
 				
 				// Add the ack to the acklist
 		    	synchronized (ackList) {
-		    		ackList.add(wTS);
+		    		ackList.add(1);
 		    	}
 			} catch (SigningException e) {
 				// TODO Auto-generated catch block
@@ -252,7 +252,14 @@ public abstract class Writer {
     	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
 			throw new NotInitializedException();
 		
-		int tmpTS = writeTS + 1;
+		put(domain, username, password, writeTS + 1);
+    }
+    
+    // Available for the atomic (N,N)
+    protected void put(byte[] domain, byte[] username, byte[] password, int tmpTS) throws Exception {
+    	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
+			throw new NotInitializedException();
+		
 		byte[] iv = createIV(domain, username);
 		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
 		byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
@@ -293,8 +300,8 @@ public abstract class Writer {
     			cont  = ackList.size() <= numberOfResponses;
     		}
     	}
-		
-		writeTS = tmpTS;
+    	
+    	writeTS = tmpTS;
     }
     
     private class SendPut implements Runnable {
@@ -345,10 +352,16 @@ public abstract class Writer {
     }
     
     public byte[] get(byte[] domain, byte[] username) throws Exception {
+    	List<Object> result = protGet(domain, username);
+    	writeTS = (int) result.get(1);
+    	
+    	return (byte[]) result.get(0);
+    }
+    
+    // Available for the atomic (N,N)
+    protected List<Object> protGet(byte[] domain, byte[] username) throws Exception {
     	if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
-    	
-    	byte[] retrivedPassword = null;
     	
 		byte[] iv = createIV(domain, username);
 		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
@@ -388,14 +401,11 @@ public abstract class Writer {
     	
     	List<Object> newestTS = recoverNewestWrite(ackList);
 		
-    	retrivedPassword = (byte[]) newestTS.get(0);
-    	retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
-		writeTS = (int) newestTS.get(1);
+    	byte[] retrivedPassword = (byte[]) newestTS.get(0);
+    	newestTS.set(0, decipherWithSymmetric(symmetricKey,retrivedPassword, iv));
 		
-		return retrivedPassword;
+		return newestTS;
     }
-    
-    // TODO: Check the expections in a better way!!!
     
     private class SendGet implements Runnable {
     	private ByzantineRegisterConnection brc;
