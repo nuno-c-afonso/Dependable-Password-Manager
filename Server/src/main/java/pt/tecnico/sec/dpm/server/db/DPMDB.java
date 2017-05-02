@@ -65,18 +65,10 @@ public class DPMDB extends DBManager {
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey);
 		lock("users", "READ", "sessions", "WRITE", "devices", "WRITE");
-		try {
-			userid = existsUser(lst);
-		} catch (NoPublicKeyException pkiue) {
-			unlock();
-			throw new NoPublicKeyException();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			unlock();
-		}
 		
 		try {
+			userid = existsUser(lst);
+		
 			PreparedStatement p = getConnection().prepareStatement(q);
 			p.setInt(1, userid);
 			p.setBytes(2, deviceID);
@@ -96,9 +88,14 @@ public class DPMDB extends DBManager {
 			p = getConnection().prepareStatement(q_nonce);
 			p.setInt(1, id);
 			p.setBytes(2, nonce);
-			if(update(p) == -1)
+			if(update(p) == -1) {
+				unlock();
 				throw new DuplicatedNonceException();
+			}
 			
+		} catch (NoPublicKeyException pkiue) {
+			unlock();
+			throw new NoPublicKeyException();
 		} catch(SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
