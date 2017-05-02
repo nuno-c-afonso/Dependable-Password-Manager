@@ -252,16 +252,14 @@ public abstract class Writer {
     	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
 			throw new NotInitializedException();
 		
-		put(domain, username, password, writeTS);
-		writeTS ++;
+		put(domain, username, password, writeTS + 1);
     }
     
     // Available for the atomic (N,N)
-    protected void put(byte[] domain, byte[] username, byte[] password, int wTS) throws Exception {
+    protected void put(byte[] domain, byte[] username, byte[] password, int tmpTS) throws Exception {
     	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
 			throw new NotInitializedException();
 		
-		int tmpTS = wTS + 1;
 		byte[] iv = createIV(domain, username);
 		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
 		byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
@@ -302,6 +300,8 @@ public abstract class Writer {
     			cont  = ackList.size() <= numberOfResponses;
     		}
     	}
+    	
+    	writeTS = tmpTS;
     }
     
     private class SendPut implements Runnable {
