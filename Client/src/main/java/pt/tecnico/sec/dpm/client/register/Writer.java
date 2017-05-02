@@ -207,7 +207,7 @@ public abstract class Writer {
 		    	}
 			} catch (SigningException | WrongSignatureException | KeyConversionException_Exception |
 					NullArgException_Exception | PublicKeyInvalidSizeException_Exception | SigningException_Exception
-					| WrongSignatureException_Exception e) {
+					| WrongSignatureException_Exception | NotInitializedException e) {
 				
 				synchronized (exceptionsList) {
 		    		exceptionsList.add(e);
@@ -243,7 +243,10 @@ public abstract class Writer {
 			} catch (SigningException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}			
+			} catch (NotInitializedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
     }
     
@@ -342,7 +345,7 @@ public abstract class Writer {
 			} catch (UnregisteredUserException | SigningException | KeyConversionException_Exception
 					| NoPublicKeyException_Exception | NullArgException_Exception
 					| SessionNotFoundException_Exception | SigningException_Exception
-					| WrongSignatureException_Exception | WrongSignatureException e) {
+					| WrongSignatureException_Exception | WrongSignatureException | NotInitializedException e) {
 				
 				synchronized (exceptionsList) {
 					exceptionsList.add(e);
@@ -430,7 +433,10 @@ public abstract class Writer {
 		public void run() {
 			try {
 				List<Object> res = brc.get(deviceID, cDomain, cUsername);
-								
+				
+				if(res == null)
+					throw new NotInitializedException();
+				
 				byte[] retrivedPassword = (byte[]) res.get(0);
 				int wTS = (int) res.get(1);
 				byte[] deviceIDWr = (byte[]) res.get(2);
@@ -456,7 +462,7 @@ public abstract class Writer {
 			}	catch (UnregisteredUserException | SigningException | KeyConversionException_Exception
 						| NoPasswordException_Exception | NoPublicKeyException_Exception | NullArgException_Exception
 						| SessionNotFoundException_Exception | SigningException_Exception
-						| WrongSignatureException_Exception | WrongSignatureException e) {
+						| WrongSignatureException_Exception | WrongSignatureException | NotInitializedException e) {
 				synchronized (exceptionsList) {
 					exceptionsList.add(e);
 				}

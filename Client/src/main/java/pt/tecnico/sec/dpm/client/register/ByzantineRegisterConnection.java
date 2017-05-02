@@ -1,5 +1,8 @@
 package pt.tecnico.sec.dpm.client.register;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
@@ -12,8 +15,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.crypto.SecretKey;
+import javax.xml.ws.WebServiceException;
 
 import pt.tecnico.sec.dpm.client.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.client.exceptions.ConnectionWasClosedException;
+import pt.tecnico.sec.dpm.client.exceptions.HandlerException;
+import pt.tecnico.sec.dpm.client.exceptions.NotInitializedException;
 import pt.tecnico.sec.dpm.client.exceptions.UnregisteredUserException;
 import pt.tecnico.sec.dpm.client.exceptions.WrongNonceException;
 import pt.tecnico.sec.dpm.security.SecurityFunctions;
@@ -37,17 +44,16 @@ public class ByzantineRegisterConnection {
 	public ByzantineRegisterConnection(String url) {
 		this.url = url;
 		
-		// Creates the stub
-		APIImplService service = null;
-		
 		try {
-			service = new APIImplService(new URL(url));
+			APIImplService service = new APIImplService(new URL(url));
+			port = service.getAPIImplPort();
 		} catch (MalformedURLException e) {
 			// It will not happen!
 			e.printStackTrace();
+		} catch (WebServiceException e) {
+			if(!connectionWasClosed(e))
+				throw e;
 		}
-		
-		port = service.getAPIImplPort();
 	}
 	
 	public String getUrl() { return url; }
@@ -62,7 +68,10 @@ public class ByzantineRegisterConnection {
 	
 	public void register(PublicKey pubKey) throws SigningException, WrongSignatureException,
 	KeyConversionException_Exception, NullArgException_Exception, PublicKeyInvalidSizeException_Exception,
-	SigningException_Exception, WrongSignatureException_Exception {
+	SigningException_Exception, WrongSignatureException_Exception, NotInitializedException {
+		
+		if(port == null)
+			throw new NotInitializedException();
 		
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
 				SecurityFunctions.concatByteArrays("register".getBytes(), pubKey.getEncoded()));
@@ -74,10 +83,16 @@ public class ByzantineRegisterConnection {
 					SecurityFunctions.concatByteArrays("register".getBytes(), pubKey.getEncoded()), sig);
 		} catch(PublicKeyInUseException_Exception e) {
 			// Ignore it!
+		} catch(WebServiceException e) {
+			if(!connectionWasClosed(e))
+				throw e;
 		}
 	}
 	
-	public void login(PublicKey pubKey, byte[] deviceID) throws SigningException {
+	public void login(PublicKey pubKey, byte[] deviceID) throws SigningException, NotInitializedException {
+		if(port == null)
+			throw new NotInitializedException();
+		
 		byte[] sig = null;
 		
 		SecureRandom sr = null;
@@ -125,6 +140,9 @@ public class ByzantineRegisterConnection {
 			} catch (WrongSignatureException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} catch (WebServiceException e) {
+				if(!connectionWasClosed(e))
+					throw e;
 			}
 		}
 
@@ -133,7 +151,10 @@ public class ByzantineRegisterConnection {
 	
 	public void put(byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig) throws UnregisteredUserException,
 	SigningException, KeyConversionException_Exception, NoPublicKeyException_Exception, NullArgException_Exception,
-	SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
+	SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NotInitializedException {
+		
+		if(port == null)
+			throw new NotInitializedException();
 		
 		if(nonce == null)
 			throw new UnregisteredUserException();
@@ -146,20 +167,28 @@ public class ByzantineRegisterConnection {
 						("" + tmpCounter).getBytes(),
 						cDomain, cUsername, cPassword, ("" + wTS).getBytes(), bdSig));
 		
-		sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, bdSig, sig);
-		
-		tmpCounter++;
-		SecurityFunctions.checkSignature(cert.getPublicKey(),
-				SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes()), sig);
-		
-		counter = tmpCounter;
+		try {
+			sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, bdSig, sig);
+			
+			tmpCounter++;
+			SecurityFunctions.checkSignature(cert.getPublicKey(),
+					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes()), sig);
+			
+			counter = tmpCounter;
+		} catch (WebServiceException e) {
+			if(!connectionWasClosed(e))
+				throw e;
+		}
 	}
 	
 	public List<Object> get(byte[] deviceID, byte[] domain, byte[] username) throws UnregisteredUserException, SigningException,
 	KeyConversionException_Exception, NoPasswordException_Exception, NoPublicKeyException_Exception,
-	NullArgException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException {
+	NullArgException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NotInitializedException {
 		
 		// TODO: Check what are the attribute references and if they have null values (here and every other function)
+		
+		if(port == null)
+			throw new NotInitializedException();
 		
 		if(nonce == null)
 			throw new UnregisteredUserException();
@@ -168,31 +197,44 @@ public class ByzantineRegisterConnection {
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
 				SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes(), domain, username));
 		
-		List<Object> result = port.get(deviceID, nonce, domain, username, sig);
+		try {
+			List<Object> result = port.get(deviceID, nonce, domain, username, sig);
+			
+			// Parsing the server result
+			byte[] retrivedPassword = (byte[]) result.get(0);
+			int wTS = (int) result.get(1);
+			byte[] deviceIDWr = (byte[]) result.get(2);
+			byte[] clientSig = (byte[]) result.get(3);
+			sig = (byte[]) result.get(4);
+			tmpCounter ++;
+			
+			// TODO: Check if need to do the additional verifications here!!!
+			
+			SecurityFunctions.checkSignature(cert.getPublicKey(),
+					SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
+							("" + tmpCounter).getBytes(), retrivedPassword, ("" + wTS).getBytes(), deviceIDWr, clientSig),
+					sig);
+			
+			counter = tmpCounter;
+			
+			result = new ArrayList<Object>();
+			result.add(retrivedPassword);
+			result.add(wTS);
+			result.add(deviceIDWr);
+			result.add(clientSig);
+			
+			return result;
+		} catch (WebServiceException e) {
+			if(!connectionWasClosed(e))
+				throw e;
+		}
 		
-		// Parsing the server result
-		byte[] retrivedPassword = (byte[]) result.get(0);
-		int wTS = (int) result.get(1);
-		byte[] deviceIDWr = (byte[]) result.get(2);
-		byte[] clientSig = (byte[]) result.get(3);
-		sig = (byte[]) result.get(4);
-		tmpCounter ++;
-		
-		// TODO: Check if need to do the additional verifications here!!!
-		
-		SecurityFunctions.checkSignature(cert.getPublicKey(),
-				SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
-						("" + tmpCounter).getBytes(), retrivedPassword, ("" + wTS).getBytes(), deviceIDWr, clientSig),
-				sig);
-		
-		counter = tmpCounter;
-		
-		result = new ArrayList<Object>();
-		result.add(retrivedPassword);
-		result.add(wTS);
-		result.add(deviceIDWr);
-		result.add(clientSig);
-		
-		return result;
+		return null;
+	}
+	
+	// To see what to do when getting a WebServiceException
+	private boolean connectionWasClosed(WebServiceException e) {
+		// All these exceptions are related to problems in the socket
+		return true;
 	}
 }
