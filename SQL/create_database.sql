@@ -35,7 +35,7 @@ CREATE TABLE passwords(
 	password VARBINARY(50) NOT NULL,
 	tmstamp INT NOT NULL,
 	signature VARBINARY(512),
-	PRIMARY KEY (deviceID,tmstamp),
+	PRIMARY KEY (deviceID,username,domain,tmstamp),
 	FOREIGN KEY (deviceID)
 		REFERENCES devices(id)
 		ON DELETE CASCADE

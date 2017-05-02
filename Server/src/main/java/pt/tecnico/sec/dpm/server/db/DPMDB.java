@@ -150,7 +150,7 @@ public class DPMDB extends DBManager {
 			     + "FROM users, devices, passwords "
 			     + "WHERE users.publickey = ? AND users.id = devices.userID AND devices.id = passwords.deviceID "
 			     	+ "AND passwords.domain = ? AND passwords.username = ? "
-			     + "HAVING passwords.tmstamp > ? OR (passwords.tmstamp = ? AND devices.deviceID > ?)";
+			     + "HAVING passwords.tmstamp > ? OR (passwords.tmstamp = ? AND devices.deviceID >= ?)";
 		
 		lock("passwords", "WRITE", "devices", "READ", "users", "READ");
 
