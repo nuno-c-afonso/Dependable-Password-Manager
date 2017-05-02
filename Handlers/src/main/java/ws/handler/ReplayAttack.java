@@ -52,7 +52,7 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
         	
 
         try {
-            if (outboundElement.booleanValue()) {
+            if (!outboundElement.booleanValue()) {
         		SOAPMessage msg = smc.getMessage();
         		SOAPPart sp = msg.getSOAPPart();
         		SOAPEnvelope se = sp.getEnvelope();
