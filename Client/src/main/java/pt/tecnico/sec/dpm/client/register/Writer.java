@@ -252,7 +252,16 @@ public abstract class Writer {
     	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
 			throw new NotInitializedException();
 		
-		int tmpTS = writeTS + 1;
+		put(domain, username, password, writeTS);
+		writeTS ++;
+    }
+    
+    // Available for the atomic (N,N)
+    protected void put(byte[] domain, byte[] username, byte[] password, int wTS) throws Exception {
+    	if(this.privateKey == null || this.publicKey == null || this.symmetricKey == null)
+			throw new NotInitializedException();
+		
+		int tmpTS = wTS + 1;
 		byte[] iv = createIV(domain, username);
 		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
 		byte[] cUsername = cipherWithSymmetric(symmetricKey,username, iv);
@@ -293,8 +302,6 @@ public abstract class Writer {
     			cont  = ackList.size() <= numberOfResponses;
     		}
     	}
-		
-		writeTS = tmpTS;
     }
     
     private class SendPut implements Runnable {
@@ -345,10 +352,16 @@ public abstract class Writer {
     }
     
     public byte[] get(byte[] domain, byte[] username) throws Exception {
+    	List<Object> result = protGet(domain, username);
+    	writeTS = (int) result.get(1);
+    	
+    	return (byte[]) result.get(0);
+    }
+    
+    // Available for the atomic (N,N)
+    protected List<Object> protGet(byte[] domain, byte[] username) throws Exception {
     	if(publicKey == null || symmetricKey == null)
 			throw new NotInitializedException();
-    	
-    	byte[] retrivedPassword = null;
     	
 		byte[] iv = createIV(domain, username);
 		byte[] cDomain = cipherWithSymmetric(symmetricKey, domain, iv);
@@ -388,11 +401,10 @@ public abstract class Writer {
     	
     	List<Object> newestTS = recoverNewestWrite(ackList);
 		
-    	retrivedPassword = (byte[]) newestTS.get(0);
-    	retrivedPassword = decipherWithSymmetric(symmetricKey,retrivedPassword, iv);
-		writeTS = (int) newestTS.get(1);
+    	byte[] retrivedPassword = (byte[]) newestTS.get(0);
+    	newestTS.set(0, decipherWithSymmetric(symmetricKey,retrivedPassword, iv));
 		
-		return retrivedPassword;
+		return newestTS;
     }
     
     private class SendGet implements Runnable {
