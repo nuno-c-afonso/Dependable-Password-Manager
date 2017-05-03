@@ -205,9 +205,8 @@ public abstract class Writer {
 		    	synchronized (ackList) {
 		    		ackList.add(1);
 		    	}
-			} catch (SigningException | WrongSignatureException | KeyConversionException_Exception |
-					NullArgException_Exception | PublicKeyInvalidSizeException_Exception | SigningException_Exception
-					| WrongSignatureException_Exception | NotInitializedException e) {
+			} catch (SigningException | NullArgException_Exception | PublicKeyInvalidSizeException_Exception
+					| NotInitializedException e) {
 				
 				synchronized (exceptionsList) {
 		    		exceptionsList.add(e);
@@ -342,10 +341,9 @@ public abstract class Writer {
 		    	synchronized (ackList) {
 		    		ackList.add(1);
 		    	}
-			} catch (UnregisteredUserException | SigningException | KeyConversionException_Exception
+			} catch (UnregisteredUserException | SigningException
 					| NoPublicKeyException_Exception | NullArgException_Exception
-					| SessionNotFoundException_Exception | SigningException_Exception
-					| WrongSignatureException_Exception | WrongSignatureException | NotInitializedException e) {
+					| SessionNotFoundException_Exception | NotInitializedException e) {
 				
 				synchronized (exceptionsList) {
 					exceptionsList.add(e);
@@ -460,10 +458,9 @@ public abstract class Writer {
 		    	synchronized (ackList) {
 		    		ackList.add(res);
 		    	}
-			}	catch (UnregisteredUserException | SigningException | KeyConversionException_Exception
-						| NoPasswordException_Exception | NoPublicKeyException_Exception | NullArgException_Exception
-						| SessionNotFoundException_Exception | SigningException_Exception
-						| WrongSignatureException_Exception | WrongSignatureException | NotInitializedException e) {
+			}	catch (UnregisteredUserException | SigningException	| NoPasswordException_Exception
+						| NoPublicKeyException_Exception | NullArgException_Exception
+						| SessionNotFoundException_Exception | WrongSignatureException | NotInitializedException e) {
 				synchronized (exceptionsList) {
 					exceptionsList.add(e);
 				}

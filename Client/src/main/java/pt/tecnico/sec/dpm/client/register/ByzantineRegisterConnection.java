@@ -66,9 +66,8 @@ public class ByzantineRegisterConnection {
 		this.privateKey = privateKey;
 	}
 	
-	public void register(PublicKey pubKey) throws SigningException, WrongSignatureException,
-	KeyConversionException_Exception, NullArgException_Exception, PublicKeyInvalidSizeException_Exception,
-	SigningException_Exception, WrongSignatureException_Exception, NotInitializedException {
+	public void register(PublicKey pubKey) throws SigningException, NullArgException_Exception,
+	PublicKeyInvalidSizeException_Exception, NotInitializedException {
 		
 		if(port == null)
 			throw new NotInitializedException();
@@ -83,6 +82,9 @@ public class ByzantineRegisterConnection {
 					SecurityFunctions.concatByteArrays("register".getBytes(), pubKey.getEncoded()), sig);
 		} catch(PublicKeyInUseException_Exception e) {
 			// Ignore it!
+		} catch(WrongSignatureException | KeyConversionException_Exception | SigningException_Exception
+				| WrongSignatureException_Exception e) {
+			register(pubKey);
 		} catch(WebServiceException e) {
 			if(!connectionWasClosed(e))
 				throw e;
@@ -149,8 +151,7 @@ public class ByzantineRegisterConnection {
 	}
 	
 	public void put(byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig) throws UnregisteredUserException,
-	SigningException, KeyConversionException_Exception, NoPublicKeyException_Exception, NullArgException_Exception,
-	SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NotInitializedException {
+	SigningException, NoPublicKeyException_Exception, NullArgException_Exception, SessionNotFoundException_Exception, NotInitializedException {
 		
 		if(port == null)
 			throw new NotInitializedException();
@@ -174,6 +175,9 @@ public class ByzantineRegisterConnection {
 			tmpCounter++;
 			SecurityFunctions.checkSignature(cert.getPublicKey(),
 					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes()), sig);
+		} catch(WrongSignatureException | KeyConversionException_Exception | SigningException_Exception
+				| WrongSignatureException_Exception e) {
+			put(deviceID, cDomain, cUsername, cPassword, wTS, bdSig);
 		} catch (WebServiceException e) {
 			if(!connectionWasClosed(e))
 				throw e;
@@ -181,8 +185,8 @@ public class ByzantineRegisterConnection {
 	}
 	
 	public List<Object> get(byte[] deviceID, byte[] domain, byte[] username) throws UnregisteredUserException, SigningException,
-	KeyConversionException_Exception, NoPasswordException_Exception, NoPublicKeyException_Exception,
-	NullArgException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception, WrongSignatureException, NotInitializedException {
+	NoPasswordException_Exception, NoPublicKeyException_Exception, NullArgException_Exception, SessionNotFoundException_Exception,
+	NotInitializedException {
 		
 		// TODO: Check what are the attribute references and if they have null values (here and every other function)
 		
@@ -223,6 +227,9 @@ public class ByzantineRegisterConnection {
 			result.add(clientSig);
 			
 			return result;
+		} catch(WrongSignatureException | KeyConversionException_Exception | SigningException_Exception
+				| WrongSignatureException_Exception e) {
+			get(deviceID, domain, username);
 		} catch (WebServiceException e) {
 			if(!connectionWasClosed(e))
 				throw e;
