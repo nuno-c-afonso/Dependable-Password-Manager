@@ -10,9 +10,9 @@ public class BonarWriter extends BonrrWriter {
 	@Override
 	public byte[] get(byte[] domain, byte[] username) throws Exception {
 		List<Object> result = super.protGet(domain, username);
-		byte[] password = (byte[]) result.get(0);
+		byte[] password = (byte[]) result.get(1);
 		
-		super.put(domain, username, password, (int) result.get(1));
+		super.put(domain, username, password, (int) result.get(2));
 		return password;
 	}
 }

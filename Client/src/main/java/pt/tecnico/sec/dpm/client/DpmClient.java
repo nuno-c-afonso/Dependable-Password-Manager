@@ -76,21 +76,4 @@ public class DpmClient {
 	public void close() throws NotInitializedException {
 		writer.close();
 	}
-	
-	// To see what to do when getting a WebServiceException
-	private void checkWebServiceException(WebServiceException e) throws ConnectionWasClosedException, HandlerException {
-		Throwable cause = e.getCause();
-
-        while (cause != null) {
-            if (cause instanceof ConnectException)
-                throw new ConnectionWasClosedException();
-
-            cause = cause.getCause();
-        }
-        
-        StringWriter errors = new StringWriter();
-        e.printStackTrace(new PrintWriter(errors));
-        
-        throw new HandlerException(errors.toString());
-	}
 }
