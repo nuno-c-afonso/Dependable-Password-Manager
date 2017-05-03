@@ -1,0 +1,174 @@
+package pt.tecnico.sec.dpm.broadcastClient;
+import java.io.IOException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.util.Arrays;
+import java.util.InputMismatchException;
+import java.util.Scanner;
+
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.AlreadyInitializedException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.ConnectionWasClosedException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.GivenAliasNotFoundException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.HandlerException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.NotInitializedException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.NullClientArgException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.NullKeystoreElementException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.UnregisteredUserException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.WrongNonceException;
+import pt.tecnico.sec.dpm.broadcastClient.exceptions.WrongPasswordException;
+import pt.tecnico.sec.dpm.security.exceptions.SigningException;
+import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
+import pt.tecnico.sec.dpm.server.KeyConversionException_Exception;
+import pt.tecnico.sec.dpm.server.NoPasswordException_Exception;
+import pt.tecnico.sec.dpm.server.NoPublicKeyException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInUseException_Exception;
+import pt.tecnico.sec.dpm.server.PublicKeyInvalidSizeException_Exception;
+import pt.tecnico.sec.dpm.server.SessionNotFoundException_Exception;
+import pt.tecnico.sec.dpm.server.SigningException_Exception;
+import pt.tecnico.sec.dpm.server.WrongSignatureException_Exception;
+
+//import pt.tecnico.sec.dpm.client.DpmClient;
+
+
+public class ClientApplication{
+	public static void main(String[] args) throws Exception{
+		KeyStore keystore = null;
+		
+		// Check arguments
+		if (args.length < 2) {
+			System.err.println("Argument missing!");
+			System.err.printf("Usage: java %s wsURL wsURL ... wsURL nrFaults%n", ClientApplication.class.getName());
+			return;
+		}
+		
+		int argsSize = args.length;
+		int nFaults = Integer.parseInt(args[argsSize - 1]);
+		String urls[] = Arrays.copyOfRange(args, 0, argsSize - 1);
+		
+        try {
+        	keystore = KeyStore.getInstance("jceks");
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		}
+        
+        java.io.FileInputStream file = null;
+        char[] passwordFile = "ins3cur3".toCharArray();
+        try {
+        	file = new java.io.FileInputStream("../keys/client/client.jks");
+			keystore.load(file,passwordFile);
+		} catch (NoSuchAlgorithmException e1) {	e1.printStackTrace();
+		} catch (CertificateException e1) { e1.printStackTrace();
+		} catch (IOException e1) { e1.printStackTrace();
+		} finally {
+	        if (file != null) {
+	            try {
+					file.close();
+				} catch (IOException e) { e.printStackTrace();}
+	        }
+	    }		
+		
+		BroadcastClient client = new BroadcastClient(urls, nFaults);
+		Scanner scanner = new Scanner(System.in);
+		
+		try {
+			client.init(keystore, "ins3cur3".toCharArray(),"client", "secretKey", "1nsecure".toCharArray());
+			
+			boolean cont = true;
+			while(cont) {
+				System.out.println("Please select the desired option:");
+				System.out.println("1 - Register user;");
+				System.out.println("2 - Save password;");
+				System.out.println("3 - Retrieve password;");
+				System.out.println("4 - Close.");
+				System.out.print("> ");
+				
+				int option = -1;
+				
+				try {
+					option = scanner.nextInt();
+				} catch(InputMismatchException e) {
+					// It will be treated on the default case
+					scanner.next(); // It cleans the input
+				}
+				
+				String domain, username, password;				
+				switch(option) {
+					case 1:
+					try {
+						client.register_user();
+					} catch (HandlerException | SigningException | KeyConversionException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception | WrongSignatureException
+							| NoPublicKeyException_Exception | WrongNonceException e) {
+						System.out.println(e.getMessage());
+					}
+						break;
+					case 2:
+						System.out.print("Domain: ");
+						domain = scanner.next();
+						System.out.print("Username: ");
+						username = scanner.next();
+						System.out.print("Password: ");
+						password = scanner.next();
+					try {
+						client.save_password(domain.getBytes(), username.getBytes(), password.getBytes());
+					} catch (NullClientArgException | UnregisteredUserException e1) {
+						System.out.println(e1.getMessage());
+					} catch (HandlerException | SigningException | KeyConversionException_Exception
+							| SessionNotFoundException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception | WrongSignatureException e) {
+						System.out.println(e.getMessage());
+					}
+						break;
+					case 3:
+						System.out.print("Domain: ");
+						domain = scanner.next();
+						System.out.print("Username: ");
+						username = scanner.next();
+					try {
+						password = new String(client.retrieve_password(domain.getBytes(), username.getBytes()));
+						System.out.println("Recovered password: " + password);
+					} catch (NoPasswordException_Exception | NullClientArgException | UnregisteredUserException |
+							SigningException | KeyConversionException_Exception
+							| SessionNotFoundException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception | WrongSignatureException e) {
+						System.out.println(e.getMessage());
+					} catch (HandlerException e) {
+						System.out.println(e.getMessage());
+					}
+						break;
+					case 4:
+						cont = false;
+						break;
+					default:
+						System.out.println("Cannot recognize it. Please try again.");
+						break;
+				}
+			}
+			
+		} catch (AlreadyInitializedException | NullKeystoreElementException | GivenAliasNotFoundException
+				| WrongPasswordException | NotInitializedException | PublicKeyInvalidSizeException_Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ConnectionWasClosedException e) {
+			System.out.println("Could not reach the server. Please try again later.");
+		}
+		
+		scanner.close();
+		
+		try {
+			System.out.println("Goodbye.");
+			client.close();
+		} catch (NotInitializedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}	
+}
+	
+
+
+
+
+
