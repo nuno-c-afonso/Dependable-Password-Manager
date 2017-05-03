@@ -142,7 +142,7 @@ public class APIImpl implements API {
 	}
 
 	@Override
-	public byte[] put(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig, byte[] sig)
+	public byte[] put(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig, int counter, byte[] sig)
 			throws NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {		
 		
 		if(deviceID == null || nonce == null || domain == null || username == null || password == null || bdSig == null || sig == null)
@@ -167,6 +167,12 @@ public class APIImpl implements API {
 			
 			// Checks message signature
 			matchingCounter = sessionCounters.get(deviceIDStr).get(nonceStr) + 1;
+			
+			if(counter < matchingCounter)
+				throw new WrongSignatureException();
+			
+			matchingCounter = counter;
+			
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
 			SecurityFunctions.checkSignature(pubKey,
 					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + matchingCounter).getBytes(),
@@ -218,7 +224,7 @@ public class APIImpl implements API {
 	
 	// FIXME: Use locks for the counters!!!
 	@Override
-	public List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] sig)
+	public List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, int counter, byte[] sig)
 			throws NoPasswordException, NullArgException, SessionNotFoundException,
 			KeyConversionException, WrongSignatureException, SigningException {		
 		
@@ -240,6 +246,12 @@ public class APIImpl implements API {
 				throw new SessionNotFoundException();
 			
 			matchingCounter = sessionCounters.get(deviceIDStr).get(nonceStr) + 1;
+			
+			if(counter < matchingCounter)
+				throw new WrongSignatureException();
+			
+			matchingCounter = counter;
+			
 			PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);			
 			SecurityFunctions.checkSignature(pubKey, SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
 					("" + matchingCounter).getBytes(), domain, username), sig);

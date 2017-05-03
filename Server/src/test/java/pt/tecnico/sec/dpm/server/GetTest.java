@@ -245,29 +245,29 @@ public class GetTest {
     			concatByteArrays("get".getBytes(),  deviceId, nonce, "2".getBytes(), DOMAIN, USERNAME));
     	
     	//call function to get
-    	List<Object> password = APIImplTest.get(deviceId, nonce, DOMAIN, USERNAME, sig);
+    	List<Object> password = APIImplTest.get(deviceId, nonce, DOMAIN, USERNAME, 2, sig);
     	assert(password != null);
     	assertArrayEquals((byte[]) password.get(0), PASSWORD);
     }
     
     @Test(expected = NullArgException.class)
     public void nullSignature() throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException  {    	
-    	APIImplTest.get(deviceId, nonce, DOMAIN, USERNAME, null);
+    	APIImplTest.get(deviceId, nonce, DOMAIN, USERNAME, -1, null);
     }
     
     @Test(expected = NullArgException.class)
     public void bullArgs() throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException  {
-    	APIImplTest.get(deviceId, nonce, null, null, "something".getBytes());
+    	APIImplTest.get(deviceId, nonce, null, null, 1, "something".getBytes());
     }
     
     @Test(expected = NullArgException.class)
     public void nullDomain() throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException  {
-    	APIImplTest.get(deviceId, nonce, null, USERNAME, "something".getBytes());    	
+    	APIImplTest.get(deviceId, nonce, null, USERNAME, -1, "something".getBytes());    	
     }
     
     @Test(expected = NullArgException.class)
     public void nullUsername () throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException  {
-    	APIImplTest.get(deviceId, nonce, DOMAIN, null, "something".getBytes());    	
+    	APIImplTest.get(deviceId, nonce, DOMAIN, null, -1, "something".getBytes());    	
     }
     
     @Test(expected = SessionNotFoundException.class)
@@ -275,11 +275,11 @@ public class GetTest {
     	byte[] sig = SecurityFunctions.makeDigitalSignature(client,
     			concatByteArrays("get".getBytes(),  "0".getBytes(), nonce, "2".getBytes(), DOMAIN, USERNAME));
     	
-    	APIImplTest.get("0".getBytes(), nonce, DOMAIN, USERNAME, sig);
+    	APIImplTest.get("0".getBytes(), nonce, DOMAIN, USERNAME, 2, sig);
     }
     
     @Test(expected = WrongSignatureException.class)
     public void badlySigned () throws NoPasswordException, NullArgException, NoPublicKeyException, SigningException, SessionNotFoundException, KeyConversionException, WrongSignatureException {    	
-    	APIImplTest.get(deviceId, nonce, DOMAIN, USERNAME, "fake".getBytes());
+    	APIImplTest.get(deviceId, nonce, DOMAIN, USERNAME, 2, "fake".getBytes());
     }
 }

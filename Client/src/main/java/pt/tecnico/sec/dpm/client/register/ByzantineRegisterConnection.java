@@ -138,8 +138,7 @@ public class ByzantineRegisterConnection {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (WrongSignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Wrong signature check on the Login!");
 			} catch (WebServiceException e) {
 				if(!connectionWasClosed(e))
 					throw e;
@@ -160,6 +159,8 @@ public class ByzantineRegisterConnection {
 			throw new UnregisteredUserException();
 		
 		int tmpCounter = counter + 1;
+		counter += 2;
+		
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
 				SecurityFunctions.concatByteArrays("put".getBytes(),
 						deviceID,
@@ -168,13 +169,11 @@ public class ByzantineRegisterConnection {
 						cDomain, cUsername, cPassword, ("" + wTS).getBytes(), bdSig));
 		
 		try {
-			sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, bdSig, sig);
+			sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, bdSig, tmpCounter, sig);
 			
 			tmpCounter++;
 			SecurityFunctions.checkSignature(cert.getPublicKey(),
 					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes()), sig);
-			
-			counter = tmpCounter;
 		} catch (WebServiceException e) {
 			if(!connectionWasClosed(e))
 				throw e;
@@ -194,11 +193,13 @@ public class ByzantineRegisterConnection {
 			throw new UnregisteredUserException();
 				
 		int tmpCounter = counter + 1;
+		counter += 2;
+		
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
 				SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes(), domain, username));
 		
 		try {
-			List<Object> result = port.get(deviceID, nonce, domain, username, sig);
+			List<Object> result = port.get(deviceID, nonce, domain, username, tmpCounter, sig);
 			
 			// Parsing the server result
 			byte[] retrivedPassword = (byte[]) result.get(0);
@@ -214,8 +215,6 @@ public class ByzantineRegisterConnection {
 					SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
 							("" + tmpCounter).getBytes(), retrivedPassword, ("" + wTS).getBytes(), deviceIDWr, clientSig),
 					sig);
-			
-			counter = tmpCounter;
 			
 			result = new ArrayList<Object>();
 			result.add(retrivedPassword);

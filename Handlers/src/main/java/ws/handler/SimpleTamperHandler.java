@@ -6,6 +6,7 @@ import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.Set;
 
 import javax.xml.namespace.QName;
@@ -34,15 +35,11 @@ public class SimpleTamperHandler implements SOAPHandler<SOAPMessageContext> {
 											  "fF3t2GaD8p/ma1VsJQqCxO/HAJmaBhfGgd2X4lp1EubQtZWonplFi3zIDZv5p2ST" +
 											  "AWdIlSd1dsoMfp9mv+kECW5dDhQQi7u8JEHO1Rk9o0b0NyAVIQ0IiEfHkhcG8jvy" +
 											  "WlnVA7mJND25vAYzjEe4/QIDAQAB";
+	Random rn = new Random();
 	
 	@Override
 	public boolean handleMessage(SOAPMessageContext context) {
-		Boolean outboundElement = (Boolean) context.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
-		 if(outboundElement.booleanValue()) {
-			 return handleRequest(context);
-		 }
-		 else
-			 return handleResponse(context);
+		 return handleRequest(context);
 	}
 
 	private boolean handleResponse(SOAPMessageContext context) {
@@ -51,31 +48,55 @@ public class SimpleTamperHandler implements SOAPHandler<SOAPMessageContext> {
 	}
 
 	private boolean handleRequest(SOAPMessageContext context) {
-    	try {
-    		
-    		//Dissecate the message
-    		SOAPMessageContext smc = (SOAPMessageContext) context;
-    		SOAPMessage msg = smc.getMessage();
-    		SOAPPart sp = msg.getSOAPPart();
-    		SOAPEnvelope se = sp.getEnvelope();
-    		SOAPBody sb = se.getBody();
-    		SOAPHeader sh = se.getHeader();
-    		
-    		SOAPElement method =(SOAPElement) sb.getFirstChild();
-    		Name key = se.createName("arg0");
-            Iterator it =method.getChildElements(key);
-            if (!it.hasNext()) {
-            	System.out.println("nao encontra o key");
-                return false;
-            } 
-            
-            //get the client PUBLIC KEY from the message
-            SOAPElement pubkey = (SOAPElement) it.next();
-            pubkey.setValue(ATTACKER_KEY);
-    		
-    	} catch(Exception e){
-    		System.out.println(e);
-    	}
+				
+		int i = Math.abs(rn.nextInt()) % 10;
+
+		try {
+	    		
+	    		//Dissecate the message
+	    		SOAPMessageContext smc = (SOAPMessageContext) context;
+	    		SOAPMessage msg = smc.getMessage();
+	    		SOAPPart sp = msg.getSOAPPart();
+	    		SOAPEnvelope se = sp.getEnvelope();
+	    		SOAPBody sb = se.getBody();
+	    		SOAPHeader sh = se.getHeader();
+	    		
+	    		
+	    		//register
+	    		//register(publicKey, {"register"}CPriv)
+	    		Name registerRequeste = se.createName("register","ns2","http://server.dpm.sec.tecnico.pt/");
+	    		Iterator itr = sb.getChildElements(registerRequeste);
+	    		if (itr.hasNext() &&  i < 2) {
+	        		SOAPElement method = (SOAPElement) sb.getFirstChild();
+	        		Name key = se.createName("arg0");
+	             Iterator it = method.getChildElements(key);
+	    			SOAPElement pubkey = (SOAPElement) it.next();
+	             pubkey.setValue(ATTACKER_KEY);
+	             return true;
+	    		}
+	    		
+	    		//login
+	    		//login(publicKey, deviceID, nonce, {"login" || publicKey || deviceID || nonce}CPriv)
+	    		Name loginRequeste = se.createName("login","ns2","http://server.dpm.sec.tecnico.pt/");
+	    		itr =sb.getChildElements(loginRequeste);
+	    		if (itr.hasNext() &&  i < 2) {
+	        		SOAPElement method = (SOAPElement) sb.getFirstChild();
+	        		Name key = se.createName("arg0");
+	             Iterator it = method.getChildElements(key);
+	    			SOAPElement pubkey = (SOAPElement) it.next();
+	             pubkey.setValue(ATTACKER_KEY);
+	             return true;
+	    		}
+	    		
+	    		
+	            
+	            //get the client PUBLIC KEY from the message
+	            
+	    		return true;
+	    	} catch(Exception e){
+	    		System.out.println(e);
+	    	}    
+		
     	
     	return true;
 	}
