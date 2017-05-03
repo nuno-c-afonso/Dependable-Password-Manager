@@ -356,9 +356,9 @@ public abstract class Writer {
     
     public byte[] get(byte[] domain, byte[] username) throws Exception {
     	List<Object> result = protGet(domain, username);
-    	writeTS = (int) result.get(1);
+    	writeTS = (int) result.get(2);
     	
-    	return (byte[]) result.get(0);
+    	return (byte[]) result.get(1);
     }
     
     // Available for the atomic (N,N)
@@ -404,8 +404,8 @@ public abstract class Writer {
     	
     	List<Object> newestTS = recoverNewestWrite(ackList);
 		
-    	byte[] retrivedPassword = (byte[]) newestTS.get(0);
-    	newestTS.set(0, decipherWithSymmetric(symmetricKey,retrivedPassword, iv));
+    	byte[] retrivedPassword = (byte[]) newestTS.get(1);
+    	newestTS.set(1, decipherWithSymmetric(symmetricKey,retrivedPassword, iv));
 		
 		return newestTS;
     }
@@ -452,6 +452,7 @@ public abstract class Writer {
 				SecurityFunctions.checkSignature(publicKey, expectedSig, clientSig);
 				
 				res = new ArrayList<Object>();
+				res.add(deviceIDWr);
 				res.add(retrivedPassword);
 				res.add(wTS);
 				
@@ -574,8 +575,10 @@ public abstract class Writer {
     	
     	int nAcks = ackList.size();
     	for(int i = 1; i < nAcks; i++)
-    		// The second entry is the write TS
-    		if((int) result.get(1) < (int) ackList.get(i).get(1))
+    		// The third entry is the write TS
+    		if((int) result.get(2) < (int) ackList.get(i).get(2)
+    				|| (int) result.get(2) == (int) ackList.get(i).get(2) &&
+    						Base64.getEncoder().encodeToString((byte[])ackList.get(i).get(0)).compareTo(Base64.getEncoder().encodeToString((byte[])result.get(0))) > 0)
     			result = ackList.get(i);
     		
     	return result;

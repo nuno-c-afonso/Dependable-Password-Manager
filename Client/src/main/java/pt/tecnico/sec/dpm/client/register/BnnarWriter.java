@@ -13,7 +13,7 @@ public class BnnarWriter extends BonarWriter {
 	public void put(byte[] domain, byte[] username, byte[] password) throws Exception {		
 		try {
 			List<Object> read = protGet(domain, username);
-			put(domain, username, password, (int) read.get(1) + 1);
+			put(domain, username, password, (int) read.get(2) + 1);
 		} catch(NoPasswordException_Exception e) {
 			put(domain, username, password, 1);
 		}
