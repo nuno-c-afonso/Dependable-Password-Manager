@@ -1,4 +1,4 @@
-package pt.tecnico.sec.dpm.server.db;
+package pt.tecnico.sec.dpm.broadcastServer.db;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import pt.tecnico.sec.dpm.server.exceptions.*;
+import pt.tecnico.sec.dpm.broadcastServer.exceptions.*;
 
 public class DPMDB extends DBManager {
 	private static final String DB_URL = "jdbc:mysql://localhost:3306/sec_dpm";

@@ -1,5 +1,8 @@
 package pt.tecnico.sec.dpm.server;
 
+import pt.tecnico.sec.dpm.server.broadcast.BroadcastAPI;
+import pt.tecnico.sec.dpm.server.broadcast.BroadcastServer;
+import pt.tecnico.sec.dpm.server.broadcast.SignedEchoBroadcast;
 import pt.tecnico.sec.dpm.server.db.*;
 import pt.tecnico.sec.dpm.server.exceptions.*;
 import pt.tecnico.sec.dpm.security.*;
@@ -14,6 +17,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -30,6 +35,7 @@ import java.util.List;
 
 import javax.jws.HandlerChain;
 import javax.jws.WebService;
+import javax.xml.ws.Endpoint;
 
 @WebService(endpointInterface = "pt.tecnico.sec.dpm.server.API")
 @HandlerChain(file = "/handler-chain.xml")
@@ -41,17 +47,34 @@ public class APIImpl implements API {
 	private String url = null;
 	private PrivateKey privKey = null;
 	private HashMap<String, HashMap<String, Integer>> sessionCounters = null;
+	private List<String> serverUrls;
+	private Endpoint endpoint;
 	
 	// For testing purposes
 	public APIImpl(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
 		init(url, keystorePass, keyPass);
-		dbMan = new DPMDB();
+		dbMan = new DPMDB();		
 	}
 	
 	// For the byzantine servers
-	public APIImpl(String url, char[] keystorePass, char[] keyPass, int index) throws NullArgException {
+	public APIImpl(String url, char[] keystorePass, char[] keyPass, int index, List<String> serverUrls) throws NullArgException {
 		init(url, keystorePass, keyPass);
+		this.serverUrls = serverUrls;
 		dbMan = new DPMDB(index);
+		
+		// Creates the entrypoint for the other servers to send the broadcast
+		endpoint = Endpoint.create(new BroadcastServer(dbMan));
+		URL toBroadcast = null;
+		try {
+			toBroadcast = new URL(url);
+			toBroadcast = new URL(toBroadcast.getProtocol(), toBroadcast.getHost(), 20000 + index, "/ws.API/broadcast");
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		System.out.printf("Starting broadcast service at %s%n", toBroadcast.toString());
+		endpoint.publish(toBroadcast.toString());
 	}
 	
 	private void init(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
@@ -149,13 +172,16 @@ public class APIImpl implements API {
 					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + matchingCounter).getBytes(),
 							domain, username, password, ("" + wTs).getBytes(), bdSig),
 					sig);
-			
+			/*
 			// Checks the DB signature
 			SecurityFunctions.checkSignature(pubKey,
 					SecurityFunctions.concatByteArrays(deviceID, domain, username, password, ("" + wTs).getBytes()),
 					bdSig);
 			
 			dbMan.put(pubKey.getEncoded(), deviceID, domain, username, password, wTs, bdSig);
+			*/
+			
+			put(deviceID, domain, username, password, wTs, bdSig);
 		} catch (ConnectionClosedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -170,6 +196,27 @@ public class APIImpl implements API {
 		return serverSig;
 	}
 	
+	private boolean put(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig) 
+			throws WrongSignatureException, KeyConversionException, SessionNotFoundException, ConnectionClosedException {	
+	
+		byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
+					
+		PublicKey pubKey = SecurityFunctions.byteArrayToPubKey(publicKey);
+		
+		// Checks the DB signature
+		SecurityFunctions.checkSignature(pubKey,
+				SecurityFunctions.concatByteArrays(deviceID, domain, username, password, ("" + wTs).getBytes()),
+				bdSig);
+		
+		boolean result = dbMan.put(pubKey.getEncoded(), deviceID, domain, username, password, wTs, bdSig);	
+		System.out.println(result);
+		
+		return result;
+	}
+	
+	
+	
+	// FIXME: Use locks for the counters!!!
 	@Override
 	public List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] sig)
 			throws NoPasswordException, NullArgException, SessionNotFoundException,
@@ -225,6 +272,10 @@ public class APIImpl implements API {
 	public void close() {
 		dbMan.close();		
 		privKey = null;
+		
+		if(endpoint != null)
+			endpoint.stop();
+		endpoint = null;
 	}
 		
 	private void retrievePrivateKey(char[] keystorePass, char[] keyPass) {
