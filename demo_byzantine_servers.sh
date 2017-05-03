@@ -45,7 +45,7 @@ fi
 read -s -p "What's the MySQL's root password? " password
 
 i=0
-cmd="client"
+server_lst=""
 while [ $i -lt $n_servers ]
 do
   # Creates the different databases
@@ -55,13 +55,13 @@ do
 
   # Needed for generating the keystores
   let "tmp_port=$port+$i"
-  cmd="$cmd http://$ip:$tmp_port/ws.API/endpoint"
+  server_lst="$server_lst http://$ip:$tmp_port/ws.API/endpoint"
   let "i++"
 done
 
 # Creates the keystores for all the entities
 rm -rf keys
-./gen_keys.sh $cmd
+./gen_keys.sh "client $server_lst"
 
 # Starts the server instances in new terminal windows
 i=0
@@ -73,3 +73,9 @@ do
     -e "cd Server; mvn exec:java -Dws.url=$url -Dexec.args=\"$url $i\"" &
   let "i++"
 done
+
+# Starts a client instance in the current terminal
+sleep 10
+cd Client
+mvn clean compile exec:java -Dws.url="http://$ip:$port/ws.API/endpoint" -Dexec.args="$server_lst $n_faults"
+cd ..

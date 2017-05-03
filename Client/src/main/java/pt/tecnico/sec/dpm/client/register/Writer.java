@@ -395,11 +395,7 @@ public abstract class Writer {
     			cont  = ackList.size() <= numberOfResponses;
     		}
     	}
-		
-    	// TODO: If there is a MITM, this operation may not end!!!
-    	// TODO: Try to contact the problematic response again!!!
-    	// TODO: Maybe have a global variable that say that it should continue trying!!!
-    	
+		    	
     	List<Object> newestTS = recoverNewestWrite(ackList);
 		
     	byte[] retrivedPassword = (byte[]) newestTS.get(1);

@@ -220,9 +220,6 @@ public class APIImpl implements API {
 		return result;
 	}
 	
-	
-	
-	// FIXME: Use locks for the counters!!!
 	@Override
 	public List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, int counter, byte[] sig)
 			throws NoPasswordException, NullArgException, SessionNotFoundException,
