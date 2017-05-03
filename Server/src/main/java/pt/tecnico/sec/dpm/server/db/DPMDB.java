@@ -122,8 +122,10 @@ public class DPMDB extends DBManager {
 	
 	// Gets the user's public key for a specific function
 	public byte[] pubKeyFromDeviceID(byte[] deviceID) throws SessionNotFoundException, ConnectionClosedException {
-		String q = "SELECT U.publickey FROM users as U, devices AS D WHERE D.deviceID = ? AND D.userID = U.id";
+		String q = "SELECT users.publickey FROM users, devices WHERE devices.deviceID = ? AND devices.userID = users.id";
 		byte[] result = null;
+		
+		lock("users", "READ", "devices", "READ");
 		
 		try {
 			PreparedStatement p = getConnection().prepareStatement(q);
@@ -131,12 +133,14 @@ public class DPMDB extends DBManager {
 			ResultSet rs = select(p);
 			result = rs.getBytes(1);
 		} catch (NoResultException e) {
+			unlock();
 			throw new SessionNotFoundException();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		unlock();
 		return result;
 	}
 	
@@ -191,26 +195,49 @@ public class DPMDB extends DBManager {
 			NoResultException {
 		
 		final int RES_LEN = 4; 
-		String q = "SELECT P.password, P.tmstamp, D.deviceID, P.signature "
-				     + "FROM users AS U, devices AS D, passwords AS P "
-				     + "WHERE U.publickey = ? AND U.id = D.userID AND D.id = P.deviceID "
-				     	+ "AND P.domain = ? AND P.username = ? "
-				     + "HAVING P.tmstamp >= ALL("
-				     	+ "SELECT PW.tmstamp "
-				     	+ "FROM users AS US, devices AS DS, passwords AS PW "
-				     	+ "WHERE US.publickey = ? AND US.id = DS.userID AND DS.id = PW.deviceID "
-				     		+ "AND PW.domain = ? AND PW.username = ?)";
+		String qTS = "SELECT P.tmstamp "
+						+ "FROM users AS U, devices AS D, passwords AS P "
+						+ "WHERE U.publickey = ? AND U.id = D.userID AND D.id = P.deviceID "
+				     		+ "AND P.domain = ? AND P.username = ? "
+				     	+ "HAVING P.tmstamp >= ALL("
+				     		+ "SELECT PW.tmstamp "
+				     		+ "FROM users AS US, devices AS DS, passwords AS PW "
+				     		+ "WHERE US.publickey = ? AND US.id = DS.userID AND DS.id = PW.deviceID "
+				     			+ "AND PW.domain = ? AND PW.username = ?)";
+		
+		String qHighestDeviceID = "SELECT P.password, P.tmstamp, D.deviceID, P.signature "
+			     					+ "FROM users AS U, devices AS D, passwords AS P "
+			     					+ "WHERE U.publickey = ? AND U.id = D.userID AND D.id = P.deviceID "
+			     						+ "AND P.domain = ? AND P.username = ? AND P.tmstamp = ? "
+			     					+ "HAVING D.deviceID >= ALL("
+			     						+ "SELECT D.deviceID "
+			     						+ "FROM users AS US, devices AS DS, passwords AS PW "
+			     						+ "WHERE US.publickey = ? AND US.id = DS.userID AND DS.id = PW.deviceID "
+			     							+ "AND PW.domain = ? AND PW.username = ? AND PW.tmstamp = ?)";
 		
 		ArrayList<byte[]> lst = toArrayList(pubKey, domain, username, pubKey, domain, username);
 		List<Object> res = null;
 		
 		try {
-			PreparedStatement p = createStatement(q, lst);			
+			PreparedStatement p = createStatement(qTS, lst);			
 			ResultSet returned = select(p);
+			int ts = returned.getInt(1);
+			
+			p = getConnection().prepareStatement(qHighestDeviceID);
+			p.setBytes(1, pubKey);
+			p.setBytes(2, domain);
+			p.setBytes(3, username);
+			p.setInt(4, ts);
+			p.setBytes(5, pubKey);
+			p.setBytes(6, domain);
+			p.setBytes(7, username);
+			p.setInt(8, ts);
+			returned = select(p);
 			
 			res = new ArrayList<Object>();
 			for(int i = 0; i < RES_LEN; i++)
 				res.add(returned.getObject(i + 1));
+			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
