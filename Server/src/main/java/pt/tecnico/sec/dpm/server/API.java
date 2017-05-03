@@ -19,17 +19,16 @@ public interface API {
 	PublicKeyInvalidSizeException, KeyConversionException, WrongSignatureException, SigningException;
 	
 	// The return will have: byte[] with {"login" || deviceID || nonce || 1}SPriv
-	// TODO: Add the corresponding last get!!!
 	byte[] login(byte[] publicKey, byte[] deviceID, byte[] nonce, byte[] sig) throws SigningException,
 	KeyConversionException, WrongSignatureException, NullArgException, NoPublicKeyException, DuplicatedNonceException;
 	
 	// The return will have: byte[] with {"put" || deviceID || nonce || counter + 1}SPriv
-	byte[] put(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig, byte[] sig)
+	byte[] put(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig, int counter, byte[] sig)
 			throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException;
 	
 	// The return will have: password, w_ts, deviceID_wr, XXX,
 	// {"get" || deviceID || nonce || counter + 1 || password || w_ts || deviceID_wr, XXX}SPriv
-	List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, byte[] sig)
+	List<Object> get(byte[] deviceID, byte[] nonce, byte[] domain, byte[] username, int counter, byte[] sig)
 			throws NoPasswordException, NullArgException, NoPublicKeyException, SessionNotFoundException, KeyConversionException,
 			WrongSignatureException, SigningException;
 }

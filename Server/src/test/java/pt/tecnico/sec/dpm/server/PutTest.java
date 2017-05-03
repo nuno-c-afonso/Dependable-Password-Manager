@@ -207,7 +207,7 @@ public class PutTest {
     			concatByteArrays("put".getBytes(), deviceId, nonce, ("2").getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes(), bdSig));
     	
     	//call Put
-    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, sig);
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, 2, sig);
     	
     	String queryGetPassword = "SELECT password "
 	              + "FROM passwords "
@@ -243,7 +243,7 @@ public class PutTest {
     			concatByteArrays("put".getBytes(), deviceId, nonce, ("2").getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes(), bdSig));
     	
     	//Insert Password
-    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, sig);
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, 2, sig);
     	
     	//Update Password
     	bdSig = SecurityFunctions.makeDigitalSignature(client,
@@ -252,7 +252,7 @@ public class PutTest {
     	sig = SecurityFunctions.makeDigitalSignature(client,
     			concatByteArrays("put".getBytes(), deviceId, nonce, ("4").getBytes(), DOMAIN, USERNAME, NEWPASS, ("" + 1).getBytes(), bdSig));
     	
-    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, NEWPASS, 1, bdSig, sig);
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, NEWPASS, 1, bdSig, 4, sig);
     	
     	String queryGetPassword = "SELECT password "
 	              + "FROM passwords "
@@ -286,21 +286,21 @@ public class PutTest {
         byte[] sig = SecurityFunctions.makeDigitalSignature(client,
     			concatByteArrays("put".getBytes(), deviceId, nonce, ("2").getBytes(), DOMAIN, USERNAME, PASSWORD, ("" + 0).getBytes(), bdSig));
         
-    	APIImplTest.put("0".getBytes(), nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, sig);
+    	APIImplTest.put("0".getBytes(), nonce, DOMAIN, USERNAME, PASSWORD, 0, bdSig, 2, sig);
     }
     
     @Test(expected = NullArgException.class)
     public void nullDomain() throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
-    	APIImplTest.put(deviceId, nonce, null, USERNAME, PASSWORD, 0, "something".getBytes(), "something".getBytes());
+    	APIImplTest.put(deviceId, nonce, null, USERNAME, PASSWORD, 0, "something".getBytes(), -1, "something".getBytes());
     }
     
     @Test(expected = NullArgException.class)
     public void nullUsername() throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
-    	APIImplTest.put(deviceId, nonce, DOMAIN, null, PASSWORD, 0, "something".getBytes(), "something".getBytes());
+    	APIImplTest.put(deviceId, nonce, DOMAIN, null, PASSWORD, 0, "something".getBytes(), -1, "something".getBytes());
     }
     
     @Test(expected = NullArgException.class)
     public void nullPassword() throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, WrongSignatureException, SigningException {
-    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, null, 0, "something".getBytes(), "something".getBytes());
+    	APIImplTest.put(deviceId, nonce, DOMAIN, USERNAME, null, 0, "something".getBytes(), -1, "something".getBytes());
     }
 }
