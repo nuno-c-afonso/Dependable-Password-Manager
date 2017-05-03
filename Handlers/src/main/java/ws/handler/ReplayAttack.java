@@ -1,6 +1,7 @@
 package ws.handler;
 
 import java.util.Iterator;
+import java.util.Random;
 import java.util.Set;
 
 import javax.xml.namespace.QName;
@@ -33,7 +34,7 @@ import javax.xml.ws.soap.SOAPFaultException;
 public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
 
     public static final String CONTEXT_PROPERTY = "my.property";
-
+    Random rn = new Random();
     int n=0;
     SOAPMessage putMessageToRepeat=null;
     SOAPHeader putShToRepeat=null;
@@ -45,14 +46,9 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
     }
 
     public boolean handleMessage(SOAPMessageContext smc) {
-
-    
-        Boolean outboundElement = (Boolean) smc
-                .get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
         	
 
         try {
-            if (!outboundElement.booleanValue()) {
         		SOAPMessage msg = smc.getMessage();
         		SOAPPart sp = msg.getSOAPPart();
         		SOAPEnvelope se = sp.getEnvelope();
@@ -60,10 +56,7 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
         		SOAPHeader sh = se.getHeader();
         		//requestJobResponse
         		
-        		//ns2:put xmlns:ns2="http://server.dpm.sec.tecnico.pt/
-        		
-        		
-        		
+     		
         		Name RegisterRequeste = se.createName("register","ns2","http://server.dpm.sec.tecnico.pt/");
         		Iterator it =sb.getChildElements(RegisterRequeste);
         		if (it.hasNext()) {
@@ -72,11 +65,10 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
                 }
         		
         		SOAPFault fault =sb.getFault();
-
-
-            	
+     	
             	n++;
       		 		
+            	int i = Math.abs(rn.nextInt()) % 10;
      		
         		Name putRequeste = se.createName("put","ns2","http://server.dpm.sec.tecnico.pt/");
         		it =sb.getChildElements(putRequeste);
@@ -88,21 +80,22 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
             			n=0;
             			return true;
             		}
-                	
-                	System.out.println("start repeating");
-           			SOAPPart sp1 = putMessageToRepeat.getSOAPPart();
-            		SOAPEnvelope se1 = sp1.getEnvelope();
-            		if(se1.getHeader()==null){
-            			System.out.println("\n3\n");
-            			SOAPHeader sh1 = se1.addHeader();
-            			Iterator it1 =putShToRepeat.getChildElements();
-            			while(it1.hasNext())
-            				sh1.appendChild((SOAPElement) it1.next());        			 
-            		}
-            		
-            		smc.setMessage(putMessageToRepeat);
-            		msg=smc.getMessage();
-       			
+                	if (i>2){
+	                	System.out.println("start repeating");
+	           			SOAPPart sp1 = putMessageToRepeat.getSOAPPart();
+	            		SOAPEnvelope se1 = sp1.getEnvelope();
+	            		if(se1.getHeader()==null){
+	            			System.out.println("\n3\n");
+	            			SOAPHeader sh1 = se1.addHeader();
+	            			Iterator it1 =putShToRepeat.getChildElements();
+	            			while(it1.hasNext())
+	            				sh1.appendChild((SOAPElement) it1.next());        			 
+	            		}
+	            		
+	            		smc.setMessage(putMessageToRepeat);
+	            		msg=smc.getMessage();
+	            		return true;
+                	}
         			
         			return true;
                 }
@@ -118,66 +111,35 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
             			return true;
             		}
         			
-                	
-                	System.out.println("start repeating get");
-           			SOAPPart sp1 = getMessageToRepeat.getSOAPPart();
-            		SOAPEnvelope se1 = sp1.getEnvelope();
-            		if(se1.getHeader()==null){
-            			System.out.println("\n3\n");
-            			SOAPHeader sh1 = se1.addHeader();
-            			Iterator it1 =getShToRepeat.getChildElements();
-            			while(it1.hasNext())
-            				sh1.appendChild((SOAPElement) it1.next());        			 
-            		}
-            		
-            		smc.setMessage(getMessageToRepeat);
-            		msg=smc.getMessage();
-        			
-                    return true;
+                	if (i>2){
+	                	System.out.println("start repeating get");
+	           			SOAPPart sp1 = getMessageToRepeat.getSOAPPart();
+	            		SOAPEnvelope se1 = sp1.getEnvelope();
+	            		if(se1.getHeader()==null){
+	            			System.out.println("\n3\n");
+	            			SOAPHeader sh1 = se1.addHeader();
+	            			Iterator it1 =getShToRepeat.getChildElements();
+	            			while(it1.hasNext())
+	            				sh1.appendChild((SOAPElement) it1.next());        			 
+	            		}
+	            		
+	            		smc.setMessage(getMessageToRepeat);
+	            		msg=smc.getMessage();
+	            		return true;
+                	}
+                  
+                	return true;
         		}
 
-            	
-           /* 	
-        		System.out.println("start repeating");
-       			SOAPPart sp1 = putMessageToRepeat.getSOAPPart();
-        		SOAPEnvelope se1 = sp1.getEnvelope();
-        		if(se1.getHeader()==null){
-        			System.out.println("\n3\n");
-        			SOAPHeader sh1 = se1.addHeader();
-        			Iterator it1 =putShToRepeat.getChildElements();
-        			while(it1.hasNext())
-        				sh1.appendChild((SOAPElement) it1.next());        			 
-        		}
         		
-            		
-        		
-        		System.out.println(msg.getSOAPPart().getEnvelope().getBody().getTextContent());
-        		smc.setMessage(putMessageToRepeat);
-        		msg=smc.getMessage();
-        		System.out.println(msg.getSOAPPart().getEnvelope().getBody().getTextContent());
-        		System.out.println("message repeted");
-        		System.out.println("\n");
-        		return true;*/
-        		
-            }
+            
             return true;
         } catch (Exception e) {}
         return true;
     }
 
     public boolean handleFault(SOAPMessageContext smc) {
-       /* System.out.println("handling fault on Replay Attack handler");
-        SOAPBody sb=null;
-        SOAPFault fault;
-        try{
-	        SOAPMessage msg = smc.getMessage();
-			SOAPPart sp = msg.getSOAPPart();
-			SOAPEnvelope se = sp.getEnvelope();
-			sb = se.getBody();
-        }catch(Exception e){}
-        if(sb!=null){
-        	throw new SOAPFaultException(sb.getFault());
-        }*/
+
         return true;
     }
 
