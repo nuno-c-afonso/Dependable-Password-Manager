@@ -138,8 +138,7 @@ public class ByzantineRegisterConnection {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (WrongSignatureException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Wrong signature check on the Login!");
 			} catch (WebServiceException e) {
 				if(!connectionWasClosed(e))
 					throw e;
