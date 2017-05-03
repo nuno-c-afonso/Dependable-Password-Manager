@@ -1,25 +1,25 @@
-package pt.tecnico.sec.dpm.server;
+package pt.tecnico.sec.dpm.broadcastServer;
 
 import javax.xml.ws.Endpoint;
 
-import pt.tecnico.sec.dpm.server.exceptions.NullArgException;
+import pt.tecnico.sec.dpm.broadcastServer.exceptions.NullArgException;
 
 //import pt.ulisboa.tecnico.sdis.ws.uddi.UDDINaming;
 
-public class ServerApplication {
+public class BroadcastServerApplication {
 
 	public static void main(String[] args) {
 		// Check arguments
 		/*if (args.length < 3) {
 			System.err.println("Argument(s) missing!");
-			System.err.printf("Usage: java %s uddiURL wsName wsURL%n", ServerApplication.class.getName());
+			System.err.printf("Usage: java %s uddiURL wsName wsURL%n", BroadcastServerApplication.class.getName());
 			return;
 		}*/
 		
 		// Check arguments
 		if (args.length == 0) {
 			System.err.println("Argument missing!");
-			System.err.printf("Usage: java %s wsURL [dbIndex]%n", ServerApplication.class.getName());
+			System.err.printf("Usage: java %s wsURL [dbIndex]%n", BroadcastServerApplication.class.getName());
 			return;
 		}
 		
@@ -29,16 +29,16 @@ public class ServerApplication {
 
 		String url = args[0];
 		int dbIndex = -1;
-		APIImpl service = null;
+		BroadcastServer service = null;
 		
 		if(args.length > 1)
 			dbIndex = new Integer(args[1]);
 		
 		try {
 			if(dbIndex == -1)
-				service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+				service = new BroadcastServer();
 			else
-				service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray(), dbIndex, null);
+				service = new BroadcastServer();
 		} catch (Exception e){}/*catch(NullArgException e) {
 			e.printStackTrace();
 			return;
@@ -62,7 +62,7 @@ public class ServerApplication {
 			System.out.println("Awaiting connections");
 			System.out.println("Press enter to shutdown");
 			System.in.read();
-			service.close();
+			//service.close();
 
 		} catch (Exception e) {
 			System.out.printf("Caught exception: %s%n", e);
