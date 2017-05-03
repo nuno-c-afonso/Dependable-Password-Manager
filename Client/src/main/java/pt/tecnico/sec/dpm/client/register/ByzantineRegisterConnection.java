@@ -65,11 +65,11 @@ public class ByzantineRegisterConnection {
 		this.cert = cert;
 		this.privateKey = privateKey;
 	}
-	
+		
 	public void register(PublicKey pubKey) throws SigningException, NullArgException_Exception,
 	PublicKeyInvalidSizeException_Exception, NotInitializedException {
 		
-		if(port == null)
+		if(port == null || privateKey == null || cert == null)
 			throw new NotInitializedException();
 		
 		byte[] sig = SecurityFunctions.makeDigitalSignature(privateKey,
@@ -77,6 +77,9 @@ public class ByzantineRegisterConnection {
 		
 		try {
 			sig = port.register(pubKey.getEncoded(), sig);
+			
+			if(sig == null)
+				throw new WrongSignatureException();
 			
 			SecurityFunctions.checkSignature(cert.getPublicKey(),
 					SecurityFunctions.concatByteArrays("register".getBytes(), pubKey.getEncoded()), sig);
@@ -90,9 +93,9 @@ public class ByzantineRegisterConnection {
 				throw e;
 		}
 	}
-	
+		
 	public void login(PublicKey pubKey, byte[] deviceID) throws SigningException, NotInitializedException {
-		if(port == null)
+		if(port == null || privateKey == null || cert == null)
 			throw new NotInitializedException();
 		
 		byte[] sig = null;
@@ -117,6 +120,9 @@ public class ByzantineRegisterConnection {
 						SecurityFunctions.concatByteArrays("login".getBytes(), pubKey.getEncoded(), deviceID, nonce));
 				
 				sig = port.login(pubKey.getEncoded(), deviceID, nonce, sig);
+				
+				if(sig == null)
+					throw new WrongSignatureException();
 				
 				SecurityFunctions.checkSignature(cert.getPublicKey(),
 						SecurityFunctions.concatByteArrays("login".getBytes(), deviceID, nonce, ("1").getBytes()), sig);
@@ -153,7 +159,7 @@ public class ByzantineRegisterConnection {
 	public void put(byte[] deviceID, byte[] cDomain, byte[] cUsername, byte[] cPassword, int wTS, byte[] bdSig) throws UnregisteredUserException,
 	SigningException, NoPublicKeyException_Exception, NullArgException_Exception, SessionNotFoundException_Exception, NotInitializedException {
 		
-		if(port == null)
+		if(port == null || privateKey == null || cert == null)
 			throw new NotInitializedException();
 		
 		if(nonce == null)
@@ -172,6 +178,9 @@ public class ByzantineRegisterConnection {
 		try {
 			sig = port.put(deviceID, nonce, cDomain, cUsername, cPassword, wTS, bdSig, tmpCounter, sig);
 			
+			if(sig == null)
+				throw new WrongSignatureException();
+			
 			tmpCounter++;
 			SecurityFunctions.checkSignature(cert.getPublicKey(),
 					SecurityFunctions.concatByteArrays("put".getBytes(), deviceID, nonce, ("" + tmpCounter).getBytes()), sig);
@@ -188,9 +197,7 @@ public class ByzantineRegisterConnection {
 	NoPasswordException_Exception, NoPublicKeyException_Exception, NullArgException_Exception, SessionNotFoundException_Exception,
 	NotInitializedException {
 		
-		// TODO: Check what are the attribute references and if they have null values (here and every other function)
-		
-		if(port == null)
+		if(port == null || privateKey == null || cert == null)
 			throw new NotInitializedException();
 		
 		if(nonce == null)
@@ -205,6 +212,13 @@ public class ByzantineRegisterConnection {
 		try {
 			List<Object> result = port.get(deviceID, nonce, domain, username, tmpCounter, sig);
 			
+			if(result == null || result.get(0) == null || result.get(2) == null || result.get(3) == null || result.get(4) == null)
+				throw new WrongSignatureException();
+			
+			if(!(result.get(0) instanceof byte[] && result.get(1) instanceof Integer && result.get(2) instanceof byte[]
+					&& result.get(3) instanceof byte[] && result.get(4) instanceof byte[]))
+				throw new WrongSignatureException();
+				
 			// Parsing the server result
 			byte[] retrivedPassword = (byte[]) result.get(0);
 			int wTS = (int) result.get(1);
@@ -212,8 +226,6 @@ public class ByzantineRegisterConnection {
 			byte[] clientSig = (byte[]) result.get(3);
 			sig = (byte[]) result.get(4);
 			tmpCounter ++;
-			
-			// TODO: Check if need to do the additional verifications here!!!
 			
 			SecurityFunctions.checkSignature(cert.getPublicKey(),
 					SecurityFunctions.concatByteArrays("get".getBytes(), deviceID, nonce,
