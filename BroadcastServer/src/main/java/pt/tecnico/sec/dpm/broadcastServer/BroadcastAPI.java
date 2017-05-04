@@ -13,7 +13,7 @@ import pt.tecnico.sec.dpm.broadcastServer.exceptions.SessionNotFoundException;
 @WebService
 public interface BroadcastAPI {
 	
-	void broadcastPut(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
+	void broadcastPut(byte[] pubKey, byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
 			throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException, 
 			WrongSignatureException, SigningException, ConnectionClosedException;
 }
