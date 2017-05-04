@@ -73,10 +73,10 @@
 	<maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-	<ws.url>http://localhost:8080/ws.BroadcastAPI/endpoint</ws.url>
-	<wsdl.url>${ws.url}?WSDL</wsdl.url>
-	<wsdl.directory>${basedir}/../ping-ws_juddi/src/main/resources</wsdl.directory>
-    <wsdl.filename>Ping.wsdl</wsdl.filename>
+	<!--ws.url>http://localhost:8080/ws.BroadcastAPI/endpoint</ws.url>
+	<wsdl.url>${ws.url}?WSDL</wsdl.url-->
+	<wsdl.directory>./</wsdl.directory>
+    <wsdl.filename>BroadcastAPI.wsdl</wsdl.filename>
 
 	<version.junit>4.12</version.junit>
     </properties>
@@ -95,7 +95,7 @@
 	             <verbose>true</verbose>
 	             <fork>true</fork>
                 </configuration>
-	    </plugin>
+	    	</plugin>
 	        <plugin>
 	        	<groupId>org.jvnet.jax-ws-commons</groupId>
 	        	<artifactId>jaxws-maven-plugin</artifactId>
@@ -108,11 +108,12 @@
 	        		</execution>
 	        	</executions>
 	        	<configuration>
-	        		<!-- https://jax-ws-commons.java.net/jaxws-maven-plugin/wsimport-mojo.html
+					<!-- https://jax-ws-commons.java.net/jaxws-maven-plugin/wsimport-mojo.html 
 -->
-					<wsdlUrls>
-						<wsdlUrl>${wsdl.url}</wsdlUrl>
-					</wsdlUrls>
+					<wsdlDirectory>${wsdl.directory}</wsdlDirectory>
+					<wsdlFiles>
+						<wsdlFile>${wsdl.filename}</wsdlFile>
+					</wsdlFiles>
 				</configuration>
 				<dependencies>
 					<dependency>
