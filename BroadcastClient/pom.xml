@@ -73,7 +73,7 @@
 	<maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-	<ws.url>http://localhost:8080/ws.API/endpoint</ws.url>
+	<ws.url>http://localhost:8080/ws.BroadcastAPI/endpoint</ws.url>
 	<wsdl.url>${ws.url}?WSDL</wsdl.url>
 
 	<version.junit>4.12</version.junit>
