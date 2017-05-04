@@ -144,6 +144,7 @@ public class ClientApplication{
 						break;
 						
 					case 5:
+					try {
 						int i=0;
 						int fails = 0;
 						while(i<500){
@@ -158,6 +159,14 @@ public class ClientApplication{
 							i++;
 						}
 						System.out.println("Failed "+fails+" times.");
+					} catch (NoPasswordException_Exception | NullClientArgException | UnregisteredUserException |
+							SigningException | KeyConversionException_Exception
+							| SessionNotFoundException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception | WrongSignatureException e) {
+						System.out.println(e.getMessage());
+					} catch (HandlerException e) {
+						System.out.println(e.getMessage());
+					}
 						break;
 					default:
 						System.out.println("Cannot recognize it. Please try again.");

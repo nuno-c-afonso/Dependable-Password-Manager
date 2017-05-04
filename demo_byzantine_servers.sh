@@ -60,8 +60,8 @@ do
 done
 
 # Creates the keystores for all the entities
-# rm -rf keys
-# ./gen_keys.sh "client $server_lst"
+rm -rf keys
+./gen_keys.sh "client $server_lst"
 
 # Starts the server instances in new terminal windows
 i=0
