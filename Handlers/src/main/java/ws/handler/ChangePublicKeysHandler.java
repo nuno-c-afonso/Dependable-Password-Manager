@@ -66,7 +66,7 @@ public class ChangePublicKeysHandler implements SOAPHandler<SOAPMessageContext> 
 	    		//register(publicKey, {"register"}CPriv)
 	    		Name registerRequeste = se.createName("register","ns2","http://server.dpm.sec.tecnico.pt/");
 	    		Iterator itr = sb.getChildElements(registerRequeste);
-	    		if (itr.hasNext() &&  i < 2) {
+	    		if (itr.hasNext() &&  i > 2) {
 	        		SOAPElement method = (SOAPElement) sb.getFirstChild();
 	        		Name key = se.createName("arg0");
 	             Iterator it = method.getChildElements(key);
@@ -79,7 +79,7 @@ public class ChangePublicKeysHandler implements SOAPHandler<SOAPMessageContext> 
 	    		//login(publicKey, deviceID, nonce, {"login" || publicKey || deviceID || nonce}CPriv)
 	    		Name loginRequeste = se.createName("login","ns2","http://server.dpm.sec.tecnico.pt/");
 	    		itr =sb.getChildElements(loginRequeste);
-	    		if (itr.hasNext() &&  i < 2) {
+	    		if (itr.hasNext() &&  i > 2) {
 	        		SOAPElement method = (SOAPElement) sb.getFirstChild();
 	        		Name key = se.createName("arg0");
 	             Iterator it = method.getChildElements(key);
