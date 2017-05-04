@@ -1,8 +1,7 @@
 package pt.tecnico.sec.dpm.server;
 
-import pt.tecnico.sec.dpm.server.broadcast.BroadcastAPI;
-import pt.tecnico.sec.dpm.server.broadcast.BroadcastServer;
-import pt.tecnico.sec.dpm.server.broadcast.SignedEchoBroadcast;
+import pt.tecnico.sec.dpm.server.broadcastClient.BroadcastClient;
+import pt.tecnico.sec.dpm.server.broadcastServer.BroadcastServer;
 import pt.tecnico.sec.dpm.server.db.*;
 import pt.tecnico.sec.dpm.server.exceptions.*;
 import pt.tecnico.sec.dpm.security.*;
@@ -47,8 +46,9 @@ public class APIImpl implements API {
 	private String url = null;
 	private PrivateKey privKey = null;
 	private HashMap<String, HashMap<String, Integer>> sessionCounters = null;
-	private List<String> serverUrls;
+	private String[] serverUrls;
 	private Endpoint endpoint;
+	private BroadcastClient broadcastClient = null;
 	
 	// For testing purposes
 	public APIImpl(String url, char[] keystorePass, char[] keyPass) throws NullArgException {
@@ -56,14 +56,37 @@ public class APIImpl implements API {
 		dbMan = new DPMDB();		
 	}
 	
+	// For testing the put
+	public APIImpl(String url, char[] keystorePass, char[] keyPass, String[] serverUrls) throws NullArgException {
+		init(url, keystorePass, keyPass);
+		dbMan = new DPMDB();
+		
+		this.serverUrls = serverUrls;
+		
+		// Creates the entrypoint for the other servers to send the broadcast
+		endpoint = Endpoint.create(new BroadcastServer(dbMan, serverUrls));
+		URL toBroadcast = null;
+		try {
+			toBroadcast = new URL(url);
+			toBroadcast = new URL(toBroadcast.getProtocol(), toBroadcast.getHost(), 20000, "/ws.API/broadcast");
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		System.out.printf("Starting broadcast service at %s%n", toBroadcast.toString());
+		endpoint.publish(toBroadcast.toString());
+	}
+	
 	// For the byzantine servers
-	public APIImpl(String url, char[] keystorePass, char[] keyPass, int index, List<String> serverUrls) throws NullArgException {
+	public APIImpl(String url, char[] keystorePass, char[] keyPass, int index, String[] serverUrls) throws NullArgException {
 		init(url, keystorePass, keyPass);
 		this.serverUrls = serverUrls;
 		dbMan = new DPMDB(index);
 		
+		
 		// Creates the entrypoint for the other servers to send the broadcast
-		endpoint = Endpoint.create(new BroadcastServer(dbMan, serverUrls));
+		endpoint = Endpoint.create(new BroadcastServer(new DPMDB(index, 1), serverUrls));
 		URL toBroadcast = null;
 		try {
 			toBroadcast = new URL(url);
@@ -202,7 +225,7 @@ public class APIImpl implements API {
 		return serverSig;
 	}
 	
-	private boolean put(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig) 
+	private void put(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] bdSig) 
 			throws WrongSignatureException, KeyConversionException, SessionNotFoundException, ConnectionClosedException {	
 	
 		byte[] publicKey = dbMan.pubKeyFromDeviceID(deviceID);
@@ -215,9 +238,12 @@ public class APIImpl implements API {
 				bdSig);
 		
 		boolean result = dbMan.put(pubKey.getEncoded(), deviceID, domain, username, password, wTs, bdSig);	
-		System.out.println(result);
 		
-		return result;
+		if(broadcastClient == null)
+			broadcastClient = new BroadcastClient(serverUrls);
+		
+		if(result)
+			broadcastClient.Broadcast(deviceID, domain, username, password, wTs, bdSig);			
 	}
 	
 	@Override

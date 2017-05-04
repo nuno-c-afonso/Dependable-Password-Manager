@@ -65,7 +65,10 @@ public class PutTest {
     @BeforeClass
     public static void oneTimeSetUp() {
     	try {
-			APIImplTest = new APIImpl("http://localhost:8080/ws.api/endpoint", "ins3cur3".toCharArray(), "1nsecure".toCharArray());
+    		String[] servers = {"http://localhost:8080/ws.api/endpoint"};
+    		
+			APIImplTest = new APIImpl("http://localhost:8080/ws.api/endpoint",
+					"ins3cur3".toCharArray(), "1nsecure".toCharArray(), servers);
 		} catch (NullArgException e) {
 			// It will not happen
 			e.printStackTrace();

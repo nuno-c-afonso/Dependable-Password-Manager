@@ -22,6 +22,10 @@ public class DPMDB extends DBManager {
 		super(DB_URL + index + DB_OPTIONS, USER, PASS);
 	}
 	
+	public DPMDB(int index, int user) {
+		super(DB_URL + index + DB_OPTIONS, USER + user, PASS);
+	}
+	
 	// Registers the users only when pubKey is new
 	public void register(byte[] pubKey) throws ConnectionClosedException, PublicKeyInUseException {
 		String q = "INSERT INTO users (publickey) VALUES (?)";

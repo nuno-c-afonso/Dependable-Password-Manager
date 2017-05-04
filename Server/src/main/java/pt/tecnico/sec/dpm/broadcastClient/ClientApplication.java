@@ -9,6 +9,7 @@ import java.util.InputMismatchException;
 import java.util.Scanner;
 import pt.tecnico.sec.dpm.security.exceptions.SigningException;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
+import pt.tecnico.sec.dpm.server.broadcastClient.BroadcastClient;
 
 
 //import pt.tecnico.sec.dpm.client.DpmClient;

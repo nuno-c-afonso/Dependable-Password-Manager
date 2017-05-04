@@ -1,4 +1,4 @@
-package pt.tecnico.sec.dpm.broadcastServer;
+package pt.tecnico.sec.dpm.server.broadcastServer;
 
 
 import java.util.List;
@@ -8,20 +8,17 @@ import javax.jws.WebService;
 import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
 import pt.tecnico.sec.dpm.security.exceptions.SigningException;
 import pt.tecnico.sec.dpm.security.exceptions.WrongSignatureException;
-import pt.tecnico.sec.dpm.broadcastServer.db.DPMDB;
-import pt.tecnico.sec.dpm.broadcastServer.exceptions.ConnectionClosedException;
-import pt.tecnico.sec.dpm.broadcastServer.exceptions.NoPublicKeyException;
-import pt.tecnico.sec.dpm.broadcastServer.exceptions.NullArgException;
-import pt.tecnico.sec.dpm.broadcastServer.exceptions.SessionNotFoundException;
-import pt.tecnico.sec.dpm.broadcastClient.BroadcastClient;
+import pt.tecnico.sec.dpm.server.broadcastClient.BroadcastClient;
+import pt.tecnico.sec.dpm.server.db.DPMDB;
+import pt.tecnico.sec.dpm.server.exceptions.*;
 
-@WebService(endpointInterface = "pt.tecnico.sec.dpm.broadcastServer.BroadcastAPI")
+@WebService(endpointInterface = "pt.tecnico.sec.dpm.server.broadcastServer.BroadcastAPI")
 public class BroadcastServer implements BroadcastAPI {
 	private DPMDB dbMan = null;
 	String[] urls;
 	BroadcastClient broadcastClient = null;
 	
-	public BroadcastServer(DPMDB dbMan,String[] urls) {
+	public BroadcastServer(DPMDB dbMan, String[] urls) {
 		this.dbMan = dbMan;
 		this.urls = urls;
 		
@@ -31,7 +28,6 @@ public class BroadcastServer implements BroadcastAPI {
 	
 	}
 	
-
 	@Override
 	public void broadcastPut(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTS, 
 			byte[] bdSig)

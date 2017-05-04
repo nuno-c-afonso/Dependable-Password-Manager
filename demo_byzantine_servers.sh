@@ -70,7 +70,7 @@ do
   let "tmp_port=$port+$i"
   url="http://$ip:$tmp_port/ws.API/endpoint"
   xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "Port:$tmp_port" \
-    -e "cd Server; mvn exec:java -Dws.url=$url -Dexec.args=\"$url $i\"" &
+    -e "cd Server; mvn exec:java -Dws.url=$url -Dexec.args=\"$server_lst $i\"" &
   let "i++"
 done
 

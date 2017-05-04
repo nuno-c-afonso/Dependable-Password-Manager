@@ -1,15 +1,11 @@
-package pt.tecnico.sec.dpm.broadcastClient;
+package pt.tecnico.sec.dpm.server.broadcastClient;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import pt.tecnico.sec.dpm.broadcastserver.ConnectionClosedException_Exception;
-import pt.tecnico.sec.dpm.broadcastserver.KeyConversionException_Exception;
-import pt.tecnico.sec.dpm.broadcastserver.NoPublicKeyException_Exception;
-import pt.tecnico.sec.dpm.broadcastserver.NullArgException_Exception;
-import pt.tecnico.sec.dpm.broadcastserver.SessionNotFoundException_Exception;
-import pt.tecnico.sec.dpm.broadcastserver.SigningException_Exception;
-import pt.tecnico.sec.dpm.broadcastserver.WrongSignatureException_Exception;
+import pt.tecnico.sec.dpm.server.broadcastserver.*;
 
 
 public class BroadcastClient {
@@ -17,9 +13,19 @@ public class BroadcastClient {
 	
 	public BroadcastClient(String[] urls) {
 
-    	conns = new ArrayList<BroadcastConnection>();//TODO replace with broadcast Connection
-    	for(String s : urls)
-    		conns.add(new BroadcastConnection(s));
+    	conns = new ArrayList<BroadcastConnection>();
+    	for(int i = 0; i < urls.length; i++) {
+    		URL toBroadcast = null;
+    		try {
+    			toBroadcast = new URL(urls[i]);
+    			toBroadcast = new URL(toBroadcast.getProtocol(), toBroadcast.getHost(), 20000 + i, "/ws.API/broadcast");
+    		} catch (MalformedURLException e) {
+    			// TODO Auto-generated catch block
+    			e.printStackTrace();
+    		}
+    		
+    		conns.add(new BroadcastConnection(toBroadcast));
+    	}
     }
 	
 	public void Broadcast(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig){		

@@ -1,5 +1,7 @@
 package pt.tecnico.sec.dpm.server;
 
+import java.util.Arrays;
+
 import javax.xml.ws.Endpoint;
 
 import pt.tecnico.sec.dpm.server.exceptions.NullArgException;
@@ -19,30 +21,26 @@ public class ServerApplication {
 		// Check arguments
 		if (args.length == 0) {
 			System.err.println("Argument missing!");
-			System.err.printf("Usage: java %s wsURL [dbIndex]%n", ServerApplication.class.getName());
+			System.err.printf("Usage: java %s wsURL ... wsURL dbIndex%n", ServerApplication.class.getName());
 			return;
 		}
 		
 		//String uddiURL = args[0];
 		//String name = args[1];
 		//String url = args[2];
-
-		String url = args[0];
-		int dbIndex = -1;
+		int argsSize = args.length;
+		int dbIndex = Integer.parseInt(args[argsSize - 1]);
+		String url = args[dbIndex];
+		String urls[] = Arrays.copyOfRange(args, 0, argsSize - 1);
+		
 		APIImpl service = null;
 		
-		if(args.length > 1)
-			dbIndex = new Integer(args[1]);
-		
 		try {
-			if(dbIndex == -1)
-				service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray());
-			else
-				service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray(), dbIndex, null);
-		} catch (Exception e){}/*catch(NullArgException e) {
+			service = new APIImpl(url, "ins3cur3".toCharArray(), "1nsecure".toCharArray(), dbIndex, urls);
+		} catch(NullArgException e) {
 			e.printStackTrace();
 			return;
-		}*/
+		}
 		
 		Endpoint endpoint = null;
 		//UDDINaming uddiNaming = null;

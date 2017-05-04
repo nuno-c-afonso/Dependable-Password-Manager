@@ -42,11 +42,18 @@ CREATE TABLE passwords(
 );
 
 CREATE USER IF NOT EXISTS 'dpm_account'@'localhost' IDENTIFIED BY 'FDvlalaland129&&';
+CREATE USER IF NOT EXISTS 'dpm_account1'@'localhost' IDENTIFIED BY 'FDvlalaland129&&';
 
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.users TO 'dpm_account'@'localhost';
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.passwords TO 'dpm_account'@'localhost';
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.sessions TO 'dpm_account'@'localhost';
 GRANT SELECT,INSERT,UPDATE ON  sec_dpm.devices TO 'dpm_account'@'localhost';
 
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm.users TO 'dpm_account1'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm.passwords TO 'dpm_account1'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm.sessions TO 'dpm_account1'@'localhost';
+GRANT SELECT,INSERT,UPDATE ON  sec_dpm.devices TO 'dpm_account1'@'localhost';
+
 -- Will only work on tables with SELECT privilege
 GRANT LOCK TABLES ON * TO 'dpm_account'@'localhost';
+GRANT LOCK TABLES ON * TO 'dpm_account1'@'localhost';

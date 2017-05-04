@@ -1,8 +1,7 @@
-package pt.tecnico.sec.dpm.broadcastServer;
+package pt.tecnico.sec.dpm.server.broadcastServer;
 
 import javax.xml.ws.Endpoint;
 
-import pt.tecnico.sec.dpm.broadcastServer.exceptions.NullArgException;
 
 //import pt.ulisboa.tecnico.sdis.ws.uddi.UDDINaming;
 
