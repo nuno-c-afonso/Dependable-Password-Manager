@@ -22,11 +22,24 @@ public class BroadcastClient {
     		conns.add(new BroadcastConnection(s));
     }
 	
-	public void Broadcast(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig) throws ConnectionClosedException_Exception, KeyConversionException_Exception, NoPublicKeyException_Exception, NullArgException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception{
+	public void Broadcast(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig){		
 		for (BroadcastConnection con : conns){
-			con.broadcastPut(deviceID, domain, username, password, wTs, sig);
+			Thread thread = new Thread(){
+				public void run(){
+					try {
+						con.broadcastPut(deviceID, domain, username, password, wTs, sig);
+					} catch (ConnectionClosedException_Exception | KeyConversionException_Exception
+							| NoPublicKeyException_Exception | NullArgException_Exception
+							| SessionNotFoundException_Exception | SigningException_Exception
+							| WrongSignatureException_Exception e) {
+						e.printStackTrace();
+					}
+				}
+			};
+			thread.start();
 		}
 		
 	}
+	
 	
 }

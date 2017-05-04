@@ -1,4 +1,4 @@
-package pt.tecnico.sec.dpm.server.broadcast;
+package pt.tecnico.sec.dpm.broadcastServer;
 
 
 import pt.tecnico.sec.dpm.security.exceptions.KeyConversionException;
