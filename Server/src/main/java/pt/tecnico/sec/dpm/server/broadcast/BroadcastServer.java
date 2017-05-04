@@ -1,5 +1,6 @@
 package pt.tecnico.sec.dpm.server.broadcast;
 
+import java.net.URL;
 import java.util.List;
 
 import javax.jws.WebService;
@@ -17,9 +18,11 @@ import pt.tecnico.sec.dpm.server.exceptions.SessionNotFoundException;
 public class BroadcastServer implements BroadcastAPI {
 	private DPMDB dbMan = null;
 	private List<BroadcastAPI> conns = null;
+	private List<String> serverUrls;
 	
-	public BroadcastServer(DPMDB dbMan) {
+	public BroadcastServer(DPMDB dbMan, List<String> serverUrls) {
 		this.dbMan = dbMan;
+		this.serverUrls = serverUrls;
 	}
 	
 	public void sendBroadcast(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTS, 
@@ -31,11 +34,11 @@ public class BroadcastServer implements BroadcastAPI {
 			throw new NullArgException();
 		
 		if(conns == null) {
-			/*for(String url : serverUrls) {
-				APIImplService service = null;
+			for(String url : serverUrls) {
+				BroadcastServer service = null;
 				
 				try {
-					service = new APIImplService(new URL(url));
+					service = new BroadcastServer(new URL(url));
 				} catch (MalformedURLException e) {
 					// It will not happen!
 					e.printStackTrace();
@@ -44,12 +47,12 @@ public class BroadcastServer implements BroadcastAPI {
 				BroadcastAPI port = service.getAPIImplPort();
 				
 				conns.add(port);
-			}*/
+			}
 		} else {
 			for(BroadcastAPI i : conns) {
 				Thread thread = new Thread(){
 				    public void run(){
-				    	//i.broadcastPut(deviceID, domain, username, password, wTS, bdSig);
+				    	i.broadcastPut(deviceID, domain, username, password, wTS, bdSig);
 				    }
 				  };
 				  thread.start();
@@ -59,13 +62,13 @@ public class BroadcastServer implements BroadcastAPI {
 	}
 
 	@Override
-	public void broadcastPut(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTS, 
-			byte[] bdSig)
+	public void broadcastPut(byte[] pubKey, byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig)
 			throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException,
 			WrongSignatureException, SigningException, ConnectionClosedException {
-		//put(deviceID, domain, username, password, wTS, bdSig);
-		/*if(result) {
-			sendBroadcast(deviceID, domain, username, password, wTS, bdSig);
-		}*/
+		boolean result = dbMan.put(pubKey, deviceID, domain, username, password, wTs, sig);
+		
+		if(result) {
+			sendBroadcast(deviceID, domain, username, password, wTs, sig);
+		}
 	}
 }

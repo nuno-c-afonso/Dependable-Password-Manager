@@ -63,7 +63,7 @@ public class APIImpl implements API {
 		dbMan = new DPMDB(index);
 		
 		// Creates the entrypoint for the other servers to send the broadcast
-		endpoint = Endpoint.create(new BroadcastServer(dbMan));
+		endpoint = Endpoint.create(new BroadcastServer(dbMan, serverUrls));
 		URL toBroadcast = null;
 		try {
 			toBroadcast = new URL(url);
