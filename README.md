@@ -43,29 +43,11 @@ Dependable Password Manager
 # Running the project
 
 * The following steps allow to run the project only on one local machine;
-* However, it can also be run with a remote server and remote clients.
-
-## Generation of the keystores
-1. If there is no Proj-SEC16-17/keys directory, run: ./gen_keys.sh http://localhost:8080/ws.API/endpoint client.
-
-## Handlers
-1. On Proj-SEC16-17/Handlers, run: mvn clean install.
-
-## Server
-1. Start by making the installation of the Handlers;
-2. Go to Proj-SEC16-17/Server;
-3. Run: mvn clean install;
-4. To start the server, run: mvn exec:java.
-
-## Client
-1. Start by making the installation of the Server;
-2. Check if the server is currently running;
-3. On Proj-SEC16-17/Client, run: mvn clean install exec:java.
+* However, it can also be run with a remote server and remote clients;
+* The demo_byzantine_servers.sh script does all the necessary compilation.
 
 ## Demo of the attacks
 
-1. Confirm that the keystores were previously generated;
-2. Run: ./demo_server.sh;
-3. On other terminal, run: ./demo_client_handlers.sh;
-4. Navigate through the menus to perform the different attacks;
-5. On each attack, start by making two register operations to register the public keys of the user and the attacker.
+1. Run: ./demo_byzantine_servers.sh;
+2. Navigate through the menus to perform the different attacks;
+3. On each attack, start by making two register operations to register the public keys of the user and the attacker.
