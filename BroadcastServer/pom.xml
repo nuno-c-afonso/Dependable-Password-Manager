@@ -164,6 +164,14 @@
   		<artifactId>SecurityFunctions</artifactId>
   		<version>1.0-SNAPSHOT</version>
       </dependency>
+      
+      <!-- broadcastClient -->
+      <dependency>
+          <groupId>pt.tecnico.sec.dpm.g10</groupId>
+  		<artifactId>broadcastClient</artifactId>
+  		<version>1.0.0-SNAPSHOT</version>
+
+      </dependency>
 
     </dependencies>
 </project>
