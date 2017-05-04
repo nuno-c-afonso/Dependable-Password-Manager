@@ -119,6 +119,7 @@
     	         <cleanupDaemonThreads>false</cleanupDaemonThreads>
                  <arguments>
                      <argument>${ws.url}</argument>
+                     <argument>0</argument>
                  </arguments>
                  <killAfter>-1</killAfter>
             </configuration>

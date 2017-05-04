@@ -33,6 +33,9 @@ public class BroadcastServer implements BroadcastAPI {
 			byte[] bdSig)
 			throws NoPublicKeyException, NullArgException, SessionNotFoundException, KeyConversionException,
 			WrongSignatureException, SigningException, ConnectionClosedException {
+		
+		if(deviceID == null || domain == null || username == null || password == null || bdSig == null)
+			return;
 			
 			if(broadcastClient == null){
 				broadcastClient = new BroadcastClient(urls);
