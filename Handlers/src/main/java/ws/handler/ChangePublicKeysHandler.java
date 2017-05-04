@@ -22,7 +22,7 @@ import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
 
-public class SimpleTamperHandler implements SOAPHandler<SOAPMessageContext> {
+public class ChangePublicKeysHandler implements SOAPHandler<SOAPMessageContext> {
 	public static final String ATTACKER_KEY = "MIICITANBgkqhkiG9w0BAQEFAAOCAg4AMIICCQKCAgBupaNSzNq/GM+gLI7CtM81" +
 											  "x2XyklMO4QvqMb57CLxNj/Ah6Y69Mkmig4bWDZVdRpd1+0WVX2RSLkDbWFRVECMj" +
 											  "Njcq+i/NRj1mEPDR0CWpnlGkNh9Urr4ssjmHP7AKw5ujb21waUArDO1/mePTFTJN" +

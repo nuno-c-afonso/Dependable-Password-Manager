@@ -28,7 +28,11 @@ public class BroadcastClient {
     	}
     }
 	
-	public void Broadcast(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig){		
+	public void Broadcast(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig){
+		
+		if(deviceID == null || domain == null || username == null || password == null || sig == null)
+			return;
+		
 		for (BroadcastConnection con : conns){
 			Thread thread = new Thread(){
 				public void run(){
