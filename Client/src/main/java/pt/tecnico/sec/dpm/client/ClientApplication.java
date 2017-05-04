@@ -82,6 +82,7 @@ public class ClientApplication{
 				System.out.println("2 - Save password;");
 				System.out.println("3 - Retrieve password;");
 				System.out.println("4 - Close.");
+				System.out.println("5 - BruteForce.");
 				System.out.print("> ");
 				
 				int option = -1;
@@ -141,6 +142,23 @@ public class ClientApplication{
 					case 4:
 						cont = false;
 						break;
+						
+					case 5:
+						int i=0;
+						int fails = 0;
+						while(i<500){
+							String sendPass = Integer.toString(i);
+							client.save_password("a".getBytes(), "a".getBytes(), sendPass.getBytes());
+							password = new String(client.retrieve_password("a".getBytes(), "a".getBytes()));
+							System.out.println("Recovered password: " + password);
+							if (!sendPass.equals(password)){
+								System.out.println("expected: "+sendPass+" received: "+password);
+								fails+=1;
+							}
+							i++;
+						}
+						System.out.println("Failed "+fails+" times.");
+						break;
 					default:
 						System.out.println("Cannot recognize it. Please try again.");
 						break;
@@ -164,7 +182,8 @@ public class ClientApplication{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}	
+	}
+	
 }
 	
 
