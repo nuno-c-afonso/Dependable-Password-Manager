@@ -75,6 +75,8 @@
 
 	<ws.url>http://localhost:8080/ws.BroadcastAPI/endpoint</ws.url>
 	<wsdl.url>${ws.url}?WSDL</wsdl.url>
+	<wsdl.directory>${basedir}/../ping-ws_juddi/src/main/resources</wsdl.directory>
+    <wsdl.filename>Ping.wsdl</wsdl.filename>
 
 	<version.junit>4.12</version.junit>
     </properties>
