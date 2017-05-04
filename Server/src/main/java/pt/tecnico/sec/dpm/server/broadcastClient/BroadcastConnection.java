@@ -18,22 +18,13 @@ public class BroadcastConnection {
 		try {
 		
 			BroadcastServerService service = new BroadcastServerService(url);
-			port = service.getBroadcastServerPort();
+			port = service.getBroadcastServerPort();			
 		} catch (WebServiceException e) {
 				throw e;
 		}
 	}
 	
 	public  void broadcastPut(byte[] deviceID, byte[] domain, byte[] username, byte[] password, int wTs, byte[] sig) throws ConnectionClosedException_Exception, KeyConversionException_Exception, NoPublicKeyException_Exception, NullArgException_Exception, SessionNotFoundException_Exception, SigningException_Exception, WrongSignatureException_Exception{
-		if(port == null) {
-			try {	
-				BroadcastServerService service = new BroadcastServerService(url);
-				port = service.getBroadcastServerPort();
-			} catch (WebServiceException e) {
-					throw e;
-			}
-		}
-		
 		port.broadcastPut(deviceID, domain, username, password, wTs, sig);
 	}
 }

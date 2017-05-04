@@ -7,7 +7,6 @@ public class DBManager {
 	private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
 	
 	private Connection conn = null;
-	private ResultSet res = null;
 	
 	protected DBManager(String url, String username, String password) {
 		// Register driver
@@ -32,15 +31,12 @@ public class DBManager {
 	
 	// To make a DB select query
 	protected ResultSet select(PreparedStatement p) throws ConnectionClosedException, NoResultException {
+		ResultSet res = null;
+		
 		if(conn == null)
 			throw new ConnectionClosedException();
 		
-		try {
-			if(res != null) {
-				res.close();
-				res = null;
-			}
-			
+		try {			
 			res = p.executeQuery();
 			if(!res.next())
 				throw new NoResultException();
@@ -74,7 +70,7 @@ public class DBManager {
 	// To acquire locks on the desired tables
 	// NOTE: To be used only with controlled args, must NOT have user input!!!
 	protected void lock(String... strs) {
-		String q = "LOCK TABLES " + strs[0] + " " + strs[1];
+		/*String q = "LOCK TABLES " + strs[0] + " " + strs[1];
 		int size = strs.length;
 		
 		for(int i = 2; i < size; i += 2)
@@ -87,12 +83,12 @@ public class DBManager {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
 	}
 	
 	// To release all locked tables
 	protected void unlock() {
-		String q = "UNLOCK TABLES";
+		/*String q = "UNLOCK TABLES";
 		
 		try {
 			Statement stmt;
@@ -101,7 +97,7 @@ public class DBManager {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
 	}
 	
 	// To free all resources
@@ -109,11 +105,8 @@ public class DBManager {
 		try {
 			if(conn != null)
 				conn.close();
-			if(res != null)
-				res.close();
 			
 			conn = null;
-			res = null;
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
