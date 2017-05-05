@@ -64,7 +64,7 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
             	int i = Math.abs(rn.nextInt()) % 10;
      		
         		Name putRequeste = se.createName("putResponse","ns2","http://server.dpm.sec.tecnico.pt/");
-        		it =sb.getChildElements(putRequeste);
+        		Iterator it =sb.getChildElements(putRequeste);
         		if (it.hasNext()) {
                 	if(putMessageToRepeat==null){
                 		System.out.println("\n 1a Vez que recebe a mensagem put\n");
