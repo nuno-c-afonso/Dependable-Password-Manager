@@ -81,8 +81,8 @@ public class ClientApplication{
 				System.out.println("1 - Register user;");
 				System.out.println("2 - Save password;");
 				System.out.println("3 - Retrieve password;");
-				System.out.println("4 - Close.");
-				System.out.println("5 - BruteForce.");
+				System.out.println("4 - Brute force;");
+				System.out.println("5 - Close.");
 				System.out.print("> ");
 				
 				int option = -1;
@@ -139,11 +139,11 @@ public class ClientApplication{
 						System.out.println(e.getMessage());
 					}
 						break;
-					case 4:
+					case 5:
 						cont = false;
 						break;
 						
-					case 5:
+					case 4:
 					try {
 						int i=0;
 						int fails = 0;

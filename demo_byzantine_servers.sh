@@ -7,6 +7,48 @@ echo "Starting port: 8080"
 ip="localhost"
 port="8080"
 
+PS3='Please enter your choice: '
+options=("Reset" "ChangePublicKeysHandler" "DelayMessagesAttack" "ReplayHandler" "Exit")
+
+# Changes the server handler chain
+function cp_chain {
+    echo "Updating handler chain..."
+    cd ByzantineServer/src/main/resources/$1
+    \cp handler-chain.xml ..
+    cd ../../../../..
+    echo "Done!"
+}
+
+# Redirects to the version with the logging function
+function wants_logging {
+    log=""
+
+    while true; do
+        read -p "Show message log (y/n): " yn
+        case $yn in
+            [Yy] )
+                log="Logging"
+                break
+                ;;
+            [Nn] )
+                break
+                ;;
+        esac
+    done
+
+    cp_chain "$1$log"
+}
+
+# Shows the available options at the end of each loop
+function show_options {
+    i=1
+    for op in ${options[@]}; do
+        echo "$i) $op"
+        i=$((i+1))
+    done
+}
+
+
 # Installs the handlers
 cd Handlers
 mvn clean install
@@ -63,33 +105,58 @@ done
 rm -rf keys
 ./gen_keys.sh "client $server_lst"
 
-# The user just chose the byzantine option
-cd ByzantineServer
-mvn clean compile
-cd ..
-
-# Starts the server instances in new terminal windows
-i=0
-while [ $i -lt $n_faults ]
+# Interactive menu
+select opt in "${options[@]}"
 do
-  let "tmp_port=$port+$i"
-  url="http://$ip:$tmp_port/ws.API/endpoint"
-  xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "[BYZANTINE] Port:$tmp_port" \
-    -e "cd ByzantineServer; mvn exec:java -Dws.url=$url -Dexec.args=\"$server_lst $i\"" &
-  let "i++"
-done
+    case $opt in
+        "Reset")
+            wants_logging Reset
+            ;;
+        "ChangePublicKeysHandler")
+            wants_logging ChangePublicKeysHandler
+            ;;
+        "DelayMessagesAttack")
+            wants_logging DelayMessagesAttack
+            ;;
+        "ReplayHandler")
+            wants_logging ReplayHandler
+            ;;
+        "Exit")
+            echo "Goodbye."
+            break
+            ;;
+    esac
 
-# Starts the server instances in new terminal windows
-while [ $i -lt $n_servers ]
-do
-  let "tmp_port=$port+$i"
-  url="http://$ip:$tmp_port/ws.API/endpoint"
-  xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "Port:$tmp_port" \
-    -e "cd Server; mvn exec:java -Dws.url=$url -Dexec.args=\"$server_lst $i\"" &
-  let "i++"
-done
+    # The user just chose the byzantine option
+    cd ByzantineServer
+    mvn clean compile
+    cd ..
 
-# Starts a client instance a new terminal window
-sleep 10
-xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "Client" \
-  -e "cd Client; mvn clean compile exec:java -Dws.url=\"http://$ip:$port/ws.API/endpoint\" -Dexec.args=\"$server_lst $n_faults\"" &
+    # Starts the byzantine server instances in new terminal windows
+    i=0
+    while [ $i -lt $n_faults ]
+    do
+      let "tmp_port=$port+$i"
+      url="http://$ip:$tmp_port/ws.API/endpoint"
+      xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "[BYZANTINE] Port:$tmp_port" \
+        -e "cd ByzantineServer; mvn exec:java -Dws.url=$url -Dexec.args=\"$server_lst $i\"" &
+      let "i++"
+    done
+
+    # Starts the server instances in new terminal windows
+    while [ $i -lt $n_servers ]
+    do
+      let "tmp_port=$port+$i"
+      url="http://$ip:$tmp_port/ws.API/endpoint"
+      xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "Port:$tmp_port" \
+        -e "cd Server; mvn exec:java -Dws.url=$url -Dexec.args=\"$server_lst $i\"" &
+      let "i++"
+    done
+
+    # Starts a client instance a new terminal window
+    sleep 15
+    xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "Client" \
+      -e "cd Client; mvn clean compile exec:java -Dws.url=\"http://$ip:$port/ws.API/endpoint\" -Dexec.args=\"$server_lst $n_faults\"" &
+
+    show_options
+done
