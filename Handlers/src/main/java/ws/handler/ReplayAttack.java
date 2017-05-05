@@ -56,13 +56,6 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
         		SOAPHeader sh = se.getHeader();
         		//requestJobResponse
         		
-     		
-        		Name RegisterRequeste = se.createName("register","ns2","http://server.dpm.sec.tecnico.pt/");
-        		Iterator it =sb.getChildElements(RegisterRequeste);
-        		if (it.hasNext()) {
-        			System.out.println("\n Register message do nothing\n");
-        			return true;
-                }
         		
         		SOAPFault fault =sb.getFault();
      	
@@ -70,14 +63,13 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
       		 		
             	int i = Math.abs(rn.nextInt()) % 10;
      		
-        		Name putRequeste = se.createName("put","ns2","http://server.dpm.sec.tecnico.pt/");
+        		Name putRequeste = se.createName("putResponse","ns2","http://server.dpm.sec.tecnico.pt/");
         		it =sb.getChildElements(putRequeste);
         		if (it.hasNext()) {
-                	if((putMessageToRepeat==null || n==2)&& fault==null){
+                	if(putMessageToRepeat==null){
                 		System.out.println("\n 1a Vez que recebe a mensagem put\n");
             			putMessageToRepeat=msg;
             			putShToRepeat=sh;
-            			n=0;
             			return true;
             		}
                 	if (i>2){
@@ -94,20 +86,20 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
 	            		
 	            		smc.setMessage(putMessageToRepeat);
 	            		msg=smc.getMessage();
+	            		putMessageToRepeat = null;
 	            		return true;
                 	}
         			
         			return true;
                 }
         		
-        		Name getRequest = se.createName("get","ns2","http://server.dpm.sec.tecnico.pt/");
+        		Name getRequest = se.createName("getResponse","ns2","http://server.dpm.sec.tecnico.pt/");
         		it =sb.getChildElements(getRequest);
         		if (it.hasNext()) {
-                	if((getMessageToRepeat==null || n==2)&& fault==null){
+                	if(getMessageToRepeat==null) {
                 		System.out.println("\n 1a Vez que recebe a mensagem get\n");
             			getMessageToRepeat=msg;
             			getShToRepeat=sh;
-            			n=0;
             			return true;
             		}
         			
@@ -125,6 +117,7 @@ public class ReplayAttack implements SOAPHandler<SOAPMessageContext> {
 	            		
 	            		smc.setMessage(getMessageToRepeat);
 	            		msg=smc.getMessage();
+	            		getMessageToRepeat = null;
 	            		return true;
                 	}
                   

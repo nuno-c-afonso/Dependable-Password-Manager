@@ -242,7 +242,7 @@ public class ByzantineRegisterConnection {
 		} catch(WrongSignatureException | KeyConversionException_Exception | SigningException_Exception
 				| WrongSignatureException_Exception e) {
 			return get(deviceID, domain, username);
-		} catch (WebServiceException e) {
+		} catch (WebServiceException e) {			
 			if(!connectionWasClosed(e))
 				throw e;
 		}
