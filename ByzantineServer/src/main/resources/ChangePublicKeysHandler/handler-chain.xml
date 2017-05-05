@@ -1,0 +1,7 @@
+<handler-chains xmlns="http://java.sun.com/xml/ns/javaee">
+    <handler-chain>
+        <handler>
+            <handler-class>ws.handler.ChangePublicKeysHandler</handler-class>
+        </handler>
+    </handler-chain>
+</handler-chains>

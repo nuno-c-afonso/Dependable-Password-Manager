@@ -63,8 +63,23 @@ done
 rm -rf keys
 ./gen_keys.sh "client $server_lst"
 
+# The user just chose the byzantine option
+cd ByzantineServer
+mvn clean compile
+cd ..
+
 # Starts the server instances in new terminal windows
 i=0
+while [ $i -lt $n_faults ]
+do
+  let "tmp_port=$port+$i"
+  url="http://$ip:$tmp_port/ws.API/endpoint"
+  xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "[BYZANTINE] Port:$tmp_port" \
+    -e "cd ByzantineServer; mvn exec:java -Dws.url=$url -Dexec.args=\"$server_lst $i\"" &
+  let "i++"
+done
+
+# Starts the server instances in new terminal windows
 while [ $i -lt $n_servers ]
 do
   let "tmp_port=$port+$i"
@@ -74,8 +89,7 @@ do
   let "i++"
 done
 
-# Starts a client instance in the current terminal
+# Starts a client instance a new terminal window
 sleep 10
-cd Client
-mvn clean compile exec:java -Dws.url="http://$ip:$port/ws.API/endpoint" -Dexec.args="$server_lst $n_faults"
-cd ..
+xterm -xrm 'XTerm.vt100.allowTitleOps: false' -T "Client" \
+  -e "cd Client; mvn clean compile exec:java -Dws.url=\"http://$ip:$port/ws.API/endpoint\" -Dexec.args=\"$server_lst $n_faults\"" &
