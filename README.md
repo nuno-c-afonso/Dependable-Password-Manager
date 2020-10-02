@@ -69,3 +69,4 @@ Dependable Password Manager
 3. On other terminal, run: ./demo_client_handlers.sh;
 4. Navigate through the menus to perform the different attacks;
 5. On each attack, start by making two register operations to register the public keys of the user and the attacker.
+# Thanks.
